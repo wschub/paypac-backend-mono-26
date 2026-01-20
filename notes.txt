@@ -1,0 +1,9 @@
+🚀 Próximos módulos sugeridos:
+
+EventDcto (descuentos)
+EventRewardRules + EventBalancePromoters (sistema de promotores)
+EventFavorites (favoritos de usuarios)
+Invoice + InvoiceTickets (proceso de compra)
+Ticket + TicketTransaction (boletos y transferencias)
+
+¿Cuál prefieres que desarrollemos ahora? 🎯
