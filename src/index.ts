@@ -16,7 +16,8 @@ import eventDctoRoutes from './routes/eventdcto.routes';
 import eventRewardRulesRoutes from './routes/eventrewardrules.routes';
 import eventBalancePromotersRoutes from './routes/eventbalancepromoters.routes';
 import eventFavoritesRoutes from './routes/eventfavorites.routes';
-
+import ticketRoutes from './routes/ticket.routes';
+import ticketTransactionRoutes from './routes/tickettransaction.routes';
 
 
 
@@ -99,14 +100,31 @@ app.use('/api', eventDctoRoutes);
 app.use('/api', eventRewardRulesRoutes);
 app.use('/api', eventBalancePromotersRoutes);
 app.use('/api', eventFavoritesRoutes);
+app.use('/api/tickets', ticketRoutes);
+app.use('/api/ticket-transactions', ticketTransactionRoutes);
 
-// WebSocket logic
+
+// ============================================
+// 🔌 WebSocket logic
+// ============================================
 io.on("connection", (socket) => {
   console.log("🔌 New client connected:", socket.id);
 
+  // 🎫 Eventos de tickets en tiempo real
+  socket.on("ticket:transfer", (data) => {
+    console.log("📨 Ticket transfer:", data);
+    // Emitir al receptor específico
+    io.to(data.to_user_socket_id).emit("ticket:received", data);
+  });
+
+  socket.on("ticket:validated", (data) => {
+    console.log("✅ Ticket validated:", data);
+    // Emitir a todos los scanners del evento
+    io.to(`event:${data.event_id}`).emit("ticket:entry", data);
+  });
+
   socket.on("message", (data) => {
     console.log("📨 Message received:", data);
-    // Puedes emitir a todos
     io.emit("message", data);
   });
 
@@ -116,8 +134,10 @@ io.on("connection", (socket) => {
 });
 
 
+
 server.listen({ port, host }, () => {
   console.log(`✅ Servidor corriendo en http://${host}:${port}`);
+  console.log(`🎫 Módulo de Tickets: ACTIVO`);
 });
 
 

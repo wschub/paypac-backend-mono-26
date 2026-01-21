@@ -10,7 +10,7 @@ import {
   getEventBalanceStats,
   getAllPendingBalances,
   assignCutoffDate,
-} from '../controllers/eventBalancePromoters.controller';
+} from '../controllers/eventbalancepromoters.controller';
 import { authenticate } from '../middlewares/auth.middleware';
 import { authorizeRoles } from '../middlewares/role.middleware';
 import { validateRequest } from '../middlewares/validate.middleware';
@@ -21,7 +21,7 @@ import {
   bulkMarkAsPaidSchema,
   createRefundBalanceSchema,
   assignCutoffDateSchema,
-} from '../validators/eventBalancePromoters.validation';
+} from '../validators/eventbalancepromoters.validation';
 
 const router = Router();
 

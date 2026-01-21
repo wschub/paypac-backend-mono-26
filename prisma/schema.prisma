@@ -13,7 +13,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-
 model GeneralSettingsVariables {
   id          Int      @id @default(autoincrement())
   name        String   @unique
@@ -34,34 +33,34 @@ model User {
   remember_token           String?
   phone_number             String
   phone_number_verified_at DateTime?
-  num_doc                 String?   // Número de documento
-  type_doc                 Int?      // Tipo de documento (1: Cédula,
+  num_doc                  String? // Número de documento
+  type_doc                 Int? // Tipo de documento (1: Cédula,
   role                     String
   role_default             String    @default("CUSTOMER")
-  company_id Int?
-  auth_method            String?
+  company_id               Int?
+  auth_method              String?
   provider_id              String?
-  firebase_uid                      String?
+  firebase_uid             String?
   lang_user                String?
   verified_user            Int       @default(0)
   status                   Int       @default(0)
   createdAt                DateTime  @default(now())
   updatedAt                DateTime  @updatedAt
-  
-    // Relación: un usuario puede tener varias tarjetas
+
+  // Relación: un usuario puede tener varias tarjetas
   paymentMethods PaymentMethodCard[]
 
-  userCompanyRoles UserCompanyRole[]
+  userCompanyRoles    UserCompanyRole[]
   approvalsReceived   CompanyUserApproval[]   @relation("UserApproved")
   approvalsMade       CompanyUserApproval[]   @relation("UserApprover")
   companiesRegistered Company[]               @relation("CompanyRegisteredBy")
   promoterBalances    EventBalancePromoters[] @relation("UserPromoterBalances") // inverso de promoter
   eventDiscounts      EventDcto[]             @relation("UserEventDiscounts") // ← Inverso de EventDcto.user
   favorites           EventFavorites[] // ← Inverso de EventFavorites.user
-   paymentMethodsUsers       PaymentMethodsUsers[]
+  paymentMethodsUsers PaymentMethodsUsers[]
 
-   // Nueva relación (opcional)
-  company                  Company?  @relation("UserCompany", fields: [company_id], references: [id])
+  // Nueva relación (opcional)
+  company Company? @relation("UserCompany", fields: [company_id], references: [id])
 }
 
 model Roles {
@@ -80,7 +79,7 @@ model Company {
   id                  Int       @id @default(autoincrement())
   user_id_register    Int? // quien la crea
   users_id_approved   Int[] // puedes quitar esto si usas la tabla intermedia
-  company_name                String    @unique
+  company_name        String    @unique
   description         String?
   logo                String?
   phone_number        String?
@@ -99,7 +98,7 @@ model Company {
 
   userCompanyRoles UserCompanyRole[] // 1:N relación
 
-  registeredBy         User?                  @relation("CompanyRegisteredBy", fields: [user_id_register], references: [id])
+  registeredBy         User?                 @relation("CompanyRegisteredBy", fields: [user_id_register], references: [id])
   companyUserApprovals CompanyUserApproval[] // inverso de CompanyUserApproval.company
   users                User[]                @relation("UserCompany") // ← AGREGAR ESTA LÍNEA
 }
@@ -197,9 +196,6 @@ model RoleSectionPermission {
  * CUSTOMER
  * // @@schema("identity")
  * }
-
-
-
  */
 
 model Countries {
@@ -297,8 +293,8 @@ model Event {
   allow_external_promoters Boolean       @default(false) // Permite promotores externos
   allow_paypac_promotion   Boolean       @default(false) //
   sales_channel            String        @default("app") // Canal de ventas, por defecto "web","promoter","app"
-  commission_to_charge    Float           @default(0) // Comisión por cargo
-  commission_to_promoter  Float           @default(0) // Comisión al promotor
+  commission_to_charge     Float         @default(0) // Comisión por cargo
+  commission_to_promoter   Float         @default(0) // Comisión al promotor
 
   // Relación uno a uno con EventPlaces
   //numbered_place    EventPlaces? @relation(fields: [numbered_place_id], references: [id])
@@ -503,31 +499,28 @@ enum TypePlaces {
 
 //PAYMENTS
 model PaymentMethodsUI {
-  id               Int    @id @default(autoincrement())
-  method_name      String
-  mehtod_img String
-  method_status    Int @default(0)
-  createdAt        DateTime             @default(now())
-  updatedAt        DateTime             @updatedAt
-}  
+  id            Int      @id @default(autoincrement())
+  method_name   String
+  mehtod_img    String
+  method_status Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
 
 model PaymentMethodsUsers {
-  id               Int    @id @default(autoincrement())
-  user_id          Int
-  user_uid         String
-  method_id        Int
-  method_status    Int @default(0)
-  createdAt        DateTime             @default(now())
-  updatedAt        DateTime             @updatedAt
-  
+  id            Int      @id @default(autoincrement())
+  user_id       Int
+  user_uid      String
+  method_id     Int
+  method_status Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
   user User @relation(fields: [user_id], references: [id])
-}  
-
-
-
+}
 
 model PaymentMethodCard {
-  id               Int    @id @default(autoincrement())
+  id               Int     @id @default(autoincrement())
   user_id          Int
   user_uid         String
   id_token         String
@@ -597,38 +590,62 @@ model InvoiceTickets {
 
 //Ticket
 model Ticket {
-  id                       Int         @id @default(autoincrement())
-  transaction_id           Int
-  event_id                 Int
-  customer_id              Int
-  customer_token           String
-  customer_uid             String
-  customer_ID_phone      String
-  reference_ticket         String //E tkt
-  booking_ticket           String //INVOICE
-  token_ticket             String //secret 
-  ticket_first_time        Int         @default(1)
-  status_ticket            String
+  id                       Int          @id @default(autoincrement())
+  transaction_id           Int //Rel table transactions
+  event_id                 Int //Rel events
+  customer_id              Int //rel user comprador
+  customer_uid             String //rel user comprador firebase uid
+  customer_ID_phone        String
+  reference_ticket         String //Reference token ticket (random unique alfanuemrico) 
+  booking_ticket           String //INVOICE que empiece por PYC +  num aleatorio (4) +  ultmos 2 digitos timestamp
+  token_ticket             String //SECRET TOKEN para validar el ticket en la entrada al evento 
+  ticket_first_time        Int          @default(1)
+  status_ticket            TicketStatus @default(PENDING) //AGREGA ENUM STATUS PARA EL TICKET (pendiente, congelado, pagado, aceptado, cancelado, recibido, completado)
   ev_name                  String
   ev_short_description     String
-  ev_cover                 String      @default("")
-  ev_date_event            DateTime    @default(now())
-  ev_place_address         String      @default("")
-  ev_event_type            TypeEvent   @default(PUBLICO)
-  ev_type_venue            Places      @default(SIN_NUMERAR)
-  ev_place_seat            String      @default("")
-  ev_organizer_id          Int         @default(0)
-  ev_status                EventStatus @default(PROGRAMADO)
+  ev_cover                 String       @default("")
+  ev_date_event            DateTime     @default(now())
+  ev_place_address         String       @default("")
+  ev_event_type            TypeEvent    @default(PUBLICO)
+  ev_type_venue            Places       @default(SIN_NUMERAR)
+  ev_place_seat            String       @default("")
+  ev_organizer_id          Int          @default(0)
+  ev_status                EventStatus  @default(PROGRAMADO)
   loc_id_locality          Int
   loc_name_locality        String // Nombre de la localidad
   loc_bkg_color            String // Color de fondo
   loc_title_color          String // Color del título
   loc_text_color           String // Color del texto
   loc_title_color_location String // Color específico para el título de la localidad
+  created_at               DateTime     @default(now())
+  updated_at               DateTime     @updatedAt
+  used_at                  DateTime? // Nullable, si es null, no se ha usado
+}
+
+enum TicketStatus {
+  PENDING // Pendiente de pago
+  PAID // Pagado
+  ACTIVE // Activo (listo para usar)
+  USED // Ya usado en el evento
+  FROZEN // Congelado (esperando transferencia)
+  TRANSFERRED // Transferido
+  CANCELED // Cancelado
+  EXPIRED // Expirado
+}
+
+enum TransactionStatus {
+  PENDING // Pendiente de aceptación
+  FROZEN // Congelado esperando pago (para ventas)
+  PAID // Pago recibido (para ventas)
+  ACCEPTED // Aceptado por receptor
+  RECEIVED // Recibido
+  COMPLETED // Completado
+  REJECTED // Rechazado
+  CANCELLED // Cancelado
 }
 
 model TicketTransaction {
-  id                       Int       @id @default(autoincrement())
+  id                       Int               @id @default(autoincrement())
   ticket_id                Int
   from_customer_id         Int
   from_customer_token      String
@@ -643,10 +660,10 @@ model TicketTransaction {
   type_transaction         String // "transfer", "sale", "gift"
   ev_name                  String
   transaction_description  String //message de la transacción
-  created_at               DateTime  @default(now())
-  updated_at               DateTime  @updatedAt
+  created_at               DateTime          @default(now())
+  updated_at               DateTime          @updatedAt
   completed_at             DateTime? // Nullable, si es null, no se ha completado
-  status_ticket            String // "pending", "frozen", "paid", "accepted",  "cancelled", "received", "completed", frozen: si se espera un pago.
+  status_ticket            TransactionStatus @default(PENDING) // "pending", "frozen", "paid", "accepted",  "cancelled", "received", "completed", frozen: si se espera un pago.
 }
 
 //Transactions
@@ -675,34 +692,4 @@ model Transactions {
   taxes               String[]
   tip_in_cents        String
   meta                Json
-}
-
-model Wallet {
-  id                       Int         @id @default(autoincrement())
-  event_id                 Int
-  customer_id              Int
-  customer_token           String
-  customer_uid             String
-  customer_UUID_phone      String
-  reference_ticket         String
-  booking_ticket           String
-  token_ticket             String //secret 
-  ticket_first_time        Int         @default(1)
-  status_ticket            String
-  ev_name                  String
-  ev_short_description     String
-  ev_cover                 String      @default("")
-  ev_date_event            DateTime    @default(now())
-  ev_place_address         String      @default("")
-  ev_event_type            TypeEvent   @default(PUBLICO)
-  ev_type_venue            Places      @default(SIN_NUMERAR)
-  ev_place_seat            String      @default("")
-  ev_organizer_id          Int         @default(0)
-  ev_status                EventStatus @default(PROGRAMADO)
-  loc_id_locality          Int
-  loc_name_locality        String // Nombre de la localidad
-  loc_bkg_color            String // Color de fondo
-  loc_title_color          String // Color del título
-  loc_text_color           String // Color del texto
-  loc_title_color_location String
 }

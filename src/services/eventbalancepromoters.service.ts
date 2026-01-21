@@ -1,4 +1,4 @@
-import { EventBalancePromotersRepository } from '../repositories/eventBalancePromoters.repository';
+import { EventBalancePromotersRepository } from '../repositories/eventbalancepromoters.repository';
 import { EventRepository } from '../repositories/event.repository';
 import { UserRepository } from '../repositories/user.repository';
 import { Prisma, EVENT_STATUS } from '@prisma/client';
