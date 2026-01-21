@@ -190,7 +190,7 @@ export const calculateDiscount = async (
 
     res.status(200).json({
       total_amount,
-      discount_amount,
+      discountAmount,
       final_amount: total_amount - discountAmount,
     });
   } catch (err: any) {

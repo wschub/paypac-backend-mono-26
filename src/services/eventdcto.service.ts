@@ -1,6 +1,6 @@
-import { EventDctoRepository } from '../repositories/eventDcto.repository';
+import { EventDctoRepository } from '../repositories/eventdcto.repository';
 import { EventRepository } from '../repositories/event.repository';
-import { EventLocalitiesRepository } from '../repositories/eventLocalities.repository';
+import { EventLocalitiesRepository } from '../repositories/eventlocalities.repository';
 import { Prisma, EVENT_STATUS } from '@prisma/client';
 
 const dctoRepo = new EventDctoRepository();
