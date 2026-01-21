@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { EventFavoritesService } from '../services/eventFavorites.service';
+import { EventFavoritesService } from '../services/eventfavorites.service';
 
 const favoritesService = new EventFavoritesService();
 

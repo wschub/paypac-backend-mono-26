@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { InvoiceTicketsService } from '../services/invoiceTickets.service';
+import { InvoiceTicketsService } from '../services/invoicetickets.service';
 
 const invoiceTicketsService = new InvoiceTicketsService();
 

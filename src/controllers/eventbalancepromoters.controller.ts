@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { EventBalancePromotersService } from '../services/eventBalancePromoters.service';
+import { EventBalancePromotersService } from '../services/eventbalancepromoters.service';
 
 const balanceService = new EventBalancePromotersService();
 

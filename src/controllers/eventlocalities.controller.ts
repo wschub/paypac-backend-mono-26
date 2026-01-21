@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { EventLocalitiesService } from '../services/eventLocalities.service';
+import { EventLocalitiesService } from '../services/eventlocalities.service';
 
 const localitiesService = new EventLocalitiesService();
 

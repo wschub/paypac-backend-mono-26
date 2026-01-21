@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { EventDctoService } from '../services/eventDcto.service';
+import { EventDctoService } from '../services/eventdcto.service';
 
 const dctoService = new EventDctoService();
 

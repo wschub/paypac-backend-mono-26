@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { EventStagesService } from '../services/eventStages.service';
+import { EventStagesService } from '../services/eventstages.service';
 
 const stagesService = new EventStagesService();
 

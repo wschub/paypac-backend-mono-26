@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { EventRewardRulesService } from '../services/eventRewardRules.service';
+import { EventRewardRulesService } from '../services/eventrewardrules.service';
 
 const rewardRulesService = new EventRewardRulesService();
 
