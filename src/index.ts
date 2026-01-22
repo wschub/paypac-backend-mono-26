@@ -18,9 +18,16 @@ import eventBalancePromotersRoutes from './routes/eventbalancepromoters.routes';
 import eventFavoritesRoutes from './routes/eventfavorites.routes';
 import ticketRoutes from './routes/ticket.routes';
 import ticketTransactionRoutes from './routes/tickettransaction.routes';
+import staffAssignmentRoutes from './routes/event_staff_assignment.routes';
+import transactionRoutes from './routes/transaction.routes';
+import webhookRoutes from './routes/webhook.routes';
 
 
 
+// ============================================
+// 🔌 SOCKET.IO HANDLERS
+// ============================================
+import { setupTicketSocketHandlers } from './sockets/ticket.socket';
 
 dotenv.config();
 const app = express();
@@ -102,42 +109,31 @@ app.use('/api', eventBalancePromotersRoutes);
 app.use('/api', eventFavoritesRoutes);
 app.use('/api/tickets', ticketRoutes);
 app.use('/api/ticket-transactions', ticketTransactionRoutes);
+app.use('/api/staff', staffAssignmentRoutes); // Para /api/staff/my-events
+app.use('/api/events', staffAssignmentRoutes); // Para /api/events/:eventId/staff/*
+app.use('/api/transactions', transactionRoutes);
+
+// Registrar rutas ANTES de las rutas autenticadas
+app.use('/api/webhooks', webhookRoutes); // Sin autenticación
+
+
+
 
 
 // ============================================
-// 🔌 WebSocket logic
+// 🔌 WebSocket - Socket.IO
 // ============================================
-io.on("connection", (socket) => {
-  console.log("🔌 New client connected:", socket.id);
+setupTicketSocketHandlers(io);
 
-  // 🎫 Eventos de tickets en tiempo real
-  socket.on("ticket:transfer", (data) => {
-    console.log("📨 Ticket transfer:", data);
-    // Emitir al receptor específico
-    io.to(data.to_user_socket_id).emit("ticket:received", data);
-  });
-
-  socket.on("ticket:validated", (data) => {
-    console.log("✅ Ticket validated:", data);
-    // Emitir a todos los scanners del evento
-    io.to(`event:${data.event_id}`).emit("ticket:entry", data);
-  });
-
-  socket.on("message", (data) => {
-    console.log("📨 Message received:", data);
-    io.emit("message", data);
-  });
-
-  socket.on("disconnect", () => {
-    console.log("❌ Client disconnected:", socket.id);
-  });
-});
+console.log('✅ Socket.IO configurado con handlers de tickets');
 
 
 
 server.listen({ port, host }, () => {
-  console.log(`✅ Servidor corriendo en http://${host}:${port}`);
+   console.log(`✅ Servidor corriendo en http://${host}:${port}`);
   console.log(`🎫 Módulo de Tickets: ACTIVO`);
+  console.log(`👥 Módulo de Staff Assignment: ACTIVO`);
+  console.log(`🔌 Socket.IO: ACTIVO en puerto ${port}`);
 });
 
 

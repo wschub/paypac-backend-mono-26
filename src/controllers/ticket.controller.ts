@@ -113,24 +113,28 @@ export const transferTicket = async (req: Request, res: Response): Promise<void>
 };
 
 /**
- * POST /api/tickets/:id/validate
+ * 🆕 POST /api/tickets/:id/validate
  * Validar ticket en la entrada del evento
+ * ACTUALIZADO: Ahora requiere event_id en el body
  */
 export const validateTicket = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { qr_token } = req.body;
+    const { qr_token, event_id } = req.body;
     const scannerUser = req.user!;
 
     const result = await ticketService.validateTicket(
       qr_token,
       scannerUser.id,
-      scannerUser.role
+      scannerUser.role,
+      event_id // 🆕 Pasar event_id
     );
 
     res.status(200).json({
       success: true,
       message: result.message,
       ticket: result.ticket,
+      scanner_id: result.scanner_id,
+      scanner_role: result.scanner_role,
     });
   } catch (err: any) {
     res.status(400).json({

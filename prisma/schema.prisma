@@ -61,6 +61,9 @@ model User {
 
   // Nueva relación (opcional)
   company Company? @relation("UserCompany", fields: [company_id], references: [id])
+
+  staffAssignments EventStaffAssignment[] @relation("StaffAssignments")
+  staffAssigned    EventStaffAssignment[] @relation("StaffAssigner")
 }
 
 model Roles {
@@ -130,25 +133,6 @@ model CompanyUserApproval {
   user       User    @relation("UserApproved", fields: [user_id], references: [id])
   approvedBy User    @relation("UserApprover", fields: [approved_by], references: [id])
 }
-
-/**
- * const approval = await prisma.companyUserApproval.findFirst({
- * where: {
- * company_id: 10, // ID de la empresa
- * user_id: 2      // ID del usuario aprobado
- * },
- * include: {
- * approvedBy: true, // Usuario que aprobó
- * user: true,       // Usuario aprobado
- * company: true     // Empresa
- * }
- * });
- * if (approval) {
- * console.log(`El usuario ${approval.user.name} fue aprobado por ${approval.approvedBy.name} en la empresa ${approval.company.name}`);
- * } else {
- * console.log("No se encontró una aprobación.");
- * }
- */
 
 model Section {
   id           Int      @id @default(autoincrement())
@@ -307,6 +291,35 @@ model Event {
   promoterBalances EventBalancePromoters[] // ← relación inversa
   discounts        EventDcto[] // ← Inverso de EventDcto.event
   favorites        EventFavorites[] // ← Inverso de EventFavorites.event
+
+  staffAssignments EventStaffAssignment[]
+}
+
+model EventStaffAssignment {
+  id          Int    @id @default(autoincrement())
+  event_id    Int // Evento al que está asignado
+  user_id     Int // Usuario STAFF/STAFF_PROMOTER
+  role_type   String // "STAFF", "STAFF_PROMOTER"
+  assigned_by Int // ORGANIZER que lo asignó
+
+  // Geolocalización del staff (para validar en entrada)
+  latitude      String? // Lat donde está el staff
+  longitude     String? // Long donde está el staff
+  checked_in    Boolean   @default(false) // ¿Se "logeó" en el evento?
+  checked_in_at DateTime? // Cuándo se logeó
+
+  assigned_at DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relaciones
+  event      Event @relation(fields: [event_id], references: [id], onDelete: Cascade)
+  user       User  @relation("StaffAssignments", fields: [user_id], references: [id], onDelete: Cascade)
+  assignedBy User  @relation("StaffAssigner", fields: [assigned_by], references: [id])
+
+  @@unique([event_id, user_id]) // Un staff no puede estar duplicado en el mismo evento
+  @@index([event_id]) // Buscar staff por evento
+  @@index([user_id]) // Buscar eventos de un staff
 }
 
 enum EVENT_STATUS {

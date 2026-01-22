@@ -1,17 +1,21 @@
 import { InvoiceRepository } from '../repositories/invoice.repository';
-import { InvoiceTicketsRepository } from '../repositories/invoiceTickets.repository';
+import { InvoiceTicketsRepository } from '../repositories/invoicetickets.repository';
 import { EventRepository } from '../repositories/event.repository';
 import { EventStagesRepository } from '../repositories/eventStages.repository';
-import { EventDctoRepository } from '../repositories/eventDcto.repository';
+import { EventLocalitiesRepository } from '../repositories/eventlocalities.repository';
+import { EventDctoRepository } from '../repositories/eventdcto.repository';
 import { UserRepository } from '../repositories/user.repository';
+import { TicketService } from './ticket.service';
 import { Prisma, InvoiceStatus } from '@prisma/client';
 
 const invoiceRepo = new InvoiceRepository();
 const invoiceTicketsRepo = new InvoiceTicketsRepository();
 const eventRepo = new EventRepository();
 const stagesRepo = new EventStagesRepository();
+const localitiesRepo = new EventLocalitiesRepository();
 const dctoRepo = new EventDctoRepository();
 const userRepo = new UserRepository();
+const ticketService = new TicketService();
 
 export class InvoiceService {
   /**
@@ -134,7 +138,7 @@ export class InvoiceService {
     // Crear la factura
     const invoiceData: Prisma.InvoiceUncheckedCreateInput = {
       user_id: userId,
-      user_uid: user.uid || '',
+      user_uid: user.firebase_uid || '',
       num_invoice: numInvoice,
       user_name: user.name,
       user_lastname: user.last_name,
@@ -248,11 +252,14 @@ export class InvoiceService {
   }
 
   /**
-   * Actualizar estado de factura (usado por webhook de pago)
+   * 🎫 Actualizar estado de factura (usado por webhook de pago)
+   * ACTUALIZADO: Ahora crea tickets reales cuando el pago es exitoso
    */
   async updateInvoiceStatus(
     invoiceId: number,
-    status: InvoiceStatus
+    transactionId: number,
+    status: InvoiceStatus,
+    customerIdPhone: string
   ) {
     const invoice = await invoiceRepo.findById(invoiceId);
     if (!invoice) {
@@ -262,16 +269,75 @@ export class InvoiceService {
     // Actualizar factura
     const updatedInvoice = await invoiceRepo.update(invoiceId, { status });
 
-    // Si el pago fue exitoso, actualizar items a "Expedido"
+    // 🎫 Si el pago fue exitoso, crear los tickets reales
     if (status === InvoiceStatus.PAID) {
+      // 1. Actualizar items a "Expedido"
       await invoiceTicketsRepo.updateManyByInvoiceId(invoiceId, {
         status_item: 1, // Expedido
       });
 
-      // TODO: Aquí se debe llamar a:
-      // 1. Crear Tickets reales (tabla Ticket)
-      // 2. Crear EventBalancePromoters si hay referencia de promotor
-      // 3. Enviar notificación/email con tickets
+      // 2. Obtener datos del evento
+      const event = await eventRepo.findById(invoice.event_id);
+      if (!event) {
+        throw new Error('Evento no encontrado');
+      }
+
+      // 3. Obtener los items de la factura
+      const invoiceItems = await invoiceTicketsRepo.findByInvoiceId(invoiceId);
+
+      // 4. Preparar items con colores de localidad
+      const itemsForTickets = await Promise.all(
+        invoiceItems.map(async (item) => {
+          // Obtener localidad completa
+          const locality = await localitiesRepo.findById(item.locality_id);
+          
+          return {
+            stage_id: item.stage_id,
+            stage_name: item.stage_name,
+            locality_id: item.locality_id,
+            locality_name: item.locality_name,
+            qty_tickets: item.qty_tickets,
+            price_ticket: item.price_ticket,
+            // Agregar colores de la localidad
+            locality_colors: locality ? {
+              bkg_color: locality.bkg_color,
+              title_color: locality.title_color,
+              text_color: locality.text_color,
+              title_color_location: locality.title_color_location,
+            } : undefined,
+          };
+        })
+      );
+
+      // 5. Crear los tickets usando TicketService
+      const ticketsResult = await ticketService.createTicketsFromInvoice(
+        transactionId,
+        {
+          user_id: invoice.user_id,
+          user_uid: invoice.user_uid,
+          event_id: invoice.event_id,
+          items: itemsForTickets as any,
+        },
+        {
+          name: event.name,
+          short_description: event.short_description,
+          cover: event.cover,
+          date_event: event.date_event,
+          place_address: event.place_address,
+          event_type: event.event_type,
+          type_venue: event.type_venue,
+          organizer_id: event.organizer_id,
+          status: event.status,
+        },
+        customerIdPhone
+      );
+
+      console.log(`✅ ${ticketsResult.count} tickets creados para la factura ${invoice.num_invoice}`);
+
+      // TODO FASE 2:
+      // - Crear EventBalancePromoters si hay referencia de promotor
+      // - Enviar notificación/email con tickets
+      // - Emitir evento Socket.IO para notificar al usuario
     }
 
     return updatedInvoice;

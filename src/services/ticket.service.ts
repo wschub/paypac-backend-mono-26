@@ -1,4 +1,6 @@
 import { TicketRepository } from '../repositories/ticket.repository';
+import { EventStaffAssignmentRepository } from '../repositories/event_staff_assignment.repository';
+import { EventRepository } from '../repositories/event.repository';
 import { Prisma } from '@prisma/client';
 import {
   generateTicketData,
@@ -7,6 +9,8 @@ import {
 } from '../utils/ticket.utils';
 
 const ticketRepo = new TicketRepository();
+const staffAssignmentRepo = new EventStaffAssignmentRepository();
+const eventRepo = new EventRepository();
 
 export class TicketService {
   /**
@@ -193,19 +197,26 @@ export class TicketService {
   }
 
   /**
-   * Validar ticket en la entrada del evento
+   * 🆕 Validar ticket en la entrada del evento
    * Se escanea el QR y se valida el token
+   * ACTUALIZADO: Ahora valida permisos del STAFF
    */
   async validateTicket(
     qrToken: string,
     scannerUserId: number,
-    scannerRole: string
+    scannerRole: string,
+    eventId: number // 🆕 Nuevo parámetro requerido
   ) {
     // Buscar ticket por token
     const ticket = await ticketRepo.findByToken(qrToken);
 
     if (!ticket) {
       throw new Error('Ticket no encontrado o token inválido');
+    }
+
+    // 🆕 Validar que el ticket pertenece al evento correcto
+    if (ticket.event_id !== eventId) {
+      throw new Error('Este ticket no pertenece a este evento');
     }
 
     // Validar que el token coincida (doble verificación)
@@ -217,6 +228,30 @@ export class TicketService {
 
     if (!isValid) {
       throw new Error('Token de ticket inválido');
+    }
+
+    // 🆕 VERIFICAR PERMISOS DEL SCANNER
+    if (['STAFF', 'STAFF_PROMOTER'].includes(scannerRole)) {
+      // Si es STAFF, verificar asignación y check-in
+      const assignment = await staffAssignmentRepo.findByUserAndEvent(scannerUserId, eventId);
+      
+      if (!assignment) {
+        throw new Error('No estás asignado a este evento');
+      }
+
+      if (!assignment.checked_in) {
+        throw new Error('Debes hacer check-in en el evento antes de validar tickets');
+      }
+    } else if (scannerRole === 'ORGANIZER') {
+      // Si es ORGANIZER, verificar que sea el dueño del evento
+      const event = await eventRepo.findById(eventId);
+      
+      if (!event || event.organizer_id !== scannerUserId) {
+        throw new Error('Solo el organizador de este evento puede validar tickets');
+      }
+    } else if (scannerRole !== 'PAYPAC') {
+      // Si no es PAYPAC (admin supremo), denegar
+      throw new Error('No tienes permisos para validar tickets');
     }
 
     // Verificar que el evento ya haya iniciado o esté próximo
@@ -239,16 +274,15 @@ export class TicketService {
       throw new Error(`Este ticket no es válido. Status: ${ticket.status_ticket}`);
     }
 
-    // TODO: Verificar permisos del scanner (STAFF, STAFF_PROMOTER, ORGANIZER del evento)
-    // Solo ciertos roles pueden validar tickets
-
     // Marcar ticket como usado
     const validatedTicket = await ticketRepo.markAsUsed(ticket.id);
 
     return {
       valid: true,
       ticket: validatedTicket,
-      message: 'Ticket validado exitosamente. Bienvenido al evento!',
+      scanner_id: scannerUserId,
+      scanner_role: scannerRole,
+      message: '¡Ticket validado exitosamente! Bienvenido al evento.',
     };
   }
 

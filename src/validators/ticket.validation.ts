@@ -29,7 +29,8 @@ export const transferTicketSchema = z.object({
 });
 
 /**
- * Schema para validar ticket en entrada del evento
+ * 🆕 Schema para validar ticket en entrada del evento
+ * ACTUALIZADO: Ahora requiere event_id
  */
 export const validateTicketSchema = z.object({
   params: z.object({
@@ -37,6 +38,7 @@ export const validateTicketSchema = z.object({
   }),
   body: z.object({
     qr_token: z.string().min(32, 'El token del QR es inválido'),
+    event_id: z.number().int().positive('El ID del evento es requerido'), // 🆕 Agregado
   }),
 });
 
