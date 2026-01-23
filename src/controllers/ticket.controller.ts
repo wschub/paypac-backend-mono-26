@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { TicketService } from '../services/ticket.service';
 import { TicketTransactionService } from '../services/tickettransaction.service';
+import { paramToInt } from '../utils/utils';
 
 const ticketService = new TicketService();
 const ticketTransactionService = new TicketTransactionService();
@@ -34,7 +35,7 @@ export const getMyTickets = async (req: Request, res: Response): Promise<void> =
  */
 export const getTicketById = async (req: Request, res: Response): Promise<void> => {
   try {
-    const ticketId = parseInt(req.params.id);
+    const ticketId = paramToInt(req.params.id);
     const userId = req.user!.id;
 
     const ticket = await ticketService.getTicketById(ticketId, userId);
@@ -57,7 +58,7 @@ export const getTicketById = async (req: Request, res: Response): Promise<void> 
  */
 export const transferTicket = async (req: Request, res: Response): Promise<void> => {
   try {
-    const ticketId = parseInt(req.params.id);
+    const ticketId = paramToInt(req.params.id);
     const fromUser = req.user!;
     const {
       to_user_id,
@@ -174,7 +175,7 @@ export const getUpcomingTickets = async (req: Request, res: Response): Promise<v
  */
 export const cancelTicket = async (req: Request, res: Response): Promise<void> => {
   try {
-    const ticketId = parseInt(req.params.id);
+    const ticketId = paramToInt(req.params.id);
     const userId = req.user!.id;
     const userRole = req.user!.role;
 
@@ -199,7 +200,7 @@ export const cancelTicket = async (req: Request, res: Response): Promise<void> =
  */
 export const getEventTicketStats = async (req: Request, res: Response): Promise<void> => {
   try {
-    const eventId = parseInt(req.params.eventId);
+    const eventId = paramToInt(req.params.eventId);
     const userId = req.user!.id;
     const userRole = req.user!.role;
 
