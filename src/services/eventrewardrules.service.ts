@@ -1,6 +1,6 @@
-import { EventRewardRulesRepository } from '../repositories/eventRewardRules.repository';
+import { EventRewardRulesRepository } from '../repositories/eventrewardrules.repository';
 import { EventRepository } from '../repositories/event.repository';
-import { EventLocalitiesRepository } from '../repositories/eventLocalities.repository';
+import { EventLocalitiesRepository } from '../repositories/eventlocalities.repository';
 import { Prisma, EVENT_STATUS, EventRewardPromoters } from '@prisma/client';
 
 const rewardRulesRepo = new EventRewardRulesRepository();
