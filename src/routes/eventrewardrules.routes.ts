@@ -6,7 +6,7 @@ import {
   updateRewardRule,
   deleteRewardRule,
   calculateReward,
-} from '../controllers/eventRewardRules.controller';
+} from '../controllers/eventrewardrules.controller';
 import { authenticate } from '../middlewares/auth.middleware';
 import { authorizeRoles } from '../middlewares/role.middleware';
 import { validateRequest } from '../middlewares/validate.middleware';
@@ -16,7 +16,7 @@ import {
   getRewardRuleByIdSchema,
   getRewardRulesByEventIdSchema,
   calculateRewardSchema,
-} from '../validators/eventRewardRules.validation';
+} from '../validators/eventrewardrules.validation';
 
 const router = Router();
 

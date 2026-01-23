@@ -6,7 +6,7 @@ import {
   getTicketsSoldByLocality,
   getRevenueByStage,
   getSalesSummaryByEvent,
-} from '../controllers/invoiceTickets.controller';
+} from '../controllers/invoicetickets.controller';
 import { authenticate } from '../middlewares/auth.middleware';
 import { authorizeRoles } from '../middlewares/role.middleware';
 import { validateRequest } from '../middlewares/validate.middleware';
@@ -16,7 +16,7 @@ import {
   getTicketsSoldByStageSchema,
   getTicketsSoldByLocalitySchema,
   getSalesSummaryByEventSchema,
-} from '../validators/invoiceTickets.validation';
+} from '../validators/invoicetickets.validation';
 
 const router = Router();
 

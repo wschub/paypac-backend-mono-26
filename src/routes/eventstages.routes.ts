@@ -9,7 +9,7 @@ import {
   getUpcomingStages,
   getPriceStats,
   checkAvailability,
-} from '../controllers/eventStages.controller';
+} from '../controllers/eventstages.controller';
 import { authenticate } from '../middlewares/auth.middleware';
 import { authorizeRoles } from '../middlewares/role.middleware';
 import { validateRequest } from '../middlewares/validate.middleware';
@@ -18,7 +18,7 @@ import {
   updateStageSchema,
   getStageByIdSchema,
   getStagesByLocalityIdSchema,
-} from '../validators/eventStages.validation';
+} from '../validators/eventstages.validation';
 
 const router = Router();
 
