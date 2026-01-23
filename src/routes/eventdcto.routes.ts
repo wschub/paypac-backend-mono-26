@@ -8,7 +8,7 @@ import {
   validateDiscount,
   calculateDiscount,
   getApplicableDiscounts,
-} from '../controllers/eventDcto.controller';
+} from '../controllers/eventdcto.controller';
 import { authenticate } from '../middlewares/auth.middleware';
 import { authorizeRoles } from '../middlewares/role.middleware';
 import { validateRequest } from '../middlewares/validate.middleware';
@@ -20,7 +20,7 @@ import {
   validateDiscountSchema,
   calculateDiscountSchema,
   getApplicableDiscountsSchema,
-} from '../validators/eventDcto.validation';
+} from '../validators/eventdcto.validation';
 
 const router = Router();
 
