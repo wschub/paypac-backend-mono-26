@@ -1,4 +1,4 @@
-import { InvoiceTicketsRepository } from '../repositories/invoiceTickets.repository';
+import { InvoiceTicketsRepository } from '../repositories/invoicetickets.repository';
 import { InvoiceRepository } from '../repositories/invoice.repository';
 
 const invoiceTicketsRepo = new InvoiceTicketsRepository();
