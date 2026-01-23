@@ -1,5 +1,6 @@
 import { prisma } from '../config/db';
-import { TicketTransaction, Prisma } from '@prisma/client';
+import { TicketTransaction, Prisma, TransactionStatus } from '@prisma/client';
+
 
 export class TicketTransactionRepository {
   /**
@@ -38,7 +39,7 @@ export class TicketTransactionRepository {
       where: {
         to_customer_id: userId,
         status_ticket: {
-          in: ['PENDING', 'FROZEN'],
+          in: [TransactionStatus.PENDING, TransactionStatus.FROZEN],
         },
       },
       orderBy: { created_at: 'desc' },
@@ -93,7 +94,8 @@ export class TicketTransactionRepository {
   /**
    * Actualizar status de la transacción
    */
-  async updateStatus(id: number, status: string): Promise<TicketTransaction> {
+  async updateStatus(id: number, status: TransactionStatus): Promise<TicketTransaction> {
+
     return prisma.ticketTransaction.update({
       where: { id },
       data: { status_ticket: status },
@@ -107,7 +109,7 @@ export class TicketTransactionRepository {
     return prisma.ticketTransaction.update({
       where: { id },
       data: {
-        status_ticket: 'COMPLETED',
+        status_ticket: TransactionStatus.COMPLETED,
         completed_at: new Date(),
       },
     });
@@ -120,7 +122,7 @@ export class TicketTransactionRepository {
     return prisma.ticketTransaction.update({
       where: { id },
       data: {
-        status_ticket: 'CANCELLED',
+        status_ticket: TransactionStatus.CANCELLED,
       },
     });
   }
@@ -143,7 +145,7 @@ export class TicketTransactionRepository {
       where: {
         to_customer_id: userId,
         status_ticket: {
-          in: ['PENDING', 'FROZEN'],
+          in: [TransactionStatus.PENDING, TransactionStatus.FROZEN],
         },
       },
     });
