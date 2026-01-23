@@ -27,9 +27,7 @@ export const processTransactionSchema = z.object({
     status: z.string().optional(),
     customer_ID_phone: z.string().min(1, 'El ID del teléfono es requerido'),
     codeDCTO: z.string().optional().default(''),
-    paymentMethodType: z.enum(['CARD', 'NEQUI', 'PSE', 'BANCOLOMBIA_TRANSFER'], {
-      errorMap: () => ({ message: 'Método de pago inválido' }),
-    }),
+    paymentMethodType: z.enum(['CARD', 'NEQUI', 'PSE', 'BANCOLOMBIA_TRANSFER'], { message: 'Método de pago inválido' }),
     token_card_user: z.string().min(1, 'El token de la tarjeta es requerido'),
     installments_user: z.number().int().min(1).max(36, 'Las cuotas deben estar entre 1 y 36'),
     shoppingCart: z.array(z.any()).min(1, 'El carrito debe tener al menos un item'),
