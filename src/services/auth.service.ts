@@ -1,5 +1,6 @@
 import { UserRepository } from '../repositories/user.repository';
 import { firebaseAuth } from '../config/firebase';
+import { ROLES } from '@prisma/client';
 
 const userRepository = new UserRepository();
 
@@ -15,7 +16,7 @@ export class AuthService {
   email: string;
   password: string;
   phone_number: string;
-  role: string;
+  role: ROLES;
   company_id: number;
 }) {
     let firebaseUid: string | null = null;
