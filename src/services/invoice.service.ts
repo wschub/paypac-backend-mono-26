@@ -1,7 +1,7 @@
 import { InvoiceRepository } from '../repositories/invoice.repository';
 import { InvoiceTicketsRepository } from '../repositories/invoicetickets.repository';
 import { EventRepository } from '../repositories/event.repository';
-import { EventStagesRepository } from '../repositories/eventStages.repository';
+import { EventStagesRepository } from '../repositories/eventstages.repository';
 import { EventLocalitiesRepository } from '../repositories/eventlocalities.repository';
 import { EventDctoRepository } from '../repositories/eventdcto.repository';
 import { UserRepository } from '../repositories/user.repository';
@@ -64,9 +64,12 @@ export class InvoiceService {
       }
 
       // Verificar que el stage pertenece al evento
-      if (stage.locality.event_id !== data.event_id) {
-        throw new Error('El stage no pertenece a este evento');
-      }
+      // Verificar que el stage pertenece al evento
+const stageLocality = await localitiesRepo.findById(stage.locality_id);
+if (!stageLocality || stageLocality.event_id !== data.event_id) {
+  throw new Error('El stage no pertenece a este evento');
+}
+
 
       // TODO: Verificar disponibilidad de tickets
       // const soldTickets = await invoiceTicketsRepo.countTicketsByStageId(item.stage_id);
@@ -83,7 +86,8 @@ export class InvoiceService {
         stage_id: item.stage_id,
         stage_name: stage.stage_name,
         locality_id: item.locality_id,
-        locality_name: stage.locality.name_locality,
+        locality_name: stageLocality.name_locality,
+
         qty_tickets: item.qty_tickets,
         price_ticket: stage.price_ticket,
         apply_discount: 0,
