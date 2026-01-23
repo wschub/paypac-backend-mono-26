@@ -50,36 +50,33 @@ export class TicketTransactionService {
    * Aceptar transferencia de ticket
    */
   async acceptTransfer(transactionId: number, userId: number) {
-    const transaction = await transactionRepo.findById(transactionId);
+  const transaction = await transactionRepo.findById(transactionId);
 
-    if (!transaction) {
-      throw new Error('Transacción no encontrada');
-    }
-
-    // Verificar que el usuario sea el receptor
-    if (transaction.to_customer_id !== userId) {
-      throw new Error('No tienes permisos para aceptar esta transferencia');
-    }
-
-    // Verificar que la transacción esté pendiente
-    // Verificar que la transacción esté pendiente o congelada
-    if (!['PENDING', 'FROZEN'].includes(transaction.status_ticket)) {
-      throw new Error(`No se puede aceptar una transferencia con status: ${transaction.status_ticket}`);
-    }
-
-    // Si es una venta, verificar que esté pagada
-    if (transaction.type_transaction === 'sale' && transaction.status_ticket === 'FROZEN') {
-      throw new Error('Debes completar el pago antes de aceptar esta transferencia');
-    }
-
-    // Completar la transacción
-    const completedTransaction = await transactionRepo.complete(transactionId);
-
-    return {
-      transaction: completedTransaction,
-      message: 'Transferencia aceptada exitosamente',
-    };
+  if (!transaction) {
+    throw new Error('Transacción no encontrada');
   }
+
+  if (transaction.to_customer_id !== userId) {
+    throw new Error('No tienes permisos para aceptar esta transferencia');
+  }
+
+  // Solo PENDING o FROZEN
+  if (!['PENDING', 'FROZEN'].includes(transaction.status_ticket)) {
+    throw new Error(`No se puede aceptar una transferencia con status: ${transaction.status_ticket}`);
+  }
+
+  // Si es venta y está congelada, debe pagar primero
+  if (transaction.type_transaction === 'sale' && transaction.status_ticket === 'FROZEN') {
+    throw new Error('Debes completar el pago antes de aceptar esta transferencia');
+  }
+
+  const completedTransaction = await transactionRepo.complete(transactionId);
+
+  return {
+    transaction: completedTransaction,
+    message: 'Transferencia aceptada exitosamente',
+  };
+}
 
   /**
    * Rechazar transferencia de ticket
