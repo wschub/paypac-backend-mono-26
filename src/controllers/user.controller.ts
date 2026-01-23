@@ -1,7 +1,8 @@
 import { Request, Response } from 'express';
 import { UserService } from '../services/user.service';
-
 const userService = new UserService();
+import { paramToString } from '../utils/utils';
+
 
 /**
  * GET /api/users
@@ -134,7 +135,7 @@ export const getUsersByRole = async (req: Request, res: Response): Promise<void>
       return;
     }
 
-    const role = req.params.role;
+    const role = paramToString(req.params.role);
     const users = await userService.getUsersByRole(role, user.role);
 
     res.status(200).json({
