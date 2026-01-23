@@ -1,5 +1,6 @@
 import { prisma } from '../config/db';
-import { Ticket, Prisma } from '@prisma/client';
+import { Ticket, Prisma, TicketStatus } from '@prisma/client';
+
 
 export class TicketRepository {
   /**
@@ -96,7 +97,7 @@ export class TicketRepository {
       where: { id },
       data: {
         ticket_first_time: 0,
-        status_ticket: 'USED',
+        status_ticket: TicketStatus.USED,
         used_at: new Date(),
       },
     });
@@ -119,7 +120,7 @@ export class TicketRepository {
         customer_uid: newCustomerUid,
         customer_ID_phone: newCustomerIdPhone,
         token_ticket: newTokenTicket,
-        status_ticket: 'TRANSFERRED',
+        status_ticket: TicketStatus.TRANSFERRED,
       },
     });
   }
@@ -127,7 +128,7 @@ export class TicketRepository {
   /**
    * Actualizar status del ticket
    */
-  async updateStatus(id: number, status: string): Promise<Ticket> {
+  async updateStatus(id: number, status: TicketStatus): Promise<Ticket> {
     return prisma.ticket.update({
       where: { id },
       data: { status_ticket: status },
@@ -166,7 +167,9 @@ export class TicketRepository {
   /**
    * Contar tickets por evento y status
    */
-  async countByEventAndStatus(eventId: number, status: string): Promise<number> {
+  async countByEventAndStatus(eventId: number, status: TicketStatus): Promise<number> {
+
+
     return prisma.ticket.count({
       where: {
         event_id: eventId,
@@ -191,7 +194,7 @@ export class TicketRepository {
           lte: futureDate,
         },
         status_ticket: {
-          in: ['PAID', 'ACTIVE'],
+          in: [TicketStatus.PAID, TicketStatus.ACTIVE],
         },
       },
       orderBy: { ev_date_event: 'asc' },
@@ -205,7 +208,7 @@ export class TicketRepository {
     return prisma.ticket.update({
       where: { id },
       data: {
-        status_ticket: 'CANCELED',
+        status_ticket: TicketStatus.CANCELED,
       },
     });
   }
