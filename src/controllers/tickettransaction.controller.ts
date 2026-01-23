@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { TicketTransactionService } from '../services/tickettransaction.service';
-
+import { paramToInt } from '../utils/utils';
 const transactionService = new TicketTransactionService();
 
 /**
@@ -101,7 +101,7 @@ export const getReceivedTransactions = async (req: Request, res: Response): Prom
  */
 export const getTicketHistory = async (req: Request, res: Response): Promise<void> => {
   try {
-    const ticketId = parseInt(req.params.ticketId);
+    const ticketId = paramToInt(req.params.ticketId);
     const userId = req.user!.id;
 
     const transactions = await transactionService.getTicketHistory(ticketId, userId);
@@ -125,7 +125,7 @@ export const getTicketHistory = async (req: Request, res: Response): Promise<voi
  */
 export const getTransactionById = async (req: Request, res: Response): Promise<void> => {
   try {
-    const transactionId = parseInt(req.params.id);
+    const transactionId = paramToInt(req.params.id);
     const userId = req.user!.id;
 
     const transaction = await transactionService.getTransactionById(transactionId, userId);
@@ -148,7 +148,7 @@ export const getTransactionById = async (req: Request, res: Response): Promise<v
  */
 export const acceptTransfer = async (req: Request, res: Response): Promise<void> => {
   try {
-    const transactionId = parseInt(req.params.id);
+    const transactionId = paramToInt(req.params.id);
     const userId = req.user!.id;
 
     const result = await transactionService.acceptTransfer(transactionId, userId);
@@ -172,7 +172,7 @@ export const acceptTransfer = async (req: Request, res: Response): Promise<void>
  */
 export const rejectTransfer = async (req: Request, res: Response): Promise<void> => {
   try {
-    const transactionId = parseInt(req.params.id);
+    const transactionId = paramToInt(req.params.id);
     const userId = req.user!.id;
 
     const result = await transactionService.rejectTransfer(transactionId, userId);
@@ -196,7 +196,7 @@ export const rejectTransfer = async (req: Request, res: Response): Promise<void>
  */
 export const cancelTransfer = async (req: Request, res: Response): Promise<void> => {
   try {
-    const transactionId = parseInt(req.params.id);
+    const transactionId = paramToInt(req.params.id);
     const userId = req.user!.id;
 
     const result = await transactionService.cancelTransaction(transactionId, userId);
