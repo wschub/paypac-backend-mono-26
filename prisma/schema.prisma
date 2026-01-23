@@ -410,7 +410,7 @@ model EventBalancePromoters {
   reward_description String?
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
-  expition_date      DateTime?
+  expiration_date      DateTime?
   status             Int       @default(0) // 0: Pendiente, 1: Pagado, 2: Cancelado
 
   event      Event             @relation(fields: [event_id], references: [id])

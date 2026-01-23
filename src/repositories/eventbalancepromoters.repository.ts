@@ -34,7 +34,7 @@ export class EventBalancePromotersRepository {
   /**
    * Obtener todos los balances de un evento
    */
-  async findByEventId(eventId: number): Promise<EventBalancePromoters[]> {
+  async findByEventId(eventId: number) {
     return prisma.eventBalancePromoters.findMany({
       where: { event_id: eventId },
       include: {
