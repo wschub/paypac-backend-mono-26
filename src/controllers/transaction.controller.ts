@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { TransactionService } from '../services/transaction.service';
 import { configManager } from '../utils/ConfigManager';
-import { createNumInvoice } from '../utils/utils';
+import { createNumInvoice, paramToInt } from '../utils/utils';
 
 const transactionService = new TransactionService();
 
@@ -133,7 +133,7 @@ export const getMyTransactions = async (req: Request, res: Response): Promise<vo
  */
 export const getTransactionById = async (req: Request, res: Response): Promise<void> => {
   try {
-    const transactionId = parseInt(req.params.id);
+    const transactionId = paramToInt(req.params.id);
     const userId = req.user!.id;
     const userRole = req.user!.role;
 
