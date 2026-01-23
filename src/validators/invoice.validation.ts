@@ -6,16 +6,16 @@ import { z } from 'zod';
 export const createInvoiceSchema = z.object({
   body: z.object({
     event_id: z.number().int().positive('El ID del evento es requerido'),
-    items: z.array(
-      z.object({
-        stage_id: z.number().int().positive('El ID del stage es requerido'),
-        locality_id: z.number().int().positive('El ID de la localidad es requerido'),
-        qty_tickets: z.number().int().positive('La cantidad debe ser mayor a 0'),
-      }),
-      {
-        required_error: 'Los items son requeridos',
-      }
-    ).min(1, 'Debe agregar al menos un item'),
+    items: z
+  .array(
+    z.object({
+      stage_id: z.number().int().positive('El ID del stage es requerido'),
+      locality_id: z.number().int().positive('El ID de la localidad es requerido'),
+      qty_tickets: z.number().int().positive('La cantidad debe ser mayor a 0'),
+    })
+  )
+  .min(1, 'Debe agregar al menos un item'),
+
     discount_code: z.string().optional(),
   }),
 });
