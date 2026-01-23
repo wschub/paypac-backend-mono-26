@@ -6,7 +6,7 @@ import {
   updateLocality,
   deleteLocality,
   getLocalitiesStats,
-} from '../controllers/eventLocalities.controller';
+} from '../controllers/eventlocalities.controller';
 import { authenticate } from '../middlewares/auth.middleware';
 import { authorizeRoles } from '../middlewares/role.middleware';
 import { validateRequest } from '../middlewares/validate.middleware';
@@ -15,7 +15,7 @@ import {
   updateLocalitySchema,
   getLocalityByIdSchema,
   getLocalitiesByEventIdSchema,
-} from '../validators/eventLocalities.validation';
+} from '../validators/eventlocalities.validation';
 
 const router = Router();
 
