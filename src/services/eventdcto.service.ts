@@ -33,11 +33,16 @@ export class EventDctoService {
     }
 
     // No permitir crear descuentos si el evento ya está FINALIZED o CANCELED
-    if ([EVENT_STATUS.FINALIZED, EVENT_STATUS.CANCELED].includes(event.status)) {
-      throw new Error(
-        `No se pueden crear descuentos en un evento en estado ${event.status}`
-      );
-    }
+    const blockedStatuses: EVENT_STATUS[] = [
+  EVENT_STATUS.FINALIZED,
+  EVENT_STATUS.CANCELED,
+];
+    
+    if (blockedStatuses.includes(event.status)) {
+  throw new Error(
+    `No se pueden crear descuentos en un evento en estado ${event.status}`
+  );
+}
 
     // Validar tipo de descuento
     if (![1, 2].includes(data.type_dcto)) {
