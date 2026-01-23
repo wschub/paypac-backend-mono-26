@@ -17,8 +17,6 @@ export const createInvoiceSchema = z.object({
   .refine((arr) => arr.length > 0, {
     message: 'Debe agregar al menos un item',
   }),
-
-
     discount_code: z.string().optional(),
   }),
 });
