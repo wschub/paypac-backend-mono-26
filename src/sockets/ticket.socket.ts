@@ -134,7 +134,7 @@ export const setupTicketSocketHandlers = (io: SocketIOServer) => {
     socket.on('staff:join-event', async (data: { event_id: number }) => {
       try {
         // Verificar que el STAFF tenga permisos para este evento
-        const { EventStaffAssignmentService } = await import('../services/eventstaffassignment.service');
+        const { EventStaffAssignmentService } = await import('../services/event_staff_assignment.service');
         const staffService = new EventStaffAssignmentService();
         
         const canValidate = await staffService.canStaffValidateTickets(
