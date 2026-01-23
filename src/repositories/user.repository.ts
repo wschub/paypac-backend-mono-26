@@ -1,5 +1,5 @@
 import { prisma } from '../config/db';
-import { User, Prisma } from '@prisma/client';
+import { User, Prisma, ROLES } from '@prisma/client';
 
 export class UserRepository {
   /**
@@ -50,7 +50,7 @@ export class UserRepository {
   /**
    * Obtener usuarios por rol
    */
-  async findByRole(role: string): Promise<User[]> {
+  async findByRole(role: ROLES): Promise<User[]> {
     return prisma.user.findMany({
       where: { role },
       orderBy: { createdAt: 'desc' },
@@ -109,7 +109,7 @@ export class UserRepository {
   /**
    * Contar usuarios por rol
    */
-  async countByRole(role: string): Promise<number> {
+  async countByRole(role: ROLES): Promise<number> {
     return prisma.user.count({
       where: { role },
     });
