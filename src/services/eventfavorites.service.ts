@@ -1,6 +1,6 @@
 import { EventFavoritesRepository } from '../repositories/eventfavorites.repository';
 import { EventRepository } from '../repositories/event.repository';
-import { EventLocalitiesRepository } from '../repositories/eventLocalities.repository';
+import { EventLocalitiesRepository } from '../repositories/eventlocalities.repository';
 import { Prisma } from '@prisma/client';
 
 const favoritesRepo = new EventFavoritesRepository();
@@ -152,15 +152,19 @@ export class EventFavoritesService {
       // Obtener el precio más bajo de las localidades
       const localities = await localitiesRepo.findByEventId(eventId);
       let minPrice = 0;
-      if (localities.length > 0 && localities[0].stages && localities[0].stages.length > 0) {
-       // minPrice = Math.min(...localities[0].stages.map(s => s.price_ticket)
-//);
+      
+     if (localities.length > 0) {
+  minPrice = 0;
+}
+
+      /*if (localities.length > 0 && localities[0].stages && localities[0].stages.length > 0) {
+       
      
       minPrice = Math.min(
   ...localities[0].stages.map((s: { price_ticket: number }) => s.price_ticket)
 );
 
-    }
+    } */
 
       await this.addFavorite(userId, {
         event_id: eventId,
