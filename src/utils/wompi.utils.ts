@@ -10,7 +10,7 @@ export function verifyWompiSignature(payload: WompiWebhookEvent): boolean {
     const { event, data, timestamp, signature } = payload;
 
     // 1. Obtener el secret del webhook desde variables de entorno
-    const webhookSecret = process.env.WOMPI_EVENTS_SECRET;
+    const webhookSecret = process.env.PRV_EVENTS;
 
     if (!webhookSecret) {
       console.error('❌ WOMPI_EVENTS_SECRET no configurado en .env');

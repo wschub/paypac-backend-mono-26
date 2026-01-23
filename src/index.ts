@@ -20,7 +20,17 @@ import ticketRoutes from './routes/ticket.routes';
 import ticketTransactionRoutes from './routes/tickettransaction.routes';
 import staffAssignmentRoutes from './routes/event_staff_assignment.routes';
 import transactionRoutes from './routes/transaction.routes';
+import paymentMethodsUIRoutes from './routes/paymentmethodsui.routes';
+import paymentCardRoutes from './routes/paymentmethodcard.routes';
+
+
+
+
+
 import webhookRoutes from './routes/webhook.routes';
+
+
+
 
 
 
@@ -112,7 +122,8 @@ app.use('/api/ticket-transactions', ticketTransactionRoutes);
 app.use('/api/staff', staffAssignmentRoutes); // Para /api/staff/my-events
 app.use('/api/events', staffAssignmentRoutes); // Para /api/events/:eventId/staff/*
 app.use('/api/transactions', transactionRoutes);
-
+app.use('/api/payment-methods', paymentMethodsUIRoutes);
+app.use('/api/payment-cards', paymentCardRoutes);
 // Registrar rutas ANTES de las rutas autenticadas
 app.use('/api/webhooks', webhookRoutes); // Sin autenticación
 

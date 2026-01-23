@@ -83,10 +83,10 @@ model Company {
   user_id_register    Int? // quien la crea
   users_id_approved   Int[] // puedes quitar esto si usas la tabla intermedia
   company_name        String    @unique
-  description         String?
-  logo                String?
-  phone_number        String?
-  email               String?   @unique
+  company_description         String?
+  company_logo                String?
+  company_phone_number        String?
+  company_email               String?   @unique
   type_identification String?
   num_identification  String?
   website             String?
@@ -519,7 +519,7 @@ model PaymentMethodsUI {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }
-
+//DELETE THIS IF NOT USED
 model PaymentMethodsUsers {
   id            Int      @id @default(autoincrement())
   user_id       Int

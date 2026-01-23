@@ -7,8 +7,8 @@ import { UserRepository } from '../repositories/user.repository';
 import { prisma } from '../config/db';
 import { InvoiceStatus } from '@prisma/client';
 import axios from 'axios';
-import { configManager } from '../libs/ConfigManager';
-import { cleanString, createNumInvoice, getExpirationTime } from '../libs/utils';
+import { configManager } from '../utils/ConfigManager';
+import { cleanString, createNumInvoice, getExpirationTime } from '../utils/utils';
 
 const transactionRepo = new TransactionRepository();
 const invoiceRepo = new InvoiceRepository();

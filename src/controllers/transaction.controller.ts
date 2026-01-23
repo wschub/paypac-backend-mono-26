@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { TransactionService } from '../services/transaction.service';
-import { configManager } from '../libs/ConfigManager';
-import { createNumInvoice } from '../libs/utils';
+import { configManager } from '../utils/ConfigManager';
+import { createNumInvoice } from '../utils/utils';
 
 const transactionService = new TransactionService();
 
