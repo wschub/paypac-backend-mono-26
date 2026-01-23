@@ -2,7 +2,7 @@ import { TransactionRepository } from '../repositories/transaction.repository';
 import { InvoiceRepository } from '../repositories/invoice.repository';
 import { InvoiceTicketsRepository } from '../repositories/invoicetickets.repository';
 import { EventRepository } from '../repositories/event.repository';
-import { EventStagesRepository } from '../repositories/eventStages.repository';
+import { EventStagesRepository } from '../repositories/eventstages.repository';
 import { UserRepository } from '../repositories/user.repository';
 import { prisma } from '../config/db';
 import { InvoiceStatus } from '@prisma/client';
