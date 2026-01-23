@@ -22,8 +22,9 @@ export const transferTicketSchema = z.object({
     to_user_id_phone: z.string().min(1, 'El ID del teléfono del receptor es requerido'),
     from_user_id_phone: z.string().min(1, 'El ID del teléfono del remitente es requerido'),
     transaction_type: z.enum(['transfer', 'sale', 'gift'], {
-      errorMap: () => ({ message: 'El tipo de transacción debe ser: transfer, sale o gift' }),
-    }),
+  message: 'El tipo de transacción debe ser: transfer, sale o gift',
+}),
+
     description: z.string().optional(),
   }),
 });
