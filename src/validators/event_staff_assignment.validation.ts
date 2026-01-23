@@ -10,7 +10,7 @@ export const assignStaffSchema = z.object({
   body: z.object({
     staff_user_id: z.number().int().positive('El ID del staff es requerido'),
     role_type: z.enum(['STAFF', 'STAFF_PROMOTER'], {
-      errorMap: () => ({ message: 'El tipo de rol debe ser STAFF o STAFF_PROMOTER' }),
+      message: 'El tipo de rol debe ser STAFF o STAFF_PROMOTER',
     }),
   }),
 });
