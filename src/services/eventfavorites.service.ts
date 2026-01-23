@@ -153,8 +153,14 @@ export class EventFavoritesService {
       const localities = await localitiesRepo.findByEventId(eventId);
       let minPrice = 0;
       if (localities.length > 0 && localities[0].stages && localities[0].stages.length > 0) {
-        minPrice = Math.min(...localities[0].stages.map(s => s.price_ticket));
-      }
+       // minPrice = Math.min(...localities[0].stages.map(s => s.price_ticket)
+//);
+     
+      minPrice = Math.min(
+  ...localities[0].stages.map((s: { price_ticket: number }) => s.price_ticket)
+);
+
+    }
 
       await this.addFavorite(userId, {
         event_id: eventId,
