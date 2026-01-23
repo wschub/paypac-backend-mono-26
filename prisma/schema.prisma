@@ -645,7 +645,8 @@ enum TicketStatus {
   FROZEN // Congelado (esperando transferencia)
   TRANSFERRED // Transferido
   CANCELED // Cancelado
-  EXPIRED // Expirado
+  EXPIRED // Expirado  
+  ON_SALE //EN VENTA
 }
 
 enum TransactionStatus {
@@ -657,6 +658,7 @@ enum TransactionStatus {
   COMPLETED // Completado
   REJECTED // Rechazado
   CANCELLED // Cancelado
+  ON_SALE //EN VENTA
 }
 
 model TicketTransaction {

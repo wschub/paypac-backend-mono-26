@@ -62,7 +62,8 @@ export class TicketTransactionService {
     }
 
     // Verificar que la transacción esté pendiente
-    if (transaction.status_ticket !== 'PENDING') {
+    // Verificar que la transacción esté pendiente o congelada
+    if (!['PENDING', 'FROZEN'].includes(transaction.status_ticket)) {
       throw new Error(`No se puede aceptar una transferencia con status: ${transaction.status_ticket}`);
     }
 
