@@ -1,5 +1,5 @@
 import { UserRepository } from '../repositories/user.repository';
-import { Prisma } from '@prisma/client';
+import { Prisma, ROLES } from '@prisma/client';
 
 const userRepo = new UserRepository();
 
@@ -8,7 +8,7 @@ export class UserService {
    * Obtener todos los usuarios
    * Solo PAYPAC puede ver todos los usuarios
    */
-  async getUsers(userRole: string, userId?: number, companyId?: number) {
+  async getUsers(userRole: ROLES, userId?: number, companyId?: number) {
     if (userRole === 'PAYPAC') {
       return userRepo.findAll();
     }
@@ -24,7 +24,7 @@ export class UserService {
   /**
    * Obtener usuario por ID
    */
-  async getUserById(id: number, requestingUserId: number, requestingUserRole: string) {
+  async getUserById(id: number, requestingUserId: number, requestingUserRole: ROLES) {
     const user = await userRepo.findByIdWithRelations(id);
     if (!user) {
       throw new Error('Usuario no encontrado');
@@ -67,7 +67,7 @@ export class UserService {
     id: number,
     data: Prisma.UserUpdateInput,
     requestingUserId: number,
-    requestingUserRole: string
+    requestingUserRole: ROLES
   ) {
     const user = await userRepo.findById(id);
     if (!user) {
@@ -93,7 +93,7 @@ export class UserService {
    * Eliminar usuario
    * Solo PAYPAC puede eliminar usuarios
    */
-  async deleteUser(id: number, requestingUserRole: string) {
+  async deleteUser(id: number, requestingUserRole: ROLES) {
     if (requestingUserRole !== 'PAYPAC') {
       throw new Error('Solo PAYPAC puede eliminar usuarios');
     }
@@ -111,7 +111,7 @@ export class UserService {
   /**
    * Obtener usuarios por rol
    */
-  async getUsersByRole(role: string, requestingUserRole: string) {
+  async getUsersByRole(role: ROLES, requestingUserRole: string) {
     if (requestingUserRole !== 'PAYPAC') {
       throw new Error('Solo PAYPAC puede filtrar usuarios por rol');
     }
@@ -122,7 +122,7 @@ export class UserService {
   /**
    * Estadísticas de usuarios
    */
-  async getUserStats(requestingUserRole: string) {
+  async getUserStats(requestingUserRole: ROLES) {
     if (requestingUserRole !== 'PAYPAC') {
       throw new Error('Solo PAYPAC puede ver estadísticas');
     }
