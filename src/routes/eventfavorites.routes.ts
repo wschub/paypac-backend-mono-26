@@ -11,7 +11,7 @@ import {
   getMostPopularEvents,
   getRecentFavorites,
   getEventFavoritesCount,
-} from '../controllers/eventFavorites.controller';
+} from '../controllers/eventfavorites.controller';
 import { authenticate } from '../middlewares/auth.middleware';
 import { authorizeRoles } from '../middlewares/role.middleware';
 import { validateRequest } from '../middlewares/validate.middleware';
@@ -24,7 +24,7 @@ import {
   getMostPopularEventsSchema,
   getRecentFavoritesSchema,
   getEventFavoritesCountSchema,
-} from '../validators/eventFavorites.validation';
+} from '../validators/eventfavorites.validation';
 
 const router = Router();
 
