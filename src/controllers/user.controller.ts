@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { UserService } from '../services/user.service';
 const userService = new UserService();
 import { paramToString } from '../utils/utils';
-
+import { ROLES } from '@prisma/client';
 
 /**
  * GET /api/users
@@ -16,7 +16,7 @@ export const getUsers = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    const users = await userService.getUsers(user.role, user.id, user.company_id || undefined);
+    const users = await userService.getUsers(user.role as ROLES, user.id, user.company_id || undefined);
 
     res.status(200).json({
       total: users.length,
@@ -41,7 +41,7 @@ export const getUserById = async (req: Request, res: Response): Promise<void> =>
     }
 
     const id = Number(req.params.id);
-    const foundUser = await userService.getUserById(id, user.id, user.role);
+    const foundUser = await userService.getUserById(id, user.id, user.role as ROLES);
 
     res.status(200).json(foundUser);
   } catch (err: any) {
@@ -86,7 +86,7 @@ export const updateUser = async (req: Request, res: Response): Promise<void> => 
     const id = Number(req.params.id);
     const data = req.body;
 
-    const updatedUser = await userService.updateUser(id, data, user.id, user.role);
+    const updatedUser = await userService.updateUser(id, data, user.id, user.role as ROLES);
 
     res.status(200).json({
       message: 'Usuario actualizado exitosamente',
@@ -112,7 +112,7 @@ export const deleteUser = async (req: Request, res: Response): Promise<void> => 
 
     const id = Number(req.params.id);
 
-    await userService.deleteUser(id, user.role);
+    await userService.deleteUser(id, user.role as ROLES);
 
     res.status(200).json({
       message: 'Usuario eliminado exitosamente',
@@ -135,8 +135,8 @@ export const getUsersByRole = async (req: Request, res: Response): Promise<void>
       return;
     }
 
-    const role = paramToString(req.params.role);
-    const users = await userService.getUsersByRole(role, user.role);
+    const role = paramToString(req.params.role) as ROLES;
+    const users = await userService.getUsersByRole(role, user.role as ROLES);
 
     res.status(200).json({
       total: users.length,
@@ -160,7 +160,7 @@ export const getUserStats = async (req: Request, res: Response): Promise<void> =
       return;
     }
 
-    const stats = await userService.getUserStats(user.role);
+    const stats = await userService.getUserStats(user.role as ROLES);
 
     res.status(200).json(stats);
   } catch (err: any) {
