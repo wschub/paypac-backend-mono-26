@@ -36,9 +36,9 @@ export const markAsPaidSchema = z.object({
  */
 export const bulkMarkAsPaidSchema = z.object({
   body: z.object({
-    balance_ids: z.array(z.number().int().positive(), {
-      required_error: 'Se requiere un array de IDs de balances',
-    }).min(1, 'Debe proporcionar al menos un ID de balance'),
+    balance_ids: z.
+    array(z.number().int().positive())
+    .min(1, 'Debe proporcionar al menos un ID de balance'),
     payment_date: z.string().datetime().optional(),
     payment_method: z.string().optional(),
     payment_reference: z.string().optional(),
