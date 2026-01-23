@@ -14,7 +14,10 @@ export const createInvoiceSchema = z.object({
       qty_tickets: z.number().int().positive('La cantidad debe ser mayor a 0'),
     })
   )
-  .min(1, 'Debe agregar al menos un item'),
+  .refine((arr) => arr.length > 0, {
+    message: 'Debe agregar al menos un item',
+  }),
+
 
     discount_code: z.string().optional(),
   }),
