@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { InvoiceService } from '../services/invoice.service';
 import { InvoiceStatus } from '@prisma/client';
-
+import { paramToInt } from '../utils/utils';
 const invoiceService = new InvoiceService();
 
 /**
@@ -128,11 +128,13 @@ export const updateInvoiceStatus = async (
 ): Promise<void> => {
   try {
     const id = Number(req.params.id);
-    const { status } = req.body;
+    const { status, transaction_id, customer_phone } = req.body;
 
     const invoice = await invoiceService.updateInvoiceStatus(
       id,
-      status as InvoiceStatus
+      transaction_id,
+      status as InvoiceStatus,
+      customer_phone
     );
 
     res.status(200).json({
@@ -144,6 +146,7 @@ export const updateInvoiceStatus = async (
     res.status(400).json({ error: err.message });
   }
 };
+
 
 /**
  * PATCH /api/invoices/:id/cancel
