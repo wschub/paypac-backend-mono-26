@@ -43,3 +43,11 @@ export function getExpirationTime(): string {
   // Convertir a UTC y retornarlo en formato ISO 8601 con milisegundos
   return dateFormated!.toString();
 }
+
+
+///adicionales
+export const paramToInt = (param: string | string[]): number => {
+  const value = Array.isArray(param) ? param[0] : param;
+  return parseInt(value, 10);
+};
+

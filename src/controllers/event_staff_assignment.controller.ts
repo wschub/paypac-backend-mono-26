@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { EventStaffAssignmentService } from '../services/event_staff_assignment.service';
+import { paramToInt } from '../utils/utils';
 
 const staffAssignmentService = new EventStaffAssignmentService();
 
@@ -10,7 +11,7 @@ const staffAssignmentService = new EventStaffAssignmentService();
  */
 export const assignStaffToEvent = async (req: Request, res: Response): Promise<void> => {
   try {
-    const eventId = parseInt(req.params.eventId);
+    const eventId = paramToInt(req.params.eventId);
     const { staff_user_id, role_type } = req.body;
     const assignedBy = req.user!;
 
@@ -42,7 +43,7 @@ export const assignStaffToEvent = async (req: Request, res: Response): Promise<v
  */
 export const getEventStaff = async (req: Request, res: Response): Promise<void> => {
   try {
-    const eventId = parseInt(req.params.eventId);
+    const eventId = paramToInt(req.params.eventId);
     const user = req.user!;
 
     const staff = await staffAssignmentService.getEventStaff(eventId, user.id, user.role);
@@ -91,8 +92,8 @@ export const getMyAssignedEvents = async (req: Request, res: Response): Promise<
  */
 export const removeStaffFromEvent = async (req: Request, res: Response): Promise<void> => {
   try {
-    const eventId = parseInt(req.params.eventId);
-    const staffUserId = parseInt(req.params.staffUserId);
+    const eventId = paramToInt(req.params.eventId);
+    const staffUserId = paramToInt(req.params.staffUserId);
     const removedBy = req.user!;
 
     const result = await staffAssignmentService.removeStaffFromEvent(
@@ -121,7 +122,7 @@ export const removeStaffFromEvent = async (req: Request, res: Response): Promise
  */
 export const checkInStaff = async (req: Request, res: Response): Promise<void> => {
   try {
-    const eventId = parseInt(req.params.eventId);
+    const eventId = paramToInt(req.params.eventId);
     const userId = req.user!.id;
     const { latitude, longitude } = req.body;
 
@@ -152,7 +153,7 @@ export const checkInStaff = async (req: Request, res: Response): Promise<void> =
  */
 export const checkOutStaff = async (req: Request, res: Response): Promise<void> => {
   try {
-    const eventId = parseInt(req.params.eventId);
+    const eventId = paramToInt(req.params.eventId);
     const userId = req.user!.id;
 
     const result = await staffAssignmentService.checkOutStaff(userId, eventId);
@@ -177,7 +178,7 @@ export const checkOutStaff = async (req: Request, res: Response): Promise<void> 
  */
 export const getEventStaffStats = async (req: Request, res: Response): Promise<void> => {
   try {
-    const eventId = parseInt(req.params.eventId);
+    const eventId = paramToInt(req.params.eventId);
     const user = req.user!;
 
     const stats = await staffAssignmentService.getEventStaffStats(
