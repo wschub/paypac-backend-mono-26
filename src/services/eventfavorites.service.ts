@@ -1,4 +1,4 @@
-import { EventFavoritesRepository } from '../repositories/eventFavorites.repository';
+import { EventFavoritesRepository } from '../repositories/eventfavorites.repository';
 import { EventRepository } from '../repositories/event.repository';
 import { EventLocalitiesRepository } from '../repositories/eventLocalities.repository';
 import { Prisma } from '@prisma/client';

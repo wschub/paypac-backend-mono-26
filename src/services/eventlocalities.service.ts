@@ -1,4 +1,4 @@
-import { EventLocalitiesRepository } from '../repositories/eventLocalities.repository';
+import { EventLocalitiesRepository } from '../repositories/eventlocalities.repository';
 import { EventRepository } from '../repositories/event.repository';
 import { Prisma, EVENT_STATUS } from '@prisma/client';
 
