@@ -493,13 +493,15 @@ enum Places {
   SIN_NUMERAR // Valor "Sin numerar" 
 }
 
+/* DELETE THIS IF NOT USED
 enum EventStatus {
   PROGRAMADO //DEFAULT
   ACTIVO // DIA EVENTO
   CANCELADO
   RE_PROGRAMADO
   FINALIZADO
-}
+}*/
+
 
 // Enumeración para el tipo de lugar (Place)
 enum TypePlaces {
@@ -623,7 +625,7 @@ model Ticket {
   ev_type_venue            Places       @default(SIN_NUMERAR)
   ev_place_seat            String       @default("")
   ev_organizer_id          Int          @default(0)
-  ev_status                EventStatus  @default(PROGRAMADO)
+  ev_status                EVENT_STATUS  @default(CREATED)
   loc_id_locality          Int
   loc_name_locality        String // Nombre de la localidad
   loc_bkg_color            String // Color de fondo
