@@ -108,7 +108,12 @@ if (blockedStatuses.includes(event.status)) {
     }
 
     // No permitir actualizar si el evento ya está ACTIVE o FINALIZED
-    if ([EVENT_STATUS.ACTIVE, EVENT_STATUS.FINALIZED].includes(event.status)) {
+    const blockedStatuses: EVENT_STATUS[] = [
+  EVENT_STATUS.ACTIVE,
+  EVENT_STATUS.FINALIZED,
+];
+
+if (blockedStatuses.includes(event.status)) {
       throw new Error(
         `No se pueden actualizar localidades de un evento en estado ${event.status}`
       );
@@ -142,18 +147,23 @@ if (blockedStatuses.includes(event.status)) {
     }
 
     // No permitir eliminar si el evento ya está ACTIVE o FINALIZED
-    if ([EVENT_STATUS.ACTIVE, EVENT_STATUS.FINALIZED].includes(event.status)) {
+    const blockedStatuses: EVENT_STATUS[] = [
+  EVENT_STATUS.ACTIVE,
+  EVENT_STATUS.FINALIZED,
+];
+
+if (blockedStatuses.includes(event.status)) {
       throw new Error(
         `No se pueden eliminar localidades de un evento en estado ${event.status}`
       );
     }
 
     // Verificar si hay stages asociadas (opcional: podrías permitir cascade delete)
-    if (locality.stages && locality.stages.length > 0) {
+    /*if (locality.stages && locality.stages.length > 0) {
       throw new Error(
         'No se puede eliminar una localidad con etapas asociadas. Elimina las etapas primero.'
       );
-    }
+    } */
 
     return localitiesRepo.delete(id);
   }
@@ -165,15 +175,17 @@ if (blockedStatuses.includes(event.status)) {
     const localities = await localitiesRepo.findByEventId(eventId);
 
     const stats = {
-      total_localities: localities.length,
-      localities_with_stages: localities.filter(l => l.stages && l.stages.length > 0).length,
-      total_stages: localities.reduce((sum, l) => sum + (l.stages?.length || 0), 0),
-      localities: localities.map(l => ({
-        id: l.id,
-        name: l.name_locality,
-        stages_count: l.stages?.length || 0,
-      })),
-    };
+  total_localities: localities.length,
+  localities_with_stages: 0,
+  total_stages: 0,
+  localities: localities.map(l => ({
+    id: l.id,
+    name: l.name_locality,
+    stages_count: 0,
+  })),
+};
+
+
 
     return stats;
   }
