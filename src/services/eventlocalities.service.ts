@@ -31,11 +31,20 @@ export class EventLocalitiesService {
     }
 
     // No permitir agregar localidades si el evento ya está ACTIVE o FINALIZED
-    if ([EVENT_STATUS.ACTIVE, EVENT_STATUS.FINALIZED, EVENT_STATUS.CANCELED].includes(event.status)) {
-      throw new Error(
+    const blockedStatuses: EVENT_STATUS[] = [
+  EVENT_STATUS.ACTIVE,
+  EVENT_STATUS.FINALIZED,
+  EVENT_STATUS.CANCELED,
+];
+
+if (blockedStatuses.includes(event.status)) {
+  throw new Error(
         `No se pueden agregar localidades a un evento en estado ${event.status}`
       );
-    }
+}
+
+
+    
 
     // Crear la localidad
     const localityData: Prisma.EventLocalitiesUncheckedCreateInput = {

@@ -43,7 +43,7 @@ export class EventFavoritesRepository {
   /**
    * Obtener todos los favoritos de un usuario
    */
-  async findByUserId(userId: number): Promise<EventFavorites[]> {
+  async findByUserId(userId: number) {
     return prisma.eventFavorites.findMany({
       where: { user_id: userId },
       include: {
@@ -78,7 +78,7 @@ export class EventFavoritesRepository {
   /**
    * Buscar favorito por ID
    */
-  async findById(id: number): Promise<EventFavorites | null> {
+  async findById(id: number) {
     return prisma.eventFavorites.findUnique({
       where: { id },
       include: {
@@ -101,7 +101,7 @@ export class EventFavoritesRepository {
   async findByUserAndEvent(
     userId: number,
     eventId: number
-  ): Promise<EventFavorites | null> {
+  ) {
     return prisma.eventFavorites.findFirst({
       where: {
         user_id: userId,
