@@ -23,9 +23,9 @@ export class UserRepository {
   /**
    * Buscar usuario por firebase_uid (uid)
    */
-  async findByFirebaseUid(uid: string): Promise<User | null> {
+  async findByFirebaseUid(firebaseUid: string): Promise<User | null> {
     return prisma.user.findFirst({
-      where: { uid },
+      where: { firebase_uid: firebaseUid },
     });
   }
 
