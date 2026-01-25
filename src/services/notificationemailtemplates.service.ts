@@ -1,6 +1,6 @@
 import { NotificationEmailTemplatesRepository } from '../repositories/notificationemailtemplates.repository';
 import { Prisma, TemplateTypes } from '@prisma/client';
-import { extractVariablesFromTemplate } from '../utils/template-renderer';
+//import { extractVariablesFromTemplate } from '../utils/template-renderer';
 
 const templateRepo = new NotificationEmailTemplatesRepository();
 

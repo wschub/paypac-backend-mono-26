@@ -89,3 +89,17 @@ export class BrevoService {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }
+
+// Extrae variables tipo {{name}}, {{email}}, etc del HTML
+/*export function extractVariablesFromTemplate(html: string): string[] {
+  const regex = /{{\s*([\w\.]+)\s*}}/g;
+  const variables = new Set<string>();
+  let match;
+
+  while ((match = regex.exec(html)) !== null) {
+    variables.add(match[1]);
+  }
+
+  return Array.from(variables);
+}
+ */
