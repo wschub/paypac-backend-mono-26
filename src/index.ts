@@ -22,6 +22,10 @@ import staffAssignmentRoutes from './routes/event_staff_assignment.routes';
 import transactionRoutes from './routes/transaction.routes';
 import paymentMethodsUIRoutes from './routes/paymentmethodsui.routes';
 import paymentCardRoutes from './routes/paymentmethodcard.routes';
+import emailTemplatesRoutes from './routes/notificationemailtemplates.routes';
+import emailQueueRoutes from './routes/notificationmessagequeue.routes';
+import { validateBrevoConfig } from './config/brevo';
+import { startEmailQueueProcessor, startEmailQueueCleaner } from './jobs/email-queue-processor';
 
 
 
@@ -31,7 +35,8 @@ import webhookRoutes from './routes/webhook.routes';
 
 
 
-
+// Validar configuración de Brevo al iniciar
+validateBrevoConfig();
 
 
 // ============================================
@@ -124,11 +129,19 @@ app.use('/api/events', staffAssignmentRoutes); // Para /api/events/:eventId/staf
 app.use('/api/transactions', transactionRoutes);
 app.use('/api/payment-methods', paymentMethodsUIRoutes);
 app.use('/api/payment-cards', paymentCardRoutes);
+//notification routes
+app.use('/api/email-templates', emailTemplatesRoutes);
+app.use('/api/email-queue', emailQueueRoutes);
+
+
 // Registrar rutas ANTES de las rutas autenticadas
 app.use('/api/webhooks', webhookRoutes); // Sin autenticación
 
 
 
+// Iniciar CRON jobs
+startEmailQueueProcessor(); // Procesa cola cada 5 minutos
+startEmailQueueCleaner();   // Limpia mensajes antiguos diariamente
 
 
 // ============================================

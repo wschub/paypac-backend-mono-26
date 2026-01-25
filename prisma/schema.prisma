@@ -64,6 +64,10 @@ model User {
 
   staffAssignments EventStaffAssignment[] @relation("StaffAssignments")
   staffAssigned    EventStaffAssignment[] @relation("StaffAssigner")
+  
+  // ... campos existentes
+  notifications NotificationMessageQueue[]
+
 }
 
 model Roles {
@@ -709,4 +713,53 @@ model Transactions {
   taxes               String[]
   tip_in_cents        String
   meta                Json
+}
+
+
+//NOTIFICATIONS
+model NotificationEmailTemplates {
+  id            Int      @id @default(autoincrement())
+  template_name   String
+  template_subjet    String
+  template_code   String   
+  temlate_type   TemplateTypes @default(EVENT_NOTIFICATION)
+  template_variables   String[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // ✅ Relación inversa
+  messages NotificationMessageQueue[]
+}
+
+
+enum TemplateTypes {
+  REGISTRATION
+  PASSWORD_RESET
+  EVENT_NOTIFICATION
+  TRANSACTION
+  PROMOTER_UPDATE
+  MARKETING
+}
+
+
+
+model NotificationMessageQueue {
+  id            Int      @id @default(autoincrement())
+  user_id     Int
+  template_id   Int
+  template_subjet    String   
+  temlate_type   TemplateTypes @default(EVENT_NOTIFICATION)
+  email_delivery String // ✅ Email del destinatario
+  email_body      String? @db.Text // ✅ HTML renderizado completo
+  send_at       DateTime?
+  status       Int      @default(0) // 0: Pendiente, 1: Enviado, 2: Fallido
+  message_result String? @db.Text // ✅ Respuesta de Brevo
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+   // ✅ Relaciones
+  user     User                        @relation(fields: [user_id], references: [id])
+  template NotificationEmailTemplates @relation(fields: [template_id], references: [id])
+
+
 }

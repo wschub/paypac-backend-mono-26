@@ -66,7 +66,7 @@ router.get(
  * Requiere: PAYPAC
  */
 router.get(
-  '/role/:role',
+  '/role/:role', 
   authenticate,
   authorizeRoles('PAYPAC'),
   validateRequest(getUsersByRoleSchema),
