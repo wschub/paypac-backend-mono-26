@@ -720,7 +720,7 @@ model Transactions {
 model NotificationEmailTemplates {
   id            Int      @id @default(autoincrement())
   template_name   String
-  template_subjet    String
+  template_subject    String
   template_code   String   
   temlate_type   TemplateTypes @default(EVENT_NOTIFICATION)
   template_variables   String[]
@@ -747,7 +747,7 @@ model NotificationMessageQueue {
   id            Int      @id @default(autoincrement())
   user_id     Int
   template_id   Int
-  template_subjet    String   
+  template_subject    String   
   temlate_type   TemplateTypes @default(EVENT_NOTIFICATION)
   email_delivery String // ✅ Email del destinatario
   email_body      String? @db.Text // ✅ HTML renderizado completo
