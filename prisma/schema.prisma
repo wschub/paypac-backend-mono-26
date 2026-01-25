@@ -722,7 +722,7 @@ model NotificationEmailTemplates {
   template_name   String
   template_subject    String
   template_code   String   
-  temlate_type   TemplateTypes @default(EVENT_NOTIFICATION)
+  template_type   TemplateTypes @default(EVENT_NOTIFICATION)
   template_variables   String[]
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -748,7 +748,7 @@ model NotificationMessageQueue {
   user_id     Int
   template_id   Int
   template_subject    String   
-  temlate_type   TemplateTypes @default(EVENT_NOTIFICATION)
+  template_type   TemplateTypes @default(EVENT_NOTIFICATION)
   email_delivery String // ✅ Email del destinatario
   email_body      String? @db.Text // ✅ HTML renderizado completo
   send_at       DateTime?
