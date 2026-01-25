@@ -1,11 +1,21 @@
 import { prisma } from '../config/db';
 import { NotificationMessageQueue, Prisma } from '@prisma/client';
 
+
+export type NotificationMessageWithRelations =
+  Prisma.NotificationMessageQueueGetPayload<{
+    include: {
+      user: true;
+      template: true;
+    };
+  }>;
+
+
 export class NotificationMessageQueueRepository {
   /**
    * Crear un nuevo mensaje en la cola
    */
-  async create(data: Prisma.NotificationMessageQueueUncheckedCreateInput): Promise<NotificationMessageQueue> {
+  async create(data: Prisma.NotificationMessageQueueUncheckedCreateInput): Promise<NotificationMessageWithRelations> {
     return prisma.notificationMessageQueue.create({
       data,
       include: {
@@ -22,7 +32,7 @@ export class NotificationMessageQueueRepository {
     status?: number; 
     user_id?: number;
     template_id?: number;
-  }): Promise<NotificationMessageQueue[]> {
+  }): Promise<NotificationMessageWithRelations[]> {
     const where: Prisma.NotificationMessageQueueWhereInput = {};
 
     if (filters?.status !== undefined) {
@@ -51,7 +61,7 @@ export class NotificationMessageQueueRepository {
    * Obtener mensajes pendientes de envío
    * status = 0 (Pendiente) y send_at <= NOW()
    */
-  async findPendingMessages(): Promise<NotificationMessageQueue[]> {
+  async findPendingMessages(): Promise<NotificationMessageWithRelations[]> {
     const now = new Date();
 
     return prisma.notificationMessageQueue.findMany({
@@ -74,7 +84,7 @@ export class NotificationMessageQueueRepository {
   /**
    * Buscar mensaje por ID
    */
-  async findById(id: number): Promise<NotificationMessageQueue | null> {
+  async findById(id: number): Promise<NotificationMessageWithRelations | null> {
     return prisma.notificationMessageQueue.findUnique({
       where: { id },
       include: {
@@ -87,7 +97,7 @@ export class NotificationMessageQueueRepository {
   /**
    * Actualizar mensaje
    */
-  async update(id: number, data: Prisma.NotificationMessageQueueUpdateInput): Promise<NotificationMessageQueue> {
+  async update(id: number, data: Prisma.NotificationMessageQueueUpdateInput): Promise<NotificationMessageWithRelations> {
     return prisma.notificationMessageQueue.update({
       where: { id },
       data,

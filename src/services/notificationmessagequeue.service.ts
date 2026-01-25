@@ -60,16 +60,16 @@ export class NotificationMessageQueueService {
 
     // 4. Crear el mensaje en la cola
     const message = await messageRepo.create({
-      user_id: params.user_id,
-      template_id: template.id,
-      template_subject: renderedSubject,
-      template_code: template.template_code,
-      template_type: template.template_type,
-      email_delivery: params.email_delivery,
-      email_body: wrappedHtml,
-      send_at: params.send_at || null,
-      status: 0, // Pendiente
-    });
+  user_id: params.user_id,
+  template_id: template.id,
+  template_subject: renderedSubject,
+  template_type: template.template_type,
+  email_delivery: params.email_delivery,
+  template_code: wrappedHtml, // ✅ aquí va el HTML
+  send_at: params.send_at || null,
+  status: 0,
+});
+
 
     console.log('✅ Email encolado:', {
       id: message.id,
@@ -104,7 +104,8 @@ export class NotificationMessageQueueService {
             name: message.user.name || 'Usuario',
           },
           subject: message.template_subject,
-          htmlContent: message.email_body || '',
+          htmlContent: message.template_code || '',
+
         });
 
         if (result.success) {
