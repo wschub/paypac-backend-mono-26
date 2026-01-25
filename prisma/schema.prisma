@@ -750,7 +750,7 @@ model NotificationMessageQueue {
   template_subject    String   
   template_type   TemplateTypes @default(EVENT_NOTIFICATION)
   email_delivery String // ✅ Email del destinatario
-  email_body      String? @db.Text // ✅ HTML renderizado completo
+  template_code      String? @db.Text // ✅ HTML renderizado completo
   send_at       DateTime?
   status       Int      @default(0) // 0: Pendiente, 1: Enviado, 2: Fallido
   message_result String? @db.Text // ✅ Respuesta de Brevo
