@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { NotificationMessageQueueService } from '../services/notificationmessagequeue.service';
+import { renderTemplate, validateTemplateVariables, wrapEmailHtml } from '../utils/template-renderer';
 
 const queueService = new NotificationMessageQueueService();
 

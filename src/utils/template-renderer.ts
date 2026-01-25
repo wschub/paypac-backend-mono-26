@@ -1,105 +1,46 @@
-import * as brevo from '@getbrevo/brevo';
-import { brevoApiInstance, brevoConfig } from '../config/brevo';
+// src/utils/template-renderer.ts
 
-export interface SendEmailParams {
-  to: { email: string; name: string };
-  subject: string;
-  htmlContent: string;
+// Reemplaza {{variable}} por su valor
+export function renderTemplate(
+  template: string,
+  variables: Record<string, string | number>
+): string {
+  let result = template;
+
+  for (const [key, value] of Object.entries(variables)) {
+    const regex = new RegExp(`{{\\s*${key}\\s*}}`, 'g');
+    result = result.replace(regex, String(value));
+  }
+
+  return result;
 }
 
-export interface SendEmailResult {
-  success: boolean;
-  messageId?: string;
-  error?: string;
+// Valida que estén todas las variables requeridas
+export function validateTemplateVariables(
+  required: string[],
+  provided: Record<string, any>
+): { valid: boolean; missing: string[] } {
+  const missing = required.filter(v => !(v in provided));
+  return {
+    valid: missing.length === 0,
+    missing,
+  };
 }
 
-export class BrevoService {
-  /**
-   * Enviar un email transaccional usando Brevo
-   */
-  async sendEmail(params: SendEmailParams): Promise<SendEmailResult> {
-    try {
-      const sendSmtpEmail = new brevo.SendSmtpEmail();
-
-      sendSmtpEmail.subject = params.subject;
-      sendSmtpEmail.to = [params.to];
-      sendSmtpEmail.htmlContent = params.htmlContent;
-      sendSmtpEmail.sender = {
-        name: brevoConfig.senderName,
-        email: brevoConfig.senderEmail,
-      };
-
-      const result = await brevoApiInstance.sendTransacEmail(sendSmtpEmail);
-
-      // La respuesta de Brevo tiene esta estructura:
-      // { response: IncomingMessage, body: CreateSmtpEmail }
-      const messageId = result.body?.messageId || result.response?.headers?.['x-message-id'] || 'unknown';
-
-      console.log('✅ Email enviado exitosamente:', {
-        messageId,
-        to: params.to.email,
-        statusCode: result.response?.statusCode,
-      });
-
-      return {
-        success: true,
-        messageId: String(messageId),
-      };
-    } catch (error: any) {
-      console.error('❌ Error al enviar email con Brevo:', error);
-
-      return {
-        success: false,
-        error: error.message || 'Error desconocido al enviar email',
-      };
-    }
-  }
-
-  /**
-   * Enviar múltiples emails (batch)
-   * Útil para notificaciones masivas
-   */
-  async sendBatchEmails(emails: SendEmailParams[]): Promise<SendEmailResult[]> {
-    const results: SendEmailResult[] = [];
-
-    for (const email of emails) {
-      const result = await this.sendEmail(email);
-      results.push(result);
-
-      // Delay entre envíos para evitar rate limiting
-      await this.delay(100);
-    }
-
-    return results;
-  }
-
-  /**
-   * Validar configuración de Brevo
-   */
-  validateConfig(): void {
-    if (!brevoConfig.apiKey) {
-      throw new Error('BREVO_API_KEY no configurada');
-    }
-  }
-
-  /**
-   * Helper: delay en milisegundos
-   */
-  private delay(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-  }
+// Envuelve HTML en layout base
+export function wrapEmailHtml(content: string): string {
+  return `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="UTF-8" />
+        <title>Email</title>
+      </head>
+      <body style="font-family: Arial, sans-serif; background: #f6f6f6; padding: 20px;">
+        <div style="max-width: 600px; margin: auto; background: #ffffff; padding: 20px; border-radius: 6px;">
+          ${content}
+        </div>
+      </body>
+    </html>
+  `;
 }
-
-// Extrae variables tipo {{name}}, {{email}}, etc del HTML
-/*export function extractVariablesFromTemplate(html: string): string[] {
-  const regex = /{{\s*([\w\.]+)\s*}}/g;
-  const variables = new Set<string>();
-  let match;
-
-  while ((match = regex.exec(html)) !== null) {
-    variables.add(match[1]);
-  }
-
-  return Array.from(variables);
-}
- */
