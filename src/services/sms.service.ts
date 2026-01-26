@@ -101,7 +101,7 @@ export class SmsService {
       });
 
       // 3. Interpretar respuesta de Onurix
-      const isVerified = response.data.status === 'success' || response.data.status === 1;
+      const isVerified = response.data.verified === true || response.data.status === 1;
 
       if (isVerified) {
         return {
