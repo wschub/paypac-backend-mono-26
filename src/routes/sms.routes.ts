@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { registerCode2FA, verificationCode2FA } from '../controllers/sms.controller';
+import { registerCode2FA, verificationCode2FA, verificationFake } from '../controllers/sms.controller';
 import { validateRequest } from '../middlewares/validate.middleware';
 import { sendCode2FASchema, verifyCode2FASchema } from '../validators/sms.validation';
 
@@ -44,5 +44,18 @@ router.post(
   validateRequest(verifyCode2FASchema),
   verificationCode2FA
 );
+
+router.post(
+  '/verifycode2FA',
+  validateRequest(verifyCode2FASchema),
+  verificationCode2FA
+);
+
+router.post(
+  '/verificationfake',
+  //validateRequest(verifyCode2FASchema),
+  verificationFake
+);
+
 
 export default router;

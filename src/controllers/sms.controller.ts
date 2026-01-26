@@ -83,3 +83,19 @@ export const verificationCode2FA = async (req: Request, res: Response): Promise<
     });
   }
 };
+
+
+//FAKE 
+export const verificationFake = async (req: Request, res: Response): Promise<void> => {
+   
+   const { phone } = req.body;
+
+   res.status(200).json({
+        success: true,
+        message: 'Código verificado exitosamente',
+        data: {
+          phone: phone,
+          verified: true,
+        },
+      });
+}
