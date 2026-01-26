@@ -4,7 +4,7 @@ import cors from 'cors';
 import http from 'http';
 import { Server as SocketIOServer } from 'socket.io';
 import dotenv from 'dotenv';
-
+dotenv.config();
 
 
 import authRoutes from './routes/auth.routes';
@@ -27,6 +27,7 @@ import emailQueueRoutes from './routes/notificationmessagequeue.routes';
 import { validateBrevoConfig } from './config/brevo';
 import { startEmailQueueProcessor, startEmailQueueCleaner } from './jobs/email-queue-processor';
 
+import smsRoutes from './routes/sms.routes';
 
 
 
@@ -34,9 +35,19 @@ import { startEmailQueueProcessor, startEmailQueueCleaner } from './jobs/email-q
 import webhookRoutes from './routes/webhook.routes';
 
 
+import { validateOnurixConfig } from './config/onurix';
 
+// Validar solo si las credenciales están configuradas
+try {
+  validateOnurixConfig();
+} catch (error: any) {
+  console.warn('⚠️ Advertencia Onurix:', error.message);
+  console.warn('⚠️ El módulo de SMS 2FA no estará disponible');
+}
 // Validar configuración de Brevo al iniciar
 validateBrevoConfig();
+// Validar configuración de Onurix al iniciar
+validateOnurixConfig();
 
 
 // ============================================
@@ -44,7 +55,7 @@ validateBrevoConfig();
 // ============================================
 import { setupTicketSocketHandlers } from './sockets/ticket.socket';
 
-dotenv.config();
+
 const app = express();
 const server = http.createServer(app);
 const io = new SocketIOServer(server, {
@@ -132,7 +143,8 @@ app.use('/api/payment-cards', paymentCardRoutes);
 //notification routes
 app.use('/api/email-templates', emailTemplatesRoutes);
 app.use('/api/email-queue', emailQueueRoutes);
-
+//sms routes
+app.use('/api/sms', smsRoutes);
 
 // Registrar rutas ANTES de las rutas autenticadas
 app.use('/api/webhooks', webhookRoutes); // Sin autenticación
