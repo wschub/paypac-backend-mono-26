@@ -8,10 +8,11 @@ export const queueEmailSchema = z.object({
     user_id: z.number().int().positive('El user_id debe ser un número positivo'),
     email_delivery: z.string().email('Debe ser un email válido'),
     template_code: z.string().min(3, 'El código del template es requerido'),
-    variables: z.record(z.union([z.string(), z.number()])), // Objeto con variables
-    send_at: z.string().datetime().optional(), // ISO 8601 timestamp
+    variables: z.record(z.string(), z.union([z.string(), z.number()])),
+    send_at: z.string().datetime().optional(),
   }),
 });
+
 
 /**
  * Schema para obtener mensaje por ID
