@@ -26,9 +26,8 @@ import emailTemplatesRoutes from './routes/notificationemailtemplates.routes';
 import emailQueueRoutes from './routes/notificationmessagequeue.routes';
 import { validateBrevoConfig } from './config/brevo';
 import { startEmailQueueProcessor, startEmailQueueCleaner } from './jobs/email-queue-processor';
-
 import smsRoutes from './routes/sms.routes';
-
+import countriesRoutes from './routes/countries.routes';
 
 
 
@@ -145,6 +144,7 @@ app.use('/api/email-templates', emailTemplatesRoutes);
 app.use('/api/email-queue', emailQueueRoutes);
 //sms routes
 app.use('/api/sms', smsRoutes);
+app.use('/api/countries', countriesRoutes);
 
 // Registrar rutas ANTES de las rutas autenticadas
 app.use('/api/webhooks', webhookRoutes); // Sin autenticación
