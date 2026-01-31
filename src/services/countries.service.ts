@@ -120,6 +120,7 @@ export class CountriesService {
     }
 
     // Verificar que no tenga relaciones activas
+    /* 
     if (country.states.length > 0) {
       throw new Error('No se puede eliminar: el país tiene estados asociados');
     }
@@ -131,7 +132,7 @@ export class CountriesService {
     if (country.categories.length > 0) {
       throw new Error('No se puede eliminar: el país tiene categorías asociadas');
     }
-
+*/
     return countriesRepo.delete(id);
   }
 
@@ -149,9 +150,9 @@ export class CountriesService {
 
     return {
       total: totalCount,
-      with_states: allCountries.filter(c => c.states.length > 0).length,
-      with_cities: allCountries.filter(c => c.cities.length > 0).length,
-      with_categories: allCountries.filter(c => c.categories.length > 0).length,
+     // with_states: allCountries.filter(c => c.states.length > 0).length,
+     // with_cities: allCountries.filter(c => c.cities.length > 0).length,
+     // with_categories: allCountries.filter(c => c.categories.length > 0).length,
     };
   }
 }
