@@ -14,8 +14,8 @@ const router = Router();
  */
 router.post(
   '/register',
-  //authenticate,                          // ← Usuario debe estar autenticado
-  //authorizeRoles('admin'),               // ← Solo admins
+  authenticate,                          // ← Usuario debe estar autenticado
+  authorizeRoles('PAYPAC','ORGANIZER'),               // ← Solo admins
   validateRequest(registerUserSchema),
   register
 );

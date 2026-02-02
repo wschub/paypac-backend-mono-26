@@ -45,11 +45,7 @@ router.post(
   verificationCode2FA
 );
 
-router.post(
-  '/verifycode2FA',
-  validateRequest(verifyCode2FASchema),
-  verificationCode2FA
-);
+
 
 router.post(
   '/verificationfake',
