@@ -58,7 +58,7 @@ export class AuthService {
       console.log('✅ Usuario creado en PostgreSQL:', user.id);
 
     // 4. ✅ Establecer Custom Claims en Firebase
-    await firebaseAuth.setCustomUserClaims(firebaseUser.uid, {
+    const customToken = await firebaseAuth.setCustomUserClaims(firebaseUser.uid, {
       userId: user.id,
       companyId: user.company_id,
       role: user.role,
@@ -76,6 +76,7 @@ export class AuthService {
         role: user.role,
         company_id: user.company_id,
         uid: user.firebase_uid,
+        customToken:customToken,
       };
 
   } catch (error: any) {
