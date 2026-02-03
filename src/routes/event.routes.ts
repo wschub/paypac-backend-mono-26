@@ -50,8 +50,8 @@ router.post(
  */
 router.get(
   '/',
-  //authenticate,
-  //authorizeRoles('PAYPAC', 'ORGANIZER', 'STAFF', 'STAFF_PROMOTER', 'PROMOTER', 'CUSTOMER'),
+  authenticate,
+  authorizeRoles('PAYPAC', 'ORGANIZER', 'STAFF', 'STAFF_PROMOTER', 'PROMOTER', 'CUSTOMER'),
   validateRequest(getEventsQuerySchema),
   getEvents
 );
