@@ -2,10 +2,11 @@ import { Request, Response } from 'express';
 import { TicketService } from '../services/ticket.service';
 import { TicketTransactionService } from '../services/tickettransaction.service';
 import { paramToInt } from '../utils/utils';
-
+import { prisma } from '../config/db'; // ✅ Agregar este import
+import { TransactionRepository } from '../repositories/transaction.repository'; 
 const ticketService = new TicketService();
 const ticketTransactionService = new TicketTransactionService();
-
+const transactionRepo = new TransactionRepository(); // ✅ Agregar
 
 /**
  * 🧪 POST /api/tickets/create-test
@@ -42,33 +43,31 @@ export const createTestTicket = async (req: Request, res: Response): Promise<voi
       return;
     }
 
-    // Crear transacción de prueba
-    const transaction = await prisma.transaction.create({
-      data: {
-        user_id: userId,
-        user_uid: req.user!.firebase_uid || '',
-        invoice_id: `TEST-INV-${Date.now()}`,
-        created_at: new Date(),
-        finalized_at: new Date(),
-        amount_in_cents: stage.price_ticket * qty_tickets * 100,
-        reference: `TEST-REF-${Date.now()}`,
-        customer_email: req.user!.email || 'test@test.com',
-        currency: 'COP',
-        payment_method_type: 'CARD',
-        payment_method: { type: 'CARD', brand: 'TEST' },
-        status: 'APPROVED',
-        status_message: 'Test transaction',
-        billing_data: '{}',
-        shipping_address: '',
-        redirect_url: '',
-        payment_source_id: '',
-        payment_link_id: '',
-        customer_data: '{}',
-        bill_id: '',
-        taxes: [],
-        tip_in_cents: '0',
-        meta: { test: true },
-      },
+    // ✅ Crear transacción de prueba usando el repositorio
+    const transaction = await transactionRepo.create({
+      user_id: userId,
+      user_uid: req.user!.firebase_uid || '',
+      invoice_id: `TEST-INV-${Date.now()}`,
+      created_at: new Date(),
+      finalized_at: new Date(),
+      amount_in_cents: stage.price_ticket * qty_tickets * 100,
+      reference: `TEST-REF-${Date.now()}`,
+      customer_email: req.user!.email || 'test@test.com',
+      currency: 'COP',
+      payment_method_type: 'CARD',
+      payment_method: { type: 'CARD', brand: 'TEST' },
+      status: 'APPROVED',
+      status_message: 'Test transaction',
+      billing_data: '{}',
+      shipping_address: '',
+      redirect_url: '',
+      payment_source_id: '',
+      payment_link_id: '',
+      customer_data: '{}',
+      bill_id: '',
+      taxes: [],
+      tip_in_cents: '0',
+      meta: { test: true },
     });
 
     // Crear tickets usando el servicio
@@ -111,7 +110,6 @@ export const createTestTicket = async (req: Request, res: Response): Promise<voi
 
     res.status(201).json({
       success: true,
-      message: 'Tickets de prueba creados',
       ...ticketsResult,
       transaction_id: transaction.id,
     });
