@@ -7,6 +7,122 @@ const ticketService = new TicketService();
 const ticketTransactionService = new TicketTransactionService();
 
 
+/**
+ * 🧪 POST /api/tickets/create-test
+ * Crear tickets de prueba (SOLO DESARROLLO)
+ */
+export const createTestTicket = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = req.user!.id;
+    const { event_id, qty_tickets = 1 } = req.body;
+
+    // Obtener evento
+    const event = await prisma.event.findUnique({
+      where: { id: event_id },
+      include: {
+        localities: {
+          include: {
+            stages: true,
+          },
+        },
+      },
+    });
+
+    if (!event) {
+      res.status(404).json({ message: 'Evento no encontrado' });
+      return;
+    }
+
+    // Obtener primera localidad y stage
+    const locality = event.localities[0];
+    const stage = locality?.stages[0];
+
+    if (!locality || !stage) {
+      res.status(400).json({ message: 'Evento sin localidades o stages' });
+      return;
+    }
+
+    // Crear transacción de prueba
+    const transaction = await prisma.transaction.create({
+      data: {
+        user_id: userId,
+        user_uid: req.user!.firebase_uid || '',
+        invoice_id: `TEST-INV-${Date.now()}`,
+        created_at: new Date(),
+        finalized_at: new Date(),
+        amount_in_cents: stage.price_ticket * qty_tickets * 100,
+        reference: `TEST-REF-${Date.now()}`,
+        customer_email: req.user!.email || 'test@test.com',
+        currency: 'COP',
+        payment_method_type: 'CARD',
+        payment_method: { type: 'CARD', brand: 'TEST' },
+        status: 'APPROVED',
+        status_message: 'Test transaction',
+        billing_data: '{}',
+        shipping_address: '',
+        redirect_url: '',
+        payment_source_id: '',
+        payment_link_id: '',
+        customer_data: '{}',
+        bill_id: '',
+        taxes: [],
+        tip_in_cents: '0',
+        meta: { test: true },
+      },
+    });
+
+    // Crear tickets usando el servicio
+    const ticketsResult = await ticketService.createTicketsFromInvoice(
+      transaction.id,
+      {
+        user_id: userId,
+        user_uid: req.user!.firebase_uid || '',
+        event_id: event_id,
+        items: [
+          {
+            stage_id: stage.id,
+            stage_name: stage.stage_name,
+            locality_id: locality.id,
+            locality_name: locality.name_locality,
+            qty_tickets: qty_tickets,
+            price_ticket: stage.price_ticket,
+            locality_colors: {
+              bkg_color: locality.bkg_color,
+              title_color: locality.title_color,
+              text_color: locality.text_color,
+              title_color_location: locality.title_color_location,
+            },
+          },
+        ],
+      },
+      {
+        name: event.name,
+        short_description: event.short_description,
+        cover: event.cover,
+        date_event: event.date_event,
+        place_address: event.place_address,
+        event_type: event.event_type,
+        type_venue: event.type_venue,
+        organizer_id: event.organizer_id,
+        status: event.status,
+      },
+      req.body.customer_ID_phone || '+573001234567'
+    );
+
+    res.status(201).json({
+      success: true,
+      message: 'Tickets de prueba creados',
+      ...ticketsResult,
+      transaction_id: transaction.id,
+    });
+  } catch (err: any) {
+    res.status(400).json({
+      success: false,
+      message: err.message,
+    });
+  }
+};
+
 
 
 /**

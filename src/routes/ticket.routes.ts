@@ -7,6 +7,7 @@ import {
   getUpcomingTickets,
   cancelTicket,
   getEventTicketStats,
+   createTestTicket,
 } from '../controllers/ticket.controller';
 import { authenticate } from '../middlewares/auth.middleware';
 import { authorizeRoles } from '../middlewares/role.middleware';
@@ -21,6 +22,20 @@ import {
 } from '../validators/ticket.validation';
 
 const router = Router();
+
+
+/**
+ * 🧪 POST /api/tickets/create-test
+ * Crear tickets de prueba (SOLO DESARROLLO)
+ */
+router.post(
+  '/create-test',
+  authenticate,
+  authorizeRoles('PAYPAC', 'ORGANIZER', 'CUSTOMER'),
+  createTestTicket
+);
+
+
 
 /**
  * GET /api/tickets/my-tickets
