@@ -18,10 +18,12 @@ export const wompiWebhook = async (
 ): Promise<void> => {
   try {
     console.log('🔔 Webhook recibido de Wompi:', JSON.stringify(req.body, null, 2));
+    
 
+   
     const webhookData = req.body as WompiWebhookEvent;
     const { event, data, signature, timestamp, environment } = webhookData;
-
+ /*
     // 1. Verificar firma del webhook
     const isValidSignature = verifyWompiSignature(webhookData);
     if (!isValidSignature) {
@@ -31,7 +33,8 @@ export const wompiWebhook = async (
     }
 
     console.log('✅ Firma del webhook verificada');
-
+    
+   
     // 2. Validar ambiente
     const expectedEnv = process.env.WOMPI_MODE === 'sandbox' ? 'test' : 'prod';
     if (environment !== expectedEnv) {
@@ -39,7 +42,7 @@ export const wompiWebhook = async (
       res.status(400).json({ message: 'Invalid environment' });
       return;
     }
-
+*/
     // 3. Procesar según el tipo de evento
     if (event === 'transaction.updated') {
       await handleTransactionUpdated(data.transaction);

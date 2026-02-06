@@ -6,6 +6,9 @@ import { paramToInt } from '../utils/utils';
 const ticketService = new TicketService();
 const ticketTransactionService = new TicketTransactionService();
 
+
+
+
 /**
  * GET /api/tickets/my-tickets
  * Obtener mis tickets (Wallet)
