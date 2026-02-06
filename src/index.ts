@@ -16,6 +16,7 @@ import eventDctoRoutes from './routes/eventdcto.routes';
 import eventRewardRulesRoutes from './routes/eventrewardrules.routes';
 import eventBalancePromotersRoutes from './routes/eventbalancepromoters.routes';
 import eventFavoritesRoutes from './routes/eventfavorites.routes';
+import  invoicesRoutes   from "./routes/invoice.routes";
 import ticketRoutes from './routes/ticket.routes';
 import ticketTransactionRoutes from './routes/tickettransaction.routes';
 import staffAssignmentRoutes from './routes/event_staff_assignment.routes';
@@ -135,6 +136,7 @@ app.use('/api', eventDctoRoutes);
 app.use('/api', eventRewardRulesRoutes);
 app.use('/api', eventBalancePromotersRoutes);
 app.use('/api', eventFavoritesRoutes);
+app.use('/api', invoicesRoutes); // Rutas de facturas
 app.use('/api/tickets', ticketRoutes);
 app.use('/api/ticket-transactions', ticketTransactionRoutes);
 app.use('/api/staff', staffAssignmentRoutes); // Para /api/staff/my-events
