@@ -2,6 +2,13 @@ import { prisma } from '../config/db';
 import { Transactions, Prisma } from '@prisma/client';
 
 export class TransactionRepository {
+
+  //test dlete 
+  // transaction.repository.ts
+
+
+
+
   /**
    * Crear una nueva transacción
    */
@@ -106,3 +113,5 @@ export class TransactionRepository {
     });
   }
 }
+
+

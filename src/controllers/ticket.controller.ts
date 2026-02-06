@@ -12,10 +12,19 @@ const transactionRepo = new TransactionRepository(); // ✅ Agregar
  * 🧪 POST /api/tickets/create-test
  * Crear tickets de prueba (SOLO DESARROLLO)
  */
+/**
+ * 🧪 POST /api/tickets/create-test
+ * Crear tickets de prueba (SOLO DESARROLLO)
+ */
 export const createTestTicket = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = req.user!.id;
     const { event_id, qty_tickets = 1 } = req.body;
+
+    console.log('🧪 Creando ticket de prueba...');
+    console.log('   User ID:', userId);
+    console.log('   Event ID:', event_id);
+    console.log('   Qty Tickets:', qty_tickets);
 
     // Obtener evento
     const event = await prisma.event.findUnique({
@@ -30,21 +39,28 @@ export const createTestTicket = async (req: Request, res: Response): Promise<voi
     });
 
     if (!event) {
+      console.error('❌ Evento no encontrado');
       res.status(404).json({ message: 'Evento no encontrado' });
       return;
     }
+
+    console.log('✅ Evento encontrado:', event.name);
 
     // Obtener primera localidad y stage
     const locality = event.localities[0];
     const stage = locality?.stages[0];
 
     if (!locality || !stage) {
+      console.error('❌ Evento sin localidades o stages');
       res.status(400).json({ message: 'Evento sin localidades o stages' });
       return;
     }
 
-    // ✅ Crear transacción de prueba usando el repositorio
-    const transaction = await transactionRepo.create({
+    console.log('✅ Localidad:', locality.name_locality);
+    console.log('✅ Stage:', stage.stage_name);
+
+    // Crear transacción de prueba
+    const transactionData = {
       user_id: userId,
       user_uid: req.user!.firebase_uid || '',
       invoice_id: `TEST-INV-${Date.now()}`,
@@ -68,7 +84,52 @@ export const createTestTicket = async (req: Request, res: Response): Promise<voi
       taxes: [],
       tip_in_cents: '0',
       meta: { test: true },
-    });
+    };
+
+    console.log('📝 Creando transacción de prueba...');
+    
+    const transaction = await transactionRepo.create(transactionData);
+    
+    console.log('✅ Transacción creada:', transaction);
+
+    if (!transaction || !transaction.id) {
+      console.error('❌ Transacción no tiene ID');
+      throw new Error('Error al crear la transacción de prueba');
+    }
+
+    console.log('✅ Transaction ID:', transaction.id);
+
+    // Preparar datos para crear tickets
+    const itemsForTickets = [
+      {
+        stage_id: stage.id,
+        stage_name: stage.stage_name,
+        locality_id: locality.id,
+        locality_name: locality.name_locality,
+        qty_tickets: qty_tickets,
+        price_ticket: stage.price_ticket,
+        locality_colors: {
+          bkg_color: locality.bkg_color,
+          title_color: locality.title_color,
+          text_color: locality.text_color,
+          title_color_location: locality.title_color_location,
+        },
+      },
+    ];
+
+    const eventSnapshot = {
+      name: event.name,
+      short_description: event.short_description,
+      cover: event.cover,
+      date_event: event.date_event,
+      place_address: event.place_address,
+      event_type: event.event_type,
+      type_venue: event.type_venue,
+      organizer_id: event.organizer_id,
+      status: event.status,
+    };
+
+    console.log('🎫 Creando tickets...');
 
     // Crear tickets usando el servicio
     const ticketsResult = await ticketService.createTicketsFromInvoice(
@@ -77,36 +138,13 @@ export const createTestTicket = async (req: Request, res: Response): Promise<voi
         user_id: userId,
         user_uid: req.user!.firebase_uid || '',
         event_id: event_id,
-        items: [
-          {
-            stage_id: stage.id,
-            stage_name: stage.stage_name,
-            locality_id: locality.id,
-            locality_name: locality.name_locality,
-            qty_tickets: qty_tickets,
-            price_ticket: stage.price_ticket,
-            locality_colors: {
-              bkg_color: locality.bkg_color,
-              title_color: locality.title_color,
-              text_color: locality.text_color,
-              title_color_location: locality.title_color_location,
-            },
-          },
-        ],
+        items: itemsForTickets,
       },
-      {
-        name: event.name,
-        short_description: event.short_description,
-        cover: event.cover,
-        date_event: event.date_event,
-        place_address: event.place_address,
-        event_type: event.event_type,
-        type_venue: event.type_venue,
-        organizer_id: event.organizer_id,
-        status: event.status,
-      },
+      eventSnapshot,
       req.body.customer_ID_phone || '+573001234567'
     );
+
+    console.log('✅ Tickets creados:', ticketsResult);
 
     res.status(201).json({
       success: true,
@@ -114,9 +152,13 @@ export const createTestTicket = async (req: Request, res: Response): Promise<voi
       transaction_id: transaction.id,
     });
   } catch (err: any) {
+    console.error('❌ Error en createTestTicket:', err);
+    console.error('Stack:', err.stack);
+    
     res.status(400).json({
       success: false,
       message: err.message,
+      error: err.toString(),
     });
   }
 };
