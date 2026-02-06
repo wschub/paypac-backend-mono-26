@@ -30,8 +30,8 @@ const router = Router();
  */
 router.post(
   '/create-test',
-  authenticate,
-  authorizeRoles('PAYPAC', 'ORGANIZER', 'STAFF', 'STAFF_PROMOTER', 'PROMOTER', 'CUSTOMER'),
+  //authenticate,
+  //authorizeRoles('PAYPAC', 'ORGANIZER', 'STAFF', 'STAFF_PROMOTER', 'PROMOTER', 'CUSTOMER'),
   createTestTicket
 );
 
