@@ -18,6 +18,91 @@ export class TicketService {
    * Se llama desde el webhook de pago o después de confirmar la transacción
    */
   async createTicketsFromInvoice(
+  transactionId: number,
+  invoiceData: {
+    user_id: number;
+    user_uid: string;
+    event_id: number;
+    items: Array<{
+      stage_id: number;
+      stage_name: string;
+      locality_id: number;
+      locality_name: string;
+      qty_tickets: number;
+      price_ticket: number;
+      locality_colors?: { // ✅ NUEVO
+        bkg_color: string;
+        title_color: string;
+        text_color: string;
+        title_color_location: string;
+      };
+    }>;
+  },
+  eventSnapshot: {
+    name: string;
+    short_description: string;
+    cover: string;
+    date_event: Date;
+    place_address: string;
+    event_type: string;
+    type_venue: string;
+    organizer_id: number;
+    status: string;
+  },
+  customerIdPhone: string
+) {
+  const tickets: Prisma.TicketUncheckedCreateInput[] = [];
+
+  // Generar tickets por cada item de la factura
+  for (const item of invoiceData.items) {
+    for (let i = 0; i < item.qty_tickets; i++) {
+      const ticketData = generateTicketData(customerIdPhone);
+
+      tickets.push({
+        transaction_id: transactionId,
+        event_id: invoiceData.event_id,
+        customer_id: invoiceData.user_id,
+        customer_uid: invoiceData.user_uid,
+        customer_ID_phone: customerIdPhone,
+        reference_ticket: ticketData.reference_ticket,
+        booking_ticket: ticketData.booking_ticket,
+        token_ticket: ticketData.token_ticket,
+        ticket_first_time: 1,
+        status_ticket: 'PAID',
+        
+        // Snapshot del evento
+        ev_name: eventSnapshot.name,
+        ev_short_description: eventSnapshot.short_description,
+        ev_cover: eventSnapshot.cover,
+        ev_date_event: eventSnapshot.date_event,
+        ev_place_address: eventSnapshot.place_address,
+        ev_event_type: eventSnapshot.event_type as any,
+        ev_type_venue: eventSnapshot.type_venue as any,
+        ev_place_seat: '', 
+        ev_organizer_id: eventSnapshot.organizer_id,
+        ev_status: eventSnapshot.status as any,
+        
+        // Snapshot de localidad CON COLORES ✅
+        loc_id_locality: item.locality_id,
+        loc_name_locality: item.locality_name,
+        loc_bkg_color: item.locality_colors?.bkg_color || '#000000',
+        loc_title_color: item.locality_colors?.title_color || '#FFFFFF',
+        loc_text_color: item.locality_colors?.text_color || '#FFFFFF',
+        loc_title_color_location: item.locality_colors?.title_color_location || '#FFFFFF',
+      });
+    }
+  }
+
+  // Crear todos los tickets en batch
+  const count = await ticketRepo.createMany(tickets);
+
+  return {
+    count,
+    message: `${count} tickets creados exitosamente`,
+  };
+}
+
+  /*async createTicketsFromInvoice(
     transactionId: number,
     invoiceData: {
       user_id: number;
@@ -94,7 +179,8 @@ export class TicketService {
       count,
       message: `${count} tickets creados exitosamente`,
     };
-  }
+  } */
+
 
   /**
    * Obtener mis tickets (Wallet)

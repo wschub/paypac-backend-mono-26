@@ -259,7 +259,101 @@ if (!stageLocality || stageLocality.event_id !== data.event_id) {
    * 🎫 Actualizar estado de factura (usado por webhook de pago)
    * ACTUALIZADO: Ahora crea tickets reales cuando el pago es exitoso
    */
-  async updateInvoiceStatus(
+  /**
+ * 🎫 Actualizar estado de factura (usado por webhook de pago)
+ * ACTUALIZADO: Ahora crea tickets reales cuando el pago es exitoso
+ */
+async updateInvoiceStatus(
+  invoiceId: number,
+  transactionId: number,
+  status: InvoiceStatus,
+  customerIdPhone: string
+) {
+  const invoice = await invoiceRepo.findById(invoiceId);
+  if (!invoice) {
+    throw new Error('Factura no encontrada');
+  }
+
+  // Actualizar factura
+  const updatedInvoice = await invoiceRepo.update(invoiceId, { status });
+
+  // 🎫 Si el pago fue exitoso, crear los tickets reales
+  if (status === InvoiceStatus.PAID) {
+    // 1. Actualizar items a "Expedido"
+    await invoiceTicketsRepo.updateManyByInvoiceId(invoiceId, {
+      status_item: 1, // Expedido
+    });
+
+    // 2. Obtener datos del evento
+    const event = await eventRepo.findById(invoice.event_id);
+    if (!event) {
+      throw new Error('Evento no encontrado');
+    }
+
+    // 3. Obtener los items de la factura
+    const invoiceItems = await invoiceTicketsRepo.findByInvoiceId(invoiceId);
+
+    // 4. Preparar items con colores de localidad
+    const itemsForTickets = await Promise.all(
+      invoiceItems.map(async (item) => {
+        // Obtener localidad completa con colores
+        const locality = await localitiesRepo.findById(item.locality_id);
+        
+        return {
+          stage_id: item.stage_id,
+          stage_name: item.stage_name,
+          locality_id: item.locality_id,
+          locality_name: item.locality_name,
+          qty_tickets: item.qty_tickets,
+          price_ticket: item.price_ticket,
+          // ✅ Colores de la localidad
+          locality_colors: locality ? {
+            bkg_color: locality.bkg_color || '#000000',
+            title_color: locality.title_color || '#FFFFFF',
+            text_color: locality.text_color || '#FFFFFF',
+            title_color_location: locality.title_color_location || '#FFFFFF',
+          } : {
+            bkg_color: '#000000',
+            title_color: '#FFFFFF',
+            text_color: '#FFFFFF',
+            title_color_location: '#FFFFFF',
+          },
+        };
+      })
+    );
+
+    // 5. Crear los tickets usando TicketService
+    const ticketsResult = await ticketService.createTicketsFromInvoice(
+      transactionId,
+      {
+        user_id: invoice.user_id,
+        user_uid: invoice.user_uid,
+        event_id: invoice.event_id,
+        items: itemsForTickets as any,
+      },
+      {
+        name: event.name,
+        short_description: event.short_description,
+        cover: event.cover,
+        date_event: event.date_event,
+        place_address: event.place_address,
+        event_type: event.event_type,
+        type_venue: event.type_venue,
+        organizer_id: event.organizer_id,
+        status: event.status,
+      },
+      customerIdPhone
+    );
+
+    console.log(`✅ ${ticketsResult.count} tickets creados para la factura ${invoice.num_invoice}`);
+  }
+
+  return updatedInvoice;
+}
+  
+  
+
+  /* async updateInvoiceStatus(
     invoiceId: number,
     transactionId: number,
     status: InvoiceStatus,
@@ -345,7 +439,9 @@ if (!stageLocality || stageLocality.event_id !== data.event_id) {
     }
 
     return updatedInvoice;
-  }
+  } */
+
+
 
   /**
    * Cancelar factura
