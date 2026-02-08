@@ -7,7 +7,7 @@ import crypto from 'crypto';
 export function generateReferenceTicket(): string {
   const timestamp = Date.now().toString(36).toUpperCase(); // Base36 timestamp
   const random = crypto.randomBytes(4).toString('hex').toUpperCase(); // 8 caracteres hex
-  return `TKT-${timestamp}-${random}`;
+  return `PYC-${timestamp}-${random}`;
 }
 
 /**
@@ -17,7 +17,7 @@ export function generateReferenceTicket(): string {
 export function generateBookingTicket(): string {
   const random = Math.floor(1000 + Math.random() * 9000); // 4 dígitos
   const timestamp = Date.now().toString().slice(-2); // Últimos 2 dígitos del timestamp
-  return `PYC-${random}-${timestamp}`;
+  return `EVP-${random}-${timestamp}`;
 }
 
 /**
