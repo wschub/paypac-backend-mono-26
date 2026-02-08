@@ -147,9 +147,6 @@ async function handleTransactionUpdated(transaction: any) {
 
   const invoice = await prisma.invoice.findFirst({
     where: { num_invoice: reference },
-    include: {
-      user: true, // Para notificaciones
-    },
   });
 
   if (!invoice) {
