@@ -7,35 +7,62 @@ import { WompiWebhookEvent } from '../types/wompi.types';
  */
 export function verifyWompiSignature(payload: WompiWebhookEvent): boolean {
   try {
-    const { event, data, timestamp, signature } = payload;
+    console.log('🔐 VERIFICANDO FIRMA DEL WEBHOOK');
+    console.log('-'.repeat(80));
 
-    // 1. Obtener el secret del webhook desde variables de entorno
-    const webhookSecret = process.env.PRV_EVENTS;
+    const { event, data, timestamp, signature, environment } = payload;
+
+    // 1. Obtener el secret según el ambiente
+    const webhookSecret = environment === 'test' 
+      ? process.env.TEST_EVENTS 
+      : process.env.PRV_EVENTS;
+
+    console.log('📋 Configuración:');
+    console.log('   Environment:', environment);
+    console.log('   Secret usado:', environment === 'test' ? 'TEST_EVENTS' : 'PRV_EVENTS');
+    console.log('   Secret configurado:', webhookSecret ? '✅ Sí' : '❌ No');
 
     if (!webhookSecret) {
-      console.error('❌ WOMPI_EVENTS_SECRET no configurado en .env');
+      console.error('❌ SECRET NO CONFIGURADO EN .ENV');
+      console.error('   Variable faltante:', environment === 'test' ? 'TEST_EVENTS' : 'PRV_EVENTS');
       return false;
     }
 
+    console.log('   Timestamp recibido:', timestamp);
+    console.log('   Event type:', event);
+    console.log('   Signature properties:', signature.properties);
+    console.log('   Checksum recibido:', signature.checksum);
+    console.log();
+
     // 2. Extraer valores de las propiedades especificadas
-    const propertyValues = signature.properties.map((prop) => {
-      return getNestedProperty(data, prop);
+    console.log('📊 Extrayendo valores de properties...');
+    const propertyValues = signature.properties.map((prop, index) => {
+      const value = getNestedProperty(data, prop);
+      console.log(`   [${index}] ${prop} = ${value}`);
+      return value;
     });
+    console.log();
 
     // 3. Concatenar valores de properties
     const propertiesString = propertyValues.join('');
+    console.log('🔗 String de properties concatenado:');
+    console.log('   "' + propertiesString + '"');
+    console.log();
 
     // 4. Concatenar timestamp
     const stringWithTimestamp = propertiesString + timestamp.toString();
+    console.log('🔗 String con timestamp:');
+    console.log('   "' + stringWithTimestamp + '"');
+    console.log();
 
     // 5. Concatenar secret
     const stringToSign = stringWithTimestamp + webhookSecret;
-
-    console.log('🔐 Calculando firma...');
-    console.log('Properties:', propertyValues);
-    console.log('String a firmar:', stringToSign);
+    console.log('🔗 String final a firmar (CON SECRET):');
+    console.log('   "' + stringToSign + '"');
+    console.log();
 
     // 6. Generar checksum con SHA256
+    console.log('🔐 Generando checksum SHA256...');
     const expectedChecksum = crypto
       .createHash('sha256')
       .update(stringToSign)
@@ -44,22 +71,29 @@ export function verifyWompiSignature(payload: WompiWebhookEvent): boolean {
 
     const receivedChecksum = signature.checksum.toUpperCase();
 
-    console.log('Expected checksum:', expectedChecksum);
-    console.log('Received checksum:', receivedChecksum);
+    console.log('📋 Comparación de checksums:');
+    console.log('   Esperado: ', expectedChecksum);
+    console.log('   Recibido: ', receivedChecksum);
+    console.log('   Coinciden:', expectedChecksum === receivedChecksum ? '✅ SÍ' : '❌ NO');
+    console.log('-'.repeat(80) + '\n');
 
     // 7. Comparar checksums
     const isValid = expectedChecksum === receivedChecksum;
 
     if (!isValid) {
-      console.error('❌ Firma inválida:', {
-        expected: expectedChecksum,
-        received: receivedChecksum,
-      });
+      console.error('❌ FIRMA INVÁLIDA - POSIBLES CAUSAS:');
+      console.error('   1. Secret incorrecto en .env');
+      console.error('   2. Ambiente incorrecto (test vs prod)');
+      console.error('   3. Timestamp alterado');
+      console.error('   4. Data alterada');
+      console.error('   5. Man-in-the-middle attack\n');
     }
 
     return isValid;
   } catch (error: any) {
-    console.error('❌ Error verificando firma:', error.message);
+    console.error('❌ ERROR AL VERIFICAR FIRMA:');
+    console.error('   Error:', error.message);
+    console.error('   Stack:', error.stack);
     return false;
   }
 }
@@ -76,6 +110,7 @@ function getNestedProperty(obj: any, path: string): any {
     if (value && typeof value === 'object' && key in value) {
       value = value[key];
     } else {
+      console.warn(`   ⚠️ Propiedad no encontrada: ${path}`);
       return '';
     }
   }
@@ -88,5 +123,13 @@ function getNestedProperty(obj: any, path: string): any {
  */
 export function validateWebhookEnvironment(environment: string): boolean {
   const expectedEnv = process.env.WOMPI_MODE === 'sandbox' ? 'test' : 'prod';
-  return environment === expectedEnv;
+  const isValid = environment === expectedEnv;
+
+  if (!isValid) {
+    console.error('❌ AMBIENTE INVÁLIDO:');
+    console.error('   Esperado:', expectedEnv);
+    console.error('   Recibido:', environment);
+  }
+
+  return isValid;
 }

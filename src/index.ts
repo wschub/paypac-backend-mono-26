@@ -31,9 +31,8 @@ import smsRoutes from './routes/sms.routes';
 import countriesRoutes from './routes/countries.routes';
 
 
-
+//webkook routes
 import webhookRoutes from './routes/webhook.routes';
-
 
 import { validateOnurixConfig } from './config/onurix';
 
@@ -54,7 +53,7 @@ validateOnurixConfig();
 // 🔌 SOCKET.IO HANDLERS
 // ============================================
 import { setupTicketSocketHandlers } from './sockets/ticket.socket';
-
+import { setupNotificationSocketHandlers } from './sockets/notification.socket';
 
 const app = express();
 const server = http.createServer(app);
@@ -165,9 +164,10 @@ startEmailQueueCleaner();   // Limpia mensajes antiguos diariamente
 // 🔌 WebSocket - Socket.IO
 // ============================================
 setupTicketSocketHandlers(io);
+setupNotificationSocketHandlers(io);
 
 console.log('✅ Socket.IO configurado con handlers de tickets');
-
+console.log('✅ Socket.IO configurado con handlers de notificaciones');
 
 
 server.listen({ port, host }, () => {
