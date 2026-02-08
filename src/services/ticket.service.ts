@@ -30,7 +30,7 @@ export class TicketService {
       locality_name: string;
       qty_tickets: number;
       price_ticket: number;
-      locality_colors?: { // ✅ NUEVO
+      locality_colors?: {
         bkg_color: string;
         title_color: string;
         text_color: string;
@@ -53,10 +53,39 @@ export class TicketService {
 ) {
   const tickets: Prisma.TicketUncheckedCreateInput[] = [];
 
+  // ✅ LOGS DE DEBUGGING
+  console.log('\n🎫 CREANDO TICKETS DESDE INVOICE');
+  console.log('='.repeat(80));
+  console.log('📋 Transaction ID:', transactionId);
+  console.log('📋 Customer ID Phone:', customerIdPhone);
+  console.log('📋 Event ID:', invoiceData.event_id);
+  console.log('📋 User ID:', invoiceData.user_id);
+  console.log('📋 Items recibidos:', invoiceData.items.length);
+  console.log('📋 Items detallados:');
+  invoiceData.items.forEach((item, index) => {
+    console.log(`   [${index}] ${item.locality_name} - ${item.stage_name}`);
+    console.log(`       Qty: ${item.qty_tickets}`);
+    console.log(`       Locality ID: ${item.locality_id}`);
+    console.log(`       Stage ID: ${item.stage_id}`);
+  });
+  console.log('='.repeat(80) + '\n');
+
   // Generar tickets por cada item de la factura
   for (const item of invoiceData.items) {
+    console.log(`\n🔄 Procesando item: ${item.locality_name} - ${item.stage_name}`);
+    console.log(`   Locality ID: ${item.locality_id}`);
+    console.log(`   Stage ID: ${item.stage_id}`);
+    console.log(`   Qty tickets para este item: ${item.qty_tickets}`);
+    console.log(`   Tipo de qty_tickets: ${typeof item.qty_tickets}`);
+    
     for (let i = 0; i < item.qty_tickets; i++) {
+      console.log(`   ✅ Generando ticket ${i + 1}/${item.qty_tickets}`);
+      
       const ticketData = generateTicketData(customerIdPhone);
+      
+      console.log(`      Reference: ${ticketData.reference_ticket}`);
+      console.log(`      Booking: ${ticketData.booking_ticket}`);
+      console.log(`      Token: ${ticketData.token_ticket.substring(0, 16)}...`);
 
       tickets.push({
         transaction_id: transactionId,
@@ -82,7 +111,7 @@ export class TicketService {
         ev_organizer_id: eventSnapshot.organizer_id,
         ev_status: eventSnapshot.status as any,
         
-        // Snapshot de localidad CON COLORES ✅
+        // Snapshot de localidad CON COLORES
         loc_id_locality: item.locality_id,
         loc_name_locality: item.locality_name,
         loc_bkg_color: item.locality_colors?.bkg_color || '#000000',
@@ -90,96 +119,40 @@ export class TicketService {
         loc_text_color: item.locality_colors?.text_color || '#FFFFFF',
         loc_title_color_location: item.locality_colors?.title_color_location || '#FFFFFF',
       });
+      
+      console.log(`      ✅ Ticket ${i + 1} agregado al array`);
     }
+    
+    console.log(`   ✅ Terminado procesamiento del item (total en array: ${tickets.length})`);
   }
 
+  // ✅ LOGS ANTES DE CREAR EN BD
+  console.log('\n📊 RESUMEN ANTES DE CREAR EN BD:');
+  console.log('='.repeat(80));
+  console.log('📋 Total tickets generados en array:', tickets.length);
+  console.log('📋 References de los tickets:');
+  tickets.forEach((t, i) => {
+    console.log(`   [${i}] ${t.reference_ticket} - ${t.loc_name_locality}`);
+  });
+  console.log('='.repeat(80) + '\n');
+
   // Crear todos los tickets en batch
+  console.log('🔄 Llamando a ticketRepo.createMany()...\n');
   const count = await ticketRepo.createMany(tickets);
+
+  // ✅ LOGS DESPUÉS DE CREAR
+  console.log('\n✅ RESULTADO DE createMany():');
+  console.log('='.repeat(80));
+  console.log('📋 Count retornado por Prisma:', count);
+  console.log('📋 Tickets que se intentaron crear:', tickets.length);
+  console.log('📋 ¿Coinciden?:', count === tickets.length ? '✅ SÍ' : '❌ NO');
+  console.log('='.repeat(80) + '\n');
 
   return {
     count,
     message: `${count} tickets creados exitosamente`,
   };
 }
-
-  /*async createTicketsFromInvoice(
-    transactionId: number,
-    invoiceData: {
-      user_id: number;
-      user_uid: string;
-      event_id: number;
-      items: Array<{
-        stage_id: number;
-        stage_name: string;
-        locality_id: number;
-        locality_name: string;
-        qty_tickets: number;
-        price_ticket: number;
-      }>;
-    },
-    eventSnapshot: {
-      name: string;
-      short_description: string;
-      cover: string;
-      date_event: Date;
-      place_address: string;
-      event_type: string;
-      type_venue: string;
-      organizer_id: number;
-      status: string;
-    },
-    customerIdPhone: string
-  ) {
-    const tickets: Prisma.TicketUncheckedCreateInput[] = [];
-
-    // Generar tickets por cada item de la factura
-    for (const item of invoiceData.items) {
-      for (let i = 0; i < item.qty_tickets; i++) {
-        const ticketData = generateTicketData(customerIdPhone);
-
-        tickets.push({
-          transaction_id: transactionId,
-          event_id: invoiceData.event_id,
-          customer_id: invoiceData.user_id,
-          customer_uid: invoiceData.user_uid,
-          customer_ID_phone: customerIdPhone,
-          reference_ticket: ticketData.reference_ticket,
-          booking_ticket: ticketData.booking_ticket,
-          token_ticket: ticketData.token_ticket,
-          ticket_first_time: 1,
-          status_ticket: 'PAID',
-          
-          // Snapshot del evento
-          ev_name: eventSnapshot.name,
-          ev_short_description: eventSnapshot.short_description,
-          ev_cover: eventSnapshot.cover,
-          ev_date_event: eventSnapshot.date_event,
-          ev_place_address: eventSnapshot.place_address,
-          ev_event_type: eventSnapshot.event_type as any,
-          ev_type_venue: eventSnapshot.type_venue as any,
-          ev_place_seat: '', // Para eventos numerados, se asigna después
-          ev_organizer_id: eventSnapshot.organizer_id,
-          ev_status: eventSnapshot.status as any,
-          
-          // Snapshot de localidad
-          loc_id_locality: item.locality_id,
-          loc_name_locality: item.locality_name,
-          loc_bkg_color: '#000000', // TODO: Obtener del snapshot de localidad
-          loc_title_color: '#FFFFFF',
-          loc_text_color: '#FFFFFF',
-          loc_title_color_location: '#FFFFFF',
-        });
-      }
-    }
-
-    // Crear todos los tickets en batch
-    const count = await ticketRepo.createMany(tickets);
-
-    return {
-      count,
-      message: `${count} tickets creados exitosamente`,
-    };
-  } */
 
 
   /**
@@ -210,13 +183,6 @@ export class TicketService {
 
   /**
    * Transferir ticket (regalo o venta)
-   * @param ticketId - ID del ticket a transferir
-   * @param fromUserId - Usuario que transfiere (debe ser el dueño)
-   * @param toUserId - Usuario que recibe
-   * @param toUserUid - UID Firebase del receptor
-   * @param toUserIdPhone - ID del teléfono del receptor
-   * @param transactionType - "transfer" | "sale" | "gift"
-   * @param description - Mensaje de la transferencia
    */
   async transferTicket(
     ticketId: number,
@@ -257,13 +223,6 @@ export class TicketService {
       toUserIdPhone
     );
 
-    // FASE 2: Aquí iría la validación de permisos de reventa
-    // if (transactionType === 'sale') {
-    //   // Verificar que el evento permita reventa
-    //   // Verificar límites de tiempo
-    //   // Verificar límites de transferencias
-    // }
-
     // Actualizar el ticket con el nuevo dueño
     const updatedTicket = await ticketRepo.transferOwnership(
       ticketId,
@@ -273,9 +232,6 @@ export class TicketService {
       newToken
     );
 
-    // Crear registro de auditoría en TicketTransaction
-    // (se maneja desde el controlador usando TicketTransactionService)
-
     return {
       ticket: updatedTicket,
       message: 'Ticket transferido exitosamente',
@@ -283,15 +239,13 @@ export class TicketService {
   }
 
   /**
-   * 🆕 Validar ticket en la entrada del evento
-   * Se escanea el QR y se valida el token
-   * ACTUALIZADO: Ahora valida permisos del STAFF
+   * Validar ticket en la entrada del evento
    */
   async validateTicket(
     qrToken: string,
     scannerUserId: number,
     scannerRole: string,
-    eventId: number // 🆕 Nuevo parámetro requerido
+    eventId: number
   ) {
     // Buscar ticket por token
     const ticket = await ticketRepo.findByToken(qrToken);
@@ -300,12 +254,12 @@ export class TicketService {
       throw new Error('Ticket no encontrado o token inválido');
     }
 
-    // 🆕 Validar que el ticket pertenece al evento correcto
+    // Validar que el ticket pertenece al evento correcto
     if (ticket.event_id !== eventId) {
       throw new Error('Este ticket no pertenece a este evento');
     }
 
-    // Validar que el token coincida (doble verificación)
+    // Validar que el token coincida
     const isValid = validateTicketToken(qrToken, {
       reference_ticket: ticket.reference_ticket,
       booking_ticket: ticket.booking_ticket,
@@ -316,9 +270,8 @@ export class TicketService {
       throw new Error('Token de ticket inválido');
     }
 
-    // 🆕 VERIFICAR PERMISOS DEL SCANNER
+    // Verificar permisos del scanner
     if (['STAFF', 'STAFF_PROMOTER'].includes(scannerRole)) {
-      // Si es STAFF, verificar asignación y check-in
       const assignment = await staffAssignmentRepo.findByUserAndEvent(scannerUserId, eventId);
       
       if (!assignment) {
@@ -329,21 +282,19 @@ export class TicketService {
         throw new Error('Debes hacer check-in en el evento antes de validar tickets');
       }
     } else if (scannerRole === 'ORGANIZER') {
-      // Si es ORGANIZER, verificar que sea el dueño del evento
       const event = await eventRepo.findById(eventId);
       
       if (!event || event.organizer_id !== scannerUserId) {
         throw new Error('Solo el organizador de este evento puede validar tickets');
       }
     } else if (scannerRole !== 'PAYPAC') {
-      // Si no es PAYPAC (admin supremo), denegar
       throw new Error('No tienes permisos para validar tickets');
     }
 
-    // Verificar que el evento ya haya iniciado o esté próximo
+    // Verificar que el evento ya haya iniciado
     const now = new Date();
     const eventDate = new Date(ticket.ev_date_event);
-    const hoursBeforeEvent = 2; // Permitir validar 2 horas antes
+    const hoursBeforeEvent = 2;
     const minValidTime = new Date(eventDate.getTime() - hoursBeforeEvent * 60 * 60 * 1000);
 
     if (now < minValidTime) {
@@ -373,14 +324,14 @@ export class TicketService {
   }
 
   /**
-   * Obtener tickets próximos (para notificaciones)
+   * Obtener tickets próximos
    */
   async getUpcomingTickets(userId: number, daysAhead: number = 7) {
     return ticketRepo.findUpcoming(userId, daysAhead);
   }
 
   /**
-   * Cancelar ticket (solo antes del evento y bajo ciertas condiciones)
+   * Cancelar ticket
    */
   async cancelTicket(ticketId: number, userId: number, userRole: string) {
     const ticket = await ticketRepo.findById(ticketId);
@@ -389,7 +340,6 @@ export class TicketService {
       throw new Error('Ticket no encontrado');
     }
 
-    // Verificar ownership o permisos de admin
     const isOwner = ticket.customer_id === userId;
     const isPaypac = userRole === 'PAYPAC';
 
@@ -397,24 +347,17 @@ export class TicketService {
       throw new Error('No tienes permisos para cancelar este ticket');
     }
 
-    // Verificar que el ticket no esté usado
     if (ticket.ticket_first_time === 0) {
       throw new Error('No se puede cancelar un ticket ya usado');
     }
-
-    // TODO: Verificar políticas de cancelación
-    // - Tiempo límite antes del evento
-    // - Políticas de reembolso
 
     return ticketRepo.softDelete(ticketId);
   }
 
   /**
-   * Obtener estadísticas de tickets por evento (para ORGANIZER/PAYPAC)
+   * Obtener estadísticas de tickets por evento
    */
   async getEventTicketStats(eventId: number, userId: number, userRole: string) {
-    // TODO: Verificar que el usuario sea el organizador o PAYPAC
-
     const tickets = await ticketRepo.findByEvent(eventId);
 
     const stats = {

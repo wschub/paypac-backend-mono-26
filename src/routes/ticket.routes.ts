@@ -28,12 +28,6 @@ const router = Router();
  * 🧪 POST /api/tickets/create-test
  * Crear tickets de prueba (SOLO DESARROLLO)
  */
-router.post(
-  '/create-test',
-  //authenticate,
-  //authorizeRoles('PAYPAC', 'ORGANIZER', 'STAFF', 'STAFF_PROMOTER', 'PROMOTER', 'CUSTOMER'),
-  createTestTicket
-);
 
 
 
