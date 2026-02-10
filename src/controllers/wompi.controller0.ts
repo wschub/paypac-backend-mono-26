@@ -2,14 +2,12 @@ import { Request, Response } from 'express';
 import { prisma } from '../config/db';
 import { InvoiceService } from '../services/invoice.service';
 import { TransactionRepository } from '../repositories/transaction.repository';
-import { PushNotificationService } from '../services/push-notification.service';
 import { verifyWompiSignature } from '../utils/wompi.utils';
 import { WompiWebhookEvent } from '../types/wompi.types';
 import { io } from '../index';
 
 const invoiceService = new InvoiceService();
 const transactionRepo = new TransactionRepository();
-const pushService = new PushNotificationService();
 
 /**
  * Webhook de Wompi
@@ -335,53 +333,6 @@ async function handleTransactionUpdated(transaction: any) {
       //   invoice: invoice.num_invoice,
       //   tickets: [...],
       // });
-
-      // ============================================
-      // 7️⃣ ENVIAR PUSH NOTIFICATION (FCM)
-      // ============================================
-      console.log('📱'.repeat(40));
-      console.log('🔔 PUSH NOTIFICATION (FCM)');
-      console.log('📱'.repeat(40));
-
-      // Obtener FCM token del usuario
-      const user = await prisma.user.findUnique({
-        where: { id: invoice.user_id },
-        select: { fcm_token: true },
-      });
-
-      if (user?.fcm_token) {
-        console.log('📱 Usuario tiene FCM token configurado');
-        console.log('   Token:', user.fcm_token.substring(0, 20) + '...');
-
-        // Obtener datos del evento para la notificación
-        const event = await prisma.event.findUnique({
-          where: { id: invoice.event_id },
-          select: { name: true },
-        });
-
-        const pushResult = await pushService.sendTicketsCreatedNotification(
-          user.fcm_token,
-          {
-            invoiceId: invoice.id,
-            numInvoice: invoice.num_invoice,
-            eventName: event?.name || 'tu evento',
-            ticketCount: invoice.num_items,
-            eventId: invoice.event_id,
-          }
-        );
-
-        if (pushResult.success) {
-          console.log('✅ Push notification enviada exitosamente');
-          console.log('   Message ID:', pushResult.messageId);
-        } else {
-          console.warn('⚠️ No se pudo enviar push notification:', pushResult.error);
-        }
-      } else {
-        console.log('⚠️ Usuario NO tiene FCM token configurado');
-        console.log('   No se puede enviar push notification');
-      }
-
-      console.log('📱'.repeat(40) + '\n');
 
     } catch (error: any) {
       console.error('\n' + '❌'.repeat(40));

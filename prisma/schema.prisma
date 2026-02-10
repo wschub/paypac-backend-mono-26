@@ -43,9 +43,13 @@ model User {
   firebase_uid             String?
   lang_user                String?
   verified_user            Int       @default(0)
+  fcm_token    String?   // Token de Firebase Cloud Messaging
+  fcm_updated  DateTime? // Última actualización del token
   status                   Int       @default(0)
   createdAt                DateTime  @default(now())
   updatedAt                DateTime  @updatedAt
+
+  
 
   // Relación: un usuario puede tener varias tarjetas
   paymentMethods PaymentMethodCard[]

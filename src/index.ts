@@ -33,6 +33,9 @@ import countriesRoutes from './routes/countries.routes';
 
 //webkook routes
 import webhookRoutes from './routes/webhook.routes';
+import fcmTokenRoutes from './routes/fcm-token.routes';
+
+
 
 import { validateOnurixConfig } from './config/onurix';
 
@@ -152,7 +155,8 @@ app.use('/api/countries', countriesRoutes);
 
 // Registrar rutas ANTES de las rutas autenticadas
 app.use('/api/webhooks', webhookRoutes); // Sin autenticación
-
+// Registrar rutas de FCM token
+app.use('/api/users', fcmTokenRoutes);
 
 
 // Iniciar CRON jobs
