@@ -156,7 +156,7 @@ app.use('/api/countries', countriesRoutes);
 // Registrar rutas ANTES de las rutas autenticadas
 app.use('/api/webhooks', webhookRoutes); // Sin autenticación
 // Registrar rutas de FCM token
-app.use('/api/fcm', fcmTokenRoutes);
+app.use('/api/fcm-token', fcmTokenRoutes);
 
 
 // Iniciar CRON jobs
