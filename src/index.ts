@@ -130,8 +130,6 @@ app.get("/health", (req, res) => {
 // routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
-// Registrar rutas de FCM token
-app.use('/api/users', fcmTokenRoutes);
 //app.use('/api/countries', countryRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api', eventLocalitiesRoutes);
@@ -157,7 +155,8 @@ app.use('/api/countries', countriesRoutes);
 
 // Registrar rutas ANTES de las rutas autenticadas
 app.use('/api/webhooks', webhookRoutes); // Sin autenticación
-
+// Registrar rutas de FCM token
+app.use('/api/fcm', fcmTokenRoutes);
 
 
 // Iniciar CRON jobs
