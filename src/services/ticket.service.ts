@@ -297,15 +297,10 @@ export class TicketService {
     const hoursBeforeEvent = 2;
     const minValidTime = new Date(eventDate.getTime() - hoursBeforeEvent * 60 * 60 * 1000);
 
-    //if (now < minValidTime) {
-      //throw new Error('El evento aún no ha iniciado. No se puede validar el ticket.');
-    //}
-    const EARLY_ENTRY_MINUTES = parseInt(process.env.EARLY_ENTRY_MINUTES || '120');
-const earlyEntryTime = new Date(eventDate.getTime() - EARLY_ENTRY_MINUTES * 60 * 1000);
-
-if (now < earlyEntryTime) {
-  throw new Error(`La entrada anticipada comienza ${EARLY_ENTRY_MINUTES} minutos antes.`);
-}
+    if (now < minValidTime) {
+      throw new Error('El evento aún no ha iniciado. No se puede validar el ticket.');
+    }
+    
 
     // Verificar que no esté ya usado
     if (ticket.ticket_first_time === 0) {
