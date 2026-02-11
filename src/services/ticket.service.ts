@@ -240,8 +240,8 @@ export class TicketService {
 
   /**
    * Validar ticket en la entrada del evento
-   */
-  async validateTicket(
+   * 
+   * async validateTicket(
     qrToken: string,
     scannerUserId: number,
     scannerRole: string,
@@ -322,6 +322,185 @@ export class TicketService {
       message: '¡Ticket validado exitosamente! Bienvenido al evento.',
     };
   }
+   */
+  
+
+  // En ticket.service.ts - Método validateTicket()
+
+/**
+ * Validar ticket (escanear QR en entrada del evento)
+ * 
+ * REGLAS DE VALIDACIÓN:
+ * ✅ El ticket debe existir y pertenecer al evento
+ * ✅ El ticket debe estar en estado ACTIVE o PAID
+ * ✅ El ticket NO debe estar ya usado (USED)
+ * ✅ El evento debe haber iniciado O estar dentro de la ventana de entrada anticipada
+ * ✅ El evento NO debe haber terminado
+ * ✅ El scanner (STAFF) debe tener permisos para validar en este evento
+ */
+async validateTicket(
+  qr_token: string,
+  scanner_id: number,
+  scanner_role: string,
+  event_id: number
+): Promise<{
+  success: boolean;
+  ticket: any;
+  message: string;
+  scanner_id: number;
+}> {
+  console.log('🎫 Validando ticket...');
+  console.log(`   QR Token: ${qr_token}`);
+  console.log(`   Event ID: ${event_id}`);
+  console.log(`   Scanner ID: ${scanner_id} (${scanner_role})`);
+
+  // ============================================
+  // 1️⃣ BUSCAR TICKET POR TOKEN
+  // ============================================
+  const ticket = await this.ticketRepository.findByToken(qr_token);
+
+  if (!ticket) {
+    console.log('❌ Ticket no encontrado');
+    throw new Error('Ticket no encontrado. El código QR es inválido.');
+  }
+
+  console.log('✅ Ticket encontrado:', ticket.reference_ticket);
+  console.log(`   Estado: ${ticket.status_ticket}`);
+  console.log(`   Evento: ${ticket.event_id}`);
+
+  // ============================================
+  // 2️⃣ VERIFICAR QUE PERTENECE AL EVENTO
+  // ============================================
+  if (ticket.event_id !== event_id) {
+    console.log('❌ Ticket no pertenece a este evento');
+    console.log(`   Esperado: ${event_id}, Recibido: ${ticket.event_id}`);
+    throw new Error('Este ticket no pertenece a este evento.');
+  }
+
+  // ============================================
+  // 3️⃣ VERIFICAR PERMISOS DEL SCANNER
+  // ============================================
+  if (scanner_role !== 'PAYPAC') {
+    // Solo STAFF necesita verificación de permisos
+    const { EventStaffAssignmentService } = await import('./event_staff_assignment.service');
+    const staffService = new EventStaffAssignmentService();
+
+    const canValidate = await staffService.canStaffValidateTickets(scanner_id, event_id);
+
+    if (!canValidate) {
+      console.log('❌ STAFF no tiene permisos para validar en este evento');
+      throw new Error('No tienes permisos para validar tickets en este evento.');
+    }
+
+    console.log('✅ STAFF tiene permisos para validar');
+  } else {
+    console.log('✅ Scanner es PAYPAC (permisos totales)');
+  }
+
+  // ============================================
+  // 4️⃣ VERIFICAR ESTADO DEL TICKET
+  // ============================================
+  if (ticket.status_ticket === 'USED') {
+    console.log('❌ Ticket ya fue usado');
+    throw new Error('Este ticket ya fue utilizado anteriormente.');
+  }
+
+  if (ticket.status_ticket !== 'ACTIVE' && ticket.status_ticket !== 'PAID') {
+    console.log(`❌ Ticket en estado inválido: ${ticket.status_ticket}`);
+    throw new Error(`El ticket está en estado: ${ticket.status_ticket}. No es válido para entrada.`);
+  }
+
+  console.log('✅ Estado del ticket es válido');
+
+  // ============================================
+  // 5️⃣ VERIFICAR FECHAS DEL EVENTO
+  // ============================================
+  const event = await prisma.event.findUnique({
+    where: { id: event_id },
+  });
+
+  if (!event) {
+    throw new Error('Evento no encontrado.');
+  }
+
+  const now = new Date();
+  const eventDate = new Date(event.date_event);
+  const eventEndDate = event.end_date_event ? new Date(event.end_date_event) : null;
+
+  // ✅ VENTANA DE ENTRADA ANTICIPADA
+  // Permitir entrada hasta 2 horas antes del evento
+  const EARLY_ENTRY_MINUTES = parseInt(process.env.EARLY_ENTRY_MINUTES || '120'); // Default: 2 horas
+  const earlyEntryTime = new Date(eventDate.getTime() - EARLY_ENTRY_MINUTES * 60 * 1000);
+
+  console.log('📅 Verificando fechas del evento:');
+  console.log(`   Hora actual: ${now.toISOString()}`);
+  console.log(`   Inicio del evento: ${eventDate.toISOString()}`);
+  console.log(`   Entrada anticipada desde: ${earlyEntryTime.toISOString()}`);
+  if (eventEndDate) {
+    console.log(`   Fin del evento: ${eventEndDate.toISOString()}`);
+  }
+
+  // Verificar si es muy temprano (antes de la ventana de entrada anticipada)
+  if (now < earlyEntryTime) {
+    const minutesUntilEarlyEntry = Math.ceil((earlyEntryTime.getTime() - now.getTime()) / (1000 * 60));
+    console.log(`❌ Muy temprano. Faltan ${minutesUntilEarlyEntry} minutos para entrada anticipada`);
+    throw new Error(
+      `El evento aún no ha iniciado. La entrada anticipada comienza ${EARLY_ENTRY_MINUTES} minutos antes (${earlyEntryTime.toLocaleTimeString('es-CO', {
+        hour: '2-digit',
+        minute: '2-digit',
+      })}).`
+    );
+  }
+
+  // Verificar si el evento ya terminó
+  if (eventEndDate && now > eventEndDate) {
+    console.log('❌ El evento ya finalizó');
+    throw new Error('El evento ya finalizó. No se puede validar el ticket.');
+  }
+
+  console.log('✅ El evento está dentro del horario permitido');
+
+  // ============================================
+  // 6️⃣ MARCAR TICKET COMO USADO
+  // ============================================
+  console.log('📝 Marcando ticket como USED...');
+
+  const updatedTicket = await this.ticketRepository.updateStatus(
+    ticket.id,
+    'USED'
+  );
+
+  console.log('✅ Ticket marcado como USED');
+
+  // ============================================
+  // 7️⃣ REGISTRAR TRANSACCIÓN DE VALIDACIÓN
+  // ============================================
+  console.log('📝 Registrando transacción de validación...');
+
+  await prisma.ticketTransaction.create({
+    data: {
+      ticket_id: ticket.id,
+      from_user_id: ticket.user_id,
+      to_user_id: ticket.user_id, // Mismo usuario (validación)
+      transaction_type: 'VALIDATION',
+      transaction_date: new Date(),
+      status_transaction: 'COMPLETED',
+      scanner_id: scanner_id,
+    },
+  });
+
+  console.log('✅ Transacción registrada');
+
+  // ============================================
+  // 8️⃣ RETORNAR TICKET VALIDADO
+  // ============================================
+  return {
+    success: true,
+    ticket: updatedTicket,
+    message: 'Ticket validado exitosamente',
+    scanner_id: scanner_id,
+  };
+}
 
   /**
    * Obtener tickets próximos
