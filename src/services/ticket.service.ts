@@ -298,6 +298,7 @@ export class TicketService {
     const minValidTime = new Date(eventDate.getTime() - hoursBeforeEvent * 60 * 60 * 1000);
 
     if (now < minValidTime) {
+      console.log(`Intento de validación antes del tiempo permitido. Ahora: ${now}, Evento: ${eventDate}, Mínimo permitido: ${minValidTime}`);
       throw new Error('El evento aún no ha iniciado. No se puede validar el ticket.');
     }
     
