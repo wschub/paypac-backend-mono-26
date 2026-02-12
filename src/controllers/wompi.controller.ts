@@ -58,13 +58,37 @@ export const wompiWebhook = async (
     // 2️⃣ VALIDAR AMBIENTE
     // ============================================
     console.log('🌍 PASO 2: Validando ambiente...');
-    const expectedEnv = process.env.WOMPI_MODE === 'sandbox' ? 'test' : 'prod';
+    // ✅ CORREGIDO: Usar "production" en lugar de "prod"
+    const expectedEnv = process.env.WOMPI_MODE === 'sandbox' ? 'test' : 'production';
+    console.log('   WOMPI_MODE:', process.env.WOMPI_MODE);
     console.log('   Ambiente esperado:', expectedEnv);
     console.log('   Ambiente recibido:', environment);
 
     if (environment !== expectedEnv) {
-      console.error(`❌ AMBIENTE INCORRECTO - Esperado: ${expectedEnv}, Recibido: ${environment}`);
-      res.status(400).json({ message: 'Invalid environment' });
+      console.error('');
+      console.error('❌ AMBIENTE INCORRECTO');
+      console.error('   Esperado:', expectedEnv);
+      console.error('   Recibido:', environment);
+      console.error('');
+      console.error('💡 DIAGNÓSTICO:');
+      
+      if (process.env.WOMPI_MODE === 'prod') {
+        console.error('   ❌ ERROR EN .ENV: WOMPI_MODE="prod" debe ser WOMPI_MODE="production"');
+      } else if (environment === 'test' && process.env.WOMPI_MODE === 'production') {
+        console.error('   ❌ El frontend está enviando transacciones de PRUEBA (sandbox)');
+        console.error('   📱 Solución: Usar PUB_PRO en lugar de PUB_TEST en la app');
+      } else if (environment === 'production' && process.env.WOMPI_MODE === 'sandbox') {
+        console.error('   ❌ El frontend está enviando transacciones REALES');
+        console.error('   📱 Solución: Cambiar WOMPI_MODE a "production" en .env');
+      }
+      console.error('');
+      
+      res.status(400).json({ 
+        message: 'Invalid environment',
+        expected: expectedEnv,
+        received: environment,
+        wompi_mode: process.env.WOMPI_MODE
+      });
       return;
     }
 
@@ -250,7 +274,11 @@ async function handleTransactionUpdated(transaction: any) {
   // ============================================
   // 3️⃣ NOTIFICAR VÍA SOCKET.IO - TRANSACTION UPDATED
   // ============================================
-  console.log('🔔 Emitiendo notificación Socket.IO...');
+  console.log('🔔 PASO 3: Emitiendo notificación Socket.IO (transaction:updated)...');
+  console.log('   Room:', `user:${invoice.user_id}`);
+  console.log('   Event:', 'transaction:updated');
+  console.log('   Status:', status);
+  
   io.to(`user:${invoice.user_id}`).emit('transaction:updated', {
     transaction_id: transactionRecord.id,
     invoice_id: invoice.id,
@@ -260,18 +288,30 @@ async function handleTransactionUpdated(transaction: any) {
     amount: amount_in_cents / 100,
     timestamp: new Date().toISOString(),
   });
+  
   console.log('✅ Notificación Socket.IO enviada\n');
 
   // ============================================
   // 4️⃣ PROCESAR SEGÚN EL STATUS
   // ============================================
-  console.log('🎯 PASO 3: Procesando según status...');
-  console.log('   Status recibido:', status, '\n');
+  console.log('🎯 PASO 4: Procesando según status...');
+  console.log('   Status recibido:', status);
+  console.log('');
 
+  // ============================================
+  // 🟢 STATUS: APPROVED
+  // ============================================
   if (status === 'APPROVED') {
-    console.log('=' .repeat(80));
-    console.log('✅ PAGO APROBADO - INICIANDO CREACIÓN DE TICKETS');
-    console.log('='.repeat(80) + '\n');
+    console.log('🟢'.repeat(40));
+    console.log('🟢 STATUS: APPROVED - PAGO EXITOSO');
+    console.log('🟢'.repeat(40));
+    console.log('📌 Acciones a ejecutar:');
+    console.log('   1. Crear tickets reales');
+    console.log('   2. Actualizar Invoice a PAID');
+    console.log('   3. Socket.IO: tickets:created');
+    console.log('   4. Email: Tickets con QR');
+    console.log('   5. Push: "¡Tus tickets están listos!"');
+    console.log('🟢'.repeat(40) + '\n');
 
     const meta = (transactionRecord.meta as any) || {};
     const customer_ID_phone = meta.customer_ID_phone || 
@@ -298,62 +338,38 @@ async function handleTransactionUpdated(transaction: any) {
       console.log('   Invoice:', invoice.num_invoice);
       console.log('   User ID:', invoice.user_id);
       console.log('   Transaction ID:', transactionRecord.id);
+      console.log('   Total tickets:', invoice.num_items);
       console.log('✅'.repeat(40) + '\n');
 
-      // ============================================
-      // 5️⃣ NOTIFICAR VÍA SOCKET.IO - TICKETS CREATED
-      // ============================================
-      console.log('🔔 Emitiendo notificación de tickets creados...');
+      // Socket.IO: tickets:created
+      console.log('🔔 Emitiendo Socket.IO: tickets:created');
       io.to(`user:${invoice.user_id}`).emit('tickets:created', {
         invoice_id: invoice.id,
         num_invoice: invoice.num_invoice,
         transaction_id: transactionRecord.id,
         event_id: invoice.event_id,
+        ticket_count: invoice.num_items,
         message: '¡Tus tickets han sido generados exitosamente!',
         timestamp: new Date().toISOString(),
       });
-      console.log('✅ Notificación Socket.IO de tickets enviada\n');
+      console.log('✅ Socket.IO: tickets:created emitido\n');
 
-      // ============================================
-      // 6️⃣ ENVIAR EMAIL CON TICKETS (BREVO)
-      // ============================================
-      console.log('📧'.repeat(40));
-      console.log('🔔 NOTIFICACIÓN BREVO');
-      console.log('📧'.repeat(40));
-      console.log('📧 Enviar email a:', customer_email);
-      console.log('📧 Usuario:', invoice.user_name, invoice.user_lastname);
-      console.log('📧 Invoice:', invoice.num_invoice);
-      console.log('📧 Total tickets:', invoice.num_items);
-      console.log('📧 Monto:', invoice.total, 'COP');
-      console.log('📧 Transaction ID:', transactionRecord.id);
-      console.log('📧'.repeat(40) + '\n');
+      // Email con Brevo (TODO)
+      console.log('📧 Email con Brevo:');
+      console.log('   ⏳ Pendiente de implementación');
+      console.log('   Email:', customer_email);
+      console.log('   Tickets:', invoice.num_items);
+      console.log('');
 
-      // TODO: Integrar Brevo aquí
-      // await brevoService.sendTicketEmail({
-      //   email: customer_email,
-      //   name: invoice.user_name,
-      //   invoice: invoice.num_invoice,
-      //   tickets: [...],
-      // });
-
-      // ============================================
-      // 7️⃣ ENVIAR PUSH NOTIFICATION (FCM)
-      // ============================================
-      console.log('📱'.repeat(40));
-      console.log('🔔 PUSH NOTIFICATION (FCM)');
-      console.log('📱'.repeat(40));
-
-      // Obtener FCM token del usuario
+      // Push notification
+      console.log('📱 Push notification (FCM):');
       const user = await prisma.user.findUnique({
         where: { id: invoice.user_id },
         select: { fcm_token: true },
       });
 
       if (user?.fcm_token) {
-        console.log('📱 Usuario tiene FCM token configurado');
-        console.log('   Token:', user.fcm_token.substring(0, 20) + '...');
-
-        // Obtener datos del evento para la notificación
+        console.log('   ✅ Usuario tiene FCM token');
         const event = await prisma.event.findUnique({
           where: { id: invoice.event_id },
           select: { name: true },
@@ -371,17 +387,14 @@ async function handleTransactionUpdated(transaction: any) {
         );
 
         if (pushResult.success) {
-          console.log('✅ Push notification enviada exitosamente');
-          console.log('   Message ID:', pushResult.messageId);
+          console.log('   ✅ Push notification enviada');
         } else {
-          console.warn('⚠️ No se pudo enviar push notification:', pushResult.error);
+          console.log('   ❌ Error:', pushResult.error);
         }
       } else {
-        console.log('⚠️ Usuario NO tiene FCM token configurado');
-        console.log('   No se puede enviar push notification');
+        console.log('   ⚠️ Usuario no tiene FCM token');
       }
-
-      console.log('📱'.repeat(40) + '\n');
+      console.log('');
 
     } catch (error: any) {
       console.error('\n' + '❌'.repeat(40));
@@ -391,17 +404,15 @@ async function handleTransactionUpdated(transaction: any) {
       console.error('Stack:', error.stack);
       console.error('❌'.repeat(40) + '\n');
 
-      // Marcar error en la transacción
       await transactionRepo.update(transactionRecord.id, {
         status_message: `Error al crear tickets: ${error.message}`,
         meta: {
-          ...((transactionRecord.meta as any) || {}),
+          ...meta,
           ticket_creation_error: error.message,
           ticket_creation_error_date: new Date().toISOString(),
         },
       });
 
-      // Notificar error vía Socket.IO
       io.to(`user:${invoice.user_id}`).emit('tickets:error', {
         invoice_id: invoice.id,
         num_invoice: invoice.num_invoice,
@@ -410,16 +421,26 @@ async function handleTransactionUpdated(transaction: any) {
       });
     }
   } 
-  else if (status === 'DECLINED' || status === 'ERROR') {
-    console.log('❌ PAGO RECHAZADO/ERROR');
-    console.log('   Actualizando Invoice a REJECTED...\n');
+  // ============================================
+  // 🔴 STATUS: DECLINED
+  // ============================================
+  else if (status === 'DECLINED') {
+    console.log('🔴'.repeat(40));
+    console.log('🔴 STATUS: DECLINED - PAGO RECHAZADO');
+    console.log('🔴'.repeat(40));
+    console.log('📌 Acciones a ejecutar:');
+    console.log('   1. Actualizar Invoice a REJECTED');
+    console.log('   2. Socket.IO: payment:declined');
+    console.log('   3. Email: Pago rechazado + razón');
+    console.log('   4. Push: "Tu pago fue rechazado"');
+    console.log('🔴'.repeat(40) + '\n');
 
     await prisma.invoice.update({
       where: { id: invoice.id },
       data: { status: 'REJECTED' },
     });
+    console.log('✅ Invoice actualizada a REJECTED');
 
-    // Notificar rechazo
     io.to(`user:${invoice.user_id}`).emit('payment:declined', {
       invoice_id: invoice.id,
       num_invoice: invoice.num_invoice,
@@ -427,42 +448,98 @@ async function handleTransactionUpdated(transaction: any) {
       message: getStatusMessage(status),
       timestamp: new Date().toISOString(),
     });
-
-    console.log('✅ Invoice actualizada a REJECTED');
-    console.log('🔔 Notificación de rechazo enviada\n');
-  } 
+    console.log('✅ Socket.IO: payment:declined emitido\n');
+  }
+  // ============================================
+  // ⚪ STATUS: VOIDED
+  // ============================================
   else if (status === 'VOIDED') {
-    console.log('❌ PAGO ANULADO');
-    console.log('   Actualizando Invoice a CANCELED...\n');
+    console.log('⚪'.repeat(40));
+    console.log('⚪ STATUS: VOIDED - PAGO ANULADO');
+    console.log('⚪'.repeat(40));
+    console.log('📌 Acciones a ejecutar:');
+    console.log('   1. Actualizar Invoice a CANCELED');
+    console.log('   2. Socket.IO: payment:voided');
+    console.log('   3. Email: Reembolso procesado');
+    console.log('   4. Push: "Tu pago fue anulado"');
+    console.log('⚪'.repeat(40) + '\n');
 
     await prisma.invoice.update({
       where: { id: invoice.id },
       data: { status: 'CANCELED' },
     });
+    console.log('✅ Invoice actualizada a CANCELED');
 
-    // Notificar anulación
     io.to(`user:${invoice.user_id}`).emit('payment:voided', {
       invoice_id: invoice.id,
       num_invoice: invoice.num_invoice,
       message: 'El pago ha sido anulado',
       timestamp: new Date().toISOString(),
     });
-
-    console.log('✅ Invoice actualizada a CANCELED');
-    console.log('🔔 Notificación de anulación enviada\n');
+    console.log('✅ Socket.IO: payment:voided emitido\n');
   }
+  // ============================================
+  // 🟡 STATUS: PENDING
+  // ============================================
   else if (status === 'PENDING') {
-    console.log('⏳ PAGO PENDIENTE');
-    console.log('   Manteniendo Invoice en ISSUED');
-    console.log('   Esperando siguiente webhook...\n');
+    console.log('🟡'.repeat(40));
+    console.log('🟡 STATUS: PENDING - PAGO EN PROCESO');
+    console.log('🟡'.repeat(40));
+    console.log('📌 Acciones a ejecutar:');
+    console.log('   1. Mantener Invoice en ISSUED');
+    console.log('   2. Socket.IO: payment:pending');
+    console.log('   3. Email: NO enviar');
+    console.log('   4. Push: NO enviar');
+    console.log('   5. Esperar siguiente webhook');
+    console.log('🟡'.repeat(40) + '\n');
 
-    // Notificar pendiente
     io.to(`user:${invoice.user_id}`).emit('payment:pending', {
       invoice_id: invoice.id,
       num_invoice: invoice.num_invoice,
       message: 'El pago está siendo procesado',
       timestamp: new Date().toISOString(),
     });
+    console.log('✅ Socket.IO: payment:pending emitido\n');
+  }
+  // ============================================
+  // ⚫ STATUS: ERROR
+  // ============================================
+  else if (status === 'ERROR') {
+    console.log('⚫'.repeat(40));
+    console.log('⚫ STATUS: ERROR - ERROR EN PAGO');
+    console.log('⚫'.repeat(40));
+    console.log('📌 Acciones a ejecutar:');
+    console.log('   1. Actualizar Invoice a REJECTED');
+    console.log('   2. Socket.IO: payment:declined');
+    console.log('   3. Email: Error técnico + soporte');
+    console.log('   4. Push: "Hubo un error"');
+    console.log('⚫'.repeat(40) + '\n');
+
+    await prisma.invoice.update({
+      where: { id: invoice.id },
+      data: { status: 'REJECTED' },
+    });
+    console.log('✅ Invoice actualizada a REJECTED');
+
+    io.to(`user:${invoice.user_id}`).emit('payment:declined', {
+      invoice_id: invoice.id,
+      num_invoice: invoice.num_invoice,
+      status: status,
+      message: getStatusMessage(status),
+      timestamp: new Date().toISOString(),
+    });
+    console.log('✅ Socket.IO: payment:declined emitido\n');
+  }
+  // ============================================
+  // ❓ STATUS: DESCONOCIDO
+  // ============================================
+  else {
+    console.log('❓'.repeat(40));
+    console.log('❓ STATUS DESCONOCIDO:', status);
+    console.log('❓'.repeat(40));
+    console.log('⚠️ Este status no está manejado');
+    console.log('   Por favor, revisar documentación de Wompi');
+    console.log('❓'.repeat(40) + '\n');
   }
 }
 

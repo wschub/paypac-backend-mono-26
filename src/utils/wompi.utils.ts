@@ -13,6 +13,7 @@ export function verifyWompiSignature(payload: WompiWebhookEvent): boolean {
     const { event, data, timestamp, signature, environment } = payload;
 
     // 1. Obtener el secret según el ambiente
+    // ✅ CORREGIDO: Usar "production" en lugar de "prod"
     const webhookSecret = environment === 'test' 
       ? process.env.TEST_EVENTS 
       : process.env.PRV_EVENTS;
@@ -83,7 +84,7 @@ export function verifyWompiSignature(payload: WompiWebhookEvent): boolean {
     if (!isValid) {
       console.error('❌ FIRMA INVÁLIDA - POSIBLES CAUSAS:');
       console.error('   1. Secret incorrecto en .env');
-      console.error('   2. Ambiente incorrecto (test vs prod)');
+      console.error('   2. Ambiente incorrecto (test vs production)');
       console.error('   3. Timestamp alterado');
       console.error('   4. Data alterada');
       console.error('   5. Man-in-the-middle attack\n');
@@ -120,16 +121,73 @@ function getNestedProperty(obj: any, path: string): any {
 
 /**
  * Validar que el ambiente del webhook coincida con la configuración
+ * ✅ CORREGIDO: Usar "production" en lugar de "prod"
  */
 export function validateWebhookEnvironment(environment: string): boolean {
-  const expectedEnv = process.env.WOMPI_MODE === 'sandbox' ? 'test' : 'prod';
+  const expectedEnv = process.env.WOMPI_MODE === 'sandbox' ? 'test' : 'production';
   const isValid = environment === expectedEnv;
 
+  console.log('🌍 Validación de ambiente:');
+  console.log('   WOMPI_MODE configurado:', process.env.WOMPI_MODE);
+  console.log('   Ambiente esperado:', expectedEnv);
+  console.log('   Ambiente recibido:', environment);
+  console.log('   ¿Válido?:', isValid ? '✅ SÍ' : '❌ NO');
+
   if (!isValid) {
+    console.error('');
     console.error('❌ AMBIENTE INVÁLIDO:');
     console.error('   Esperado:', expectedEnv);
     console.error('   Recibido:', environment);
+    console.error('   WOMPI_MODE actual:', process.env.WOMPI_MODE);
+    console.error('');
+    console.error('💡 SOLUCIÓN:');
+    if (process.env.WOMPI_MODE === 'prod') {
+      console.error('   ⚠️ Cambiar WOMPI_MODE="prod" a WOMPI_MODE="production"');
+    } else if (environment === 'test' && process.env.WOMPI_MODE === 'production') {
+      console.error('   ⚠️ Estás enviando transacciones de prueba desde frontend');
+      console.error('   📱 Usar PUB_PRO en lugar de PUB_TEST en el cliente');
+    } else if (environment === 'production' && process.env.WOMPI_MODE === 'sandbox') {
+      console.error('   ⚠️ Estás enviando transacciones REALES desde frontend');
+      console.error('   📱 Cambiar WOMPI_MODE a "production" o usar PUB_TEST en cliente');
+    }
+    console.error('');
   }
 
   return isValid;
+}
+
+/**
+ * Obtener URL base de Wompi según el modo configurado
+ */
+export function getWompiBaseUrl(): string {
+  return process.env.WOMPI_MODE === 'sandbox'
+    ? process.env.WOMPI_URL_SANDBOX || 'https://sandbox.wompi.co/v1'
+    : process.env.WOMPI_URL_PRODUCTION || 'https://production.wompi.co/v1';
+}
+
+/**
+ * Obtener llave pública según el modo
+ */
+export function getWompiPublicKey(): string {
+  return process.env.WOMPI_MODE === 'sandbox'
+    ? process.env.PUB_TEST || ''
+    : process.env.PUB_PRO || '';
+}
+
+/**
+ * Obtener llave privada según el modo
+ */
+export function getWompiPrivateKey(): string {
+  return process.env.WOMPI_MODE === 'sandbox'
+    ? process.env.PRV_TEST || ''
+    : process.env.PRV_PRO || '';
+}
+
+/**
+ * Obtener secret de integridad según el modo
+ */
+export function getWompiIntegritySecret(): string {
+  return process.env.WOMPI_MODE === 'sandbox'
+    ? process.env.TEST_INTEGRITY || ''
+    : process.env.PRV_INTEGRITY || '';
 }

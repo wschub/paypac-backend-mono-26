@@ -9,7 +9,7 @@
 export interface WompiWebhookEvent {
   event: WompiEventType;
   data: WompiEventData;
-  environment: 'test' | 'prod';
+  environment: 'test' | 'production';
   signature: WompiSignature;
   timestamp: number; // UNIX timestamp
   sent_at: string; // ISO 8601 date
