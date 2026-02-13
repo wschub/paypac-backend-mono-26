@@ -81,6 +81,32 @@ export const emitTransactionUpdated = (
 };
 
 /**
+ * ✅ NUEVO: Notificar que el pago/transacción ha sido completado (independiente del resultado)
+ * Este evento SIEMPRE se emite al finalizar el procesamiento del webhook
+ */
+export const emitPaymentCompleted = (
+  io: SocketIOServer,
+  userId: number,
+  data: {
+    invoice_id: number;
+    num_invoice: string;
+    transaction_id: number;
+    status: 'APPROVED' | 'DECLINED' | 'VOIDED' | 'ERROR' | 'PENDING';
+    status_message: string;
+    can_continue: boolean; // true = puede navegar, false = esperar más
+  }
+) => {
+  io.to(`user:${userId}`).emit('payment:completed', {
+    ...data,
+    timestamp: new Date().toISOString(),
+  });
+  
+  console.log(`✅ Notificación payment:completed enviada a user:${userId}`);
+  console.log(`   Status: ${data.status}`);
+  console.log(`   Can continue: ${data.can_continue}`);
+};
+
+/**
  * Notificar tickets creados
  */
 export const emitTicketsCreated = (
