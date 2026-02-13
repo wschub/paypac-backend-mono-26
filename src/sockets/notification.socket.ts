@@ -80,7 +80,7 @@ export const emitTransactionUpdated = (
   console.log(`🔔 Notificación enviada a user:${userId} - Transaction Updated`);
 };
 
-/**
+/**NEW
  * ✅ NUEVO: Notificar que el pago/transacción ha sido completado (independiente del resultado)
  * Este evento SIEMPRE se emite al finalizar el procesamiento del webhook
  */
