@@ -23,7 +23,7 @@ import staffAssignmentRoutes from './routes/event_staff_assignment.routes';
 import transactionRoutes from './routes/transaction.routes';
 import paymentMethodsUIRoutes from './routes/paymentmethodsui.routes';
 import paymentCardRoutes from './routes/paymentmethodcard.routes';
-import emailTemplatesRoutes from './routes/notificationemailtemplates.routes';
+
 import emailQueueRoutes from './routes/notificationmessagequeue.routes';
 import { validateBrevoConfig } from './config/brevo';
 import { startEmailQueueProcessor, startEmailQueueCleaner } from './jobs/email-queue-processor';
@@ -147,7 +147,6 @@ app.use('/api/transactions', transactionRoutes);
 app.use('/api/payment-methods', paymentMethodsUIRoutes);
 app.use('/api/payment-cards', paymentCardRoutes);
 //notification routes
-app.use('/api/email-templates', emailTemplatesRoutes);
 app.use('/api/email-queue', emailQueueRoutes);
 //sms routes
 app.use('/api/sms', smsRoutes);

@@ -5,21 +5,20 @@ import { z } from 'zod';
  */
 export const queueEmailSchema = z.object({
   body: z.object({
-    user_id: z.number().int().positive('El user_id debe ser un número positivo'),
-    email_delivery: z.string().email('Debe ser un email válido'),
-    template_code: z.string().min(3, 'El código del template es requerido'),
+    userId: z.number().int().positive(),
+    email: z.string().email(),
+    templateCode: z.string().min(3),
     variables: z.record(z.string(), z.union([z.string(), z.number()])),
-    send_at: z.string().datetime().optional(),
+    sendAt: z.string().datetime().optional(),
   }),
 });
-
 
 /**
  * Schema para obtener mensaje por ID
  */
 export const getMessageByIdSchema = z.object({
   params: z.object({
-    id: z.string().regex(/^\d+$/, 'El id debe ser numérico'),
+    id: z.string().regex(/^\d+$/),
   }),
 });
 
@@ -28,9 +27,8 @@ export const getMessageByIdSchema = z.object({
  */
 export const getMessagesQuerySchema = z.object({
   query: z.object({
-    status: z.enum(['0', '1', '2']).optional(), // 0: Pendiente, 1: Enviado, 2: Fallido
+    status: z.enum(['0', '1', '2']).optional(),
     user_id: z.string().regex(/^\d+$/).optional(),
-    template_id: z.string().regex(/^\d+$/).optional(),
   }).optional(),
 });
 
@@ -39,12 +37,12 @@ export const getMessagesQuerySchema = z.object({
  */
 export const retryMessageSchema = z.object({
   params: z.object({
-    id: z.string().regex(/^\d+$/, 'El id debe ser numérico'),
+    id: z.string().regex(/^\d+$/),
   }),
 });
 
 /**
- * Schema para limpiar mensajes antiguos
+ * Schema para limpiar antiguos
  */
 export const cleanOldMessagesSchema = z.object({
   body: z.object({
