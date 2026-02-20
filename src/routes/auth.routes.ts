@@ -20,6 +20,17 @@ router.post(
   register
 );
 
+/*Creación por parte de los usuarios admin
+PAYPAC, ORGANIZER
+*/
+router.post(
+  '/new-user',
+  authenticate,                          // ← Usuario debe estar autenticado
+  authorizeRoles('PAYPAC','ORGANIZER'),               // ← Solo admins
+  validateRequest(registerUserSchema),
+  register
+);
+
 /**
  * POST /auth/login
  * ❌ ELIMINAR - Firebase maneja login en el frontend
@@ -45,5 +56,8 @@ router.get(
   validateRequest(getUsersSchema),
   getUsers
 );
+
+
+
 
 export default router;
