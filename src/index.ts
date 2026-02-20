@@ -34,12 +34,6 @@ import countriesRoutes from './routes/countries.routes';
 //webkook routes
 import webhookRoutes from './routes/webhook.routes';
 import fcmTokenRoutes from './routes/fcm-token.routes';
-
-//Delete 
-import { NotificationMessageQueueService } from './services/notificationmessagequeue.service';
-const service = new NotificationMessageQueueService();
-
-
 import { validateOnurixConfig } from './config/onurix';
 
 // Validar solo si las credenciales están configuradas
@@ -130,25 +124,7 @@ app.get("/health", (req, res) => {
   res.json({ status: "ok" });
 });
 
-app.get("/send-test", (req, res) => {
-   try {
-    const result =  service.queueEmail({
-      userId: 19, // Usa un user_id válido de tu BD
-      email: '"davidminestroich@gmail.com"',
-      templateCode: 'REGISTRATION_VERIFY',
-      variables: {
-        user_name: 'Juan Pérez',
-        otp_code: '123456',
-      },
-    });
 
-    console.log('✅ Email encolado:', result);
-    res.json({ status: "ok" });
-  } catch (error) {
-    console.error('❌ Error:', error);
-  }
-  
-});
 
 // routes
 app.use('/api/auth', authRoutes);

@@ -7,7 +7,7 @@ async function test() {
   try {
     const result = await service.queueEmail({
       userId: 19, // Usa un user_id válido de tu BD
-      email: '"davidminestroich@gmail.com"',
+      email: "davidminestroich@gmail.com",
       templateCode: 'REGISTRATION_VERIFY',
       variables: {
         user_name: 'Juan Pérez',
