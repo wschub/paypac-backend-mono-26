@@ -4,26 +4,52 @@ import { AuthService } from '../services/auth.service';
 const authService = new AuthService();
 
 /**
- * POST /auth/register
- * Crear usuario (solo admins)
- * Ahora crea en Firebase + PostgreSQL
+ * POST /auth/register (Público)
+ * POST /auth/new-user (Protegido)
+ * 
+ * Crear usuario:
+ * - /register: Auto-registro de CUSTOMER (sin autenticación)
+ * - /new-user: PAYPAC/ORGANIZER crean staff/promotores (con autenticación)
  */
 export const register = async (req: Request, res: Response): Promise<void> => {
-  const { name, last_name, email, password, role, company_id,phone_number } = req.body;
-  
-  try {
-    // El admin puede especificar company_id, o heredar el suyo
-    const finalCompanyId = company_id || req.user?.company_id || null;
+  const { name, last_name, email, password, role, company_id, phone_number } = req.body;
 
-    const result = await authService.register({
-      name,
-      last_name,
-      email,
-      password,
-      role,
-      company_id: finalCompanyId,
-      phone_number,
-    });
+  try {
+    // Determinar si es auto-registro o creación por admin
+    const isAdminCreation = !!req.user; // Si req.user existe, es admin autenticado
+
+    let finalCompanyId: number | null = null;
+    let createdBy: { userId: number; userRole: string } | undefined = undefined;
+
+    if (isAdminCreation) {
+      // ✅ Creación por admin (endpoint /new-user)
+      finalCompanyId = company_id || req.user?.company_id || null;
+      createdBy = {
+        userId: req.user!.id,
+        userRole: req.user!.role,
+      };
+
+      console.log(`👤 Admin ${createdBy.userRole} (ID: ${createdBy.userId}) creando usuario`);
+    } else {
+      // ✅ Auto-registro (endpoint /register)
+      // Para CUSTOMER no es obligatorio company_id
+      finalCompanyId = null;
+
+      console.log('👤 Auto-registro de nuevo usuario');
+    }
+
+    const result = await authService.register(
+      {
+        name,
+        last_name,
+        email,
+        password,
+        role,
+        company_id: finalCompanyId,
+        phone_number,
+      },
+      createdBy
+    );
 
     res.status(201).json({
       message: 'Usuario creado exitosamente',
@@ -33,13 +59,6 @@ export const register = async (req: Request, res: Response): Promise<void> => {
     res.status(400).json({ message: err.message });
   }
 };
-
-/**
- * ❌ login - YA NO SE USA
- * Firebase maneja login en el frontend
- * Puedes comentar o eliminar esta función
- */
-// export const login = async (req: Request, res: Response) => { ... };
 
 /**
  * GET /auth/me
