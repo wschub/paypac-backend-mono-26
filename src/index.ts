@@ -29,6 +29,8 @@ import { validateBrevoConfig } from './config/brevo';
 import { startEmailQueueProcessor, startEmailQueueCleaner } from './jobs/email-queue-processor';
 import smsRoutes from './routes/sms.routes';
 import countriesRoutes from './routes/countries.routes';
+import statesRoutes from './routes/states.routes';
+import citiesRoutes from './routes/cities.routes';
 
 
 //webkook routes
@@ -129,7 +131,9 @@ app.get("/health", (req, res) => {
 // routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
-//app.use('/api/countries', countryRoutes);
+app.use('/api/countries', countriesRoutes);
+app.use('/api/states', statesRoutes);
+app.use('/api/cities', citiesRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api', eventLocalitiesRoutes);
 app.use('/api', eventStagesRoutes);

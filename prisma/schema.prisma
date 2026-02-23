@@ -54,9 +54,9 @@ model User {
   // Relación: un usuario puede tener varias tarjetas
   paymentMethods PaymentMethodCard[]
 
-  userCompanyRoles    UserCompanyRole[]
-  approvalsReceived   CompanyUserApproval[]   @relation("UserApproved")
-  approvalsMade       CompanyUserApproval[]   @relation("UserApprover")
+  //userCompanyRoles    UserCompanyRole[]
+  //approvalsReceived   CompanyUserApproval[]   @relation("UserApproved")
+  //approvalsMade       CompanyUserApproval[]   @relation("UserApprover")
   companiesRegistered Company[]               @relation("CompanyRegisteredBy")
   promoterBalances    EventBalancePromoters[] @relation("UserPromoterBalances") // inverso de promoter
   eventDiscounts      EventDcto[]             @relation("UserEventDiscounts") // ← Inverso de EventDcto.user
@@ -74,6 +74,7 @@ model User {
 
 }
 
+/*
 model Roles {
   id          Int      @id @default(autoincrement())
   name        String   @unique
@@ -86,34 +87,6 @@ model Roles {
   // @@schema("identity")
 }
 
-model Company {
-  id                  Int       @id @default(autoincrement())
-  user_id_register    Int? // quien la crea
-  users_id_approved   Int[] // puedes quitar esto si usas la tabla intermedia
-  company_name        String    @unique
-  company_description         String?
-  company_logo                String?
-  company_phone_number        String?
-  company_email               String?   @unique
-  type_identification String?
-  num_identification  String?
-  website             String?
-  address             String?
-  country_id          Int?
-  state_id            Int?
-  city_id             Int?
-  createdAt           DateTime  @default(now())
-  approved_at         DateTime?
-  updatedAt           DateTime  @updatedAt
-  status              Int       @default(0)
-
-  userCompanyRoles UserCompanyRole[] // 1:N relación
-
-  registeredBy         User?                 @relation("CompanyRegisteredBy", fields: [user_id_register], references: [id])
-  companyUserApprovals CompanyUserApproval[] // inverso de CompanyUserApproval.company
-  users                User[]                @relation("UserCompany") // ← AGREGAR ESTA LÍNEA
-}
-
 model UserCompanyRole {
   id         Int  @id @default(autoincrement())
   user_id    Int
@@ -124,7 +97,7 @@ model UserCompanyRole {
   updatedAt DateTime @updatedAt
 
   user    User     @relation(fields: [user_id], references: [id])
-  role    Roles    @relation(fields: [role_id], references: [id])
+  //role    Roles    @relation(fields: [role_id], references: [id])
   company Company? @relation(fields: [company_id], references: [id])
 
   // @@schema("identity")
@@ -141,6 +114,38 @@ model CompanyUserApproval {
   user       User    @relation("UserApproved", fields: [user_id], references: [id])
   approvedBy User    @relation("UserApprover", fields: [approved_by], references: [id])
 }
+*/
+
+
+model Company {
+  id                  Int       @id @default(autoincrement())
+  user_id_register    Int? // quien la crea
+  users_id_approved   Int[] // puedes quitar esto si usas la tabla intermedia
+  company_name        String    @unique
+  company_description         String?
+  company_logo                String?
+  comapny_cover               String?
+  company_phone_number        String?
+  company_email               String?   @unique
+  type_identification String?
+  num_identification  String?
+  website             String?
+  address             String?
+  country_id          Int?
+  state_id            Int?
+  city_id             Int?
+  createdAt           DateTime  @default(now())
+  approved_at         DateTime?
+  updatedAt           DateTime  @updatedAt
+  status              Int       @default(0)
+
+  registeredBy         User?                 @relation("CompanyRegisteredBy", fields: [user_id_register], references: [id])//companyUserApprovals CompanyUserApproval[] // inverso de CompanyUserApproval.company
+  users                User[]                @relation("UserCompany") // ← AGREGAR ESTA LÍNEA
+}
+
+
+
+
 
 model Section {
   id           Int      @id @default(autoincrement())
@@ -149,6 +154,7 @@ model Section {
   icon         String?
   link         String? // URL o enlace a la sección
   level        Int      @default(0) // 0: raíz
+  parent_id    Int?     // Relación recursiva para secciones hijas
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -157,8 +163,7 @@ model Section {
 
 model Permission {
   id          Int      @id @default(autoincrement())
-  name        String   @unique // crear, editar, ver, eliminar, aprobar
-  description String?
+  permission_name      String   @unique // crear, editar, ver, eliminar, aprobar
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -167,11 +172,11 @@ model Permission {
 
 model RoleSectionPermission {
   id            Int @id @default(autoincrement())
-  role_id       Int
+  role_id       ROLES @default(PAYPAC) // Enum de roles
   section_id    Int
   permission_id Int
 
-  role       Roles      @relation(fields: [role_id], references: [id])
+  //role       Roles      @relation(fields: [role_id], references: [id])
   section    Section    @relation(fields: [section_id], references: [id])
   permission Permission @relation(fields: [permission_id], references: [id])
 
@@ -234,24 +239,39 @@ model Cities {
 model Category {
   id            Int       @id @default(autoincrement()) // ID único para cada categoría
   category_name String // Nombre de la categoría
+  category_icon String? // Icono de la categoría (opcional)
   country_id    Int // ← FK al país
   events        Event[] // Relación uno a muchos (un evento puede tener muchas categorías)
   country       Countries @relation(fields: [country_id], references: [id]) // Relación con Countries
+  // ✅ 1:N — una categoría tiene muchas subcategorías (relación inversa)
+  subcategories SubCategory[]
 }
 
 model SubCategory {
   id               Int        @id @default(autoincrement()) // ID único para cada subcategoría
   subcategory_name String // Nombre de la subcategoría
   category_id      Int
+  
+  // ✅ 1:N — muchos a uno con Category
+  category         Category  @relation(fields: [category_id], references: [id])
+
+  // ✅ 1:N — una subcategoría tiene muchos subgéneros (relación inversa)
+  subgenres        Subgenre[]
+
+  // ✅ 1:N — una subcategoría tiene muchos eventos (relación inversa)
   events           Event[]
-  subgenres        Subgenre[] // <- nombre plural y relación 1:N
 }
 
 model Subgenre {
   id               Int         @id @default(autoincrement())
   subcategory_name String
   subcategory_id   Int
+ 
+  // ✅ 1:N — muchos a uno con SubCategory (ya estaba bien)
   subcategory      SubCategory @relation(fields: [subcategory_id], references: [id])
+
+  // ✅ relación inversa con Event
+  events           Event[]
 }
 
 //EVENTS
@@ -267,8 +287,9 @@ model Event {
   latitude          String        @default("")
   longitude         String        @default("")
   currency          String        @default("COP")
-  categories        Category[]
-  subcategories     SubCategory[]
+    category_id     Int?
+  subcategory_id  Int?
+  subgenre_id     Int?
   city              String        @default("")
   country           String        @default("")
   event_type        TypeEvent     @default(PUBLICO)
@@ -301,6 +322,11 @@ model Event {
   favorites        EventFavorites[] // ← Inverso de EventFavorites.event
 
   staffAssignments EventStaffAssignment[]
+  // ✅ Relaciones muchos-a-uno correctas
+  category        Category?    @relation(fields: [category_id],    references: [id])
+  subcategory     SubCategory? @relation(fields: [subcategory_id], references: [id])
+  subgenre        Subgenre?    @relation(fields: [subgenre_id],    references: [id])
+
 }
 
 model EventStaffAssignment {
@@ -309,12 +335,14 @@ model EventStaffAssignment {
   user_id     Int // Usuario STAFF/STAFF_PROMOTER
   role_type   ROLES @default(STAFF) // "STAFF", "STAFF_PROMOTER"
   assigned_by Int // ORGANIZER que lo asignó
+  door_identifier String? // Identificador de la puerta o entrada asignada al staff (opcional)
 
   // Geolocalización del staff (para validar en entrada)
   latitude      String? // Lat donde está el staff
   longitude     String? // Long donde está el staff
   checked_in    Boolean   @default(false) // ¿Se "logeó" en el evento?
   checked_in_at DateTime? // Cuándo se logeó
+
 
   assigned_at DateTime @default(now())
   createdAt   DateTime @default(now())
@@ -435,6 +463,11 @@ model EventLocalities {
   title_color          String // Color del título
   text_color           String // Color del texto
   title_color_location String // Color específico para el título de la localidad
+  require_num_tickets  Boolean @default(false) // Número de tickets vendidos para esta localidad
+  num_max_tickets      Int?  @default(0) // Número máximo de tickets disponibles para esta localidad
+  num_tickets_sold    Int? @default(0) // Número de tickets vendidos para esta localidad
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 
   // Relación muchos a uno con Event
   event Event @relation(fields: [event_id], references: [id])
@@ -442,8 +475,7 @@ model EventLocalities {
   // Relación uno a muchos con EventStages
   stages EventStages[] // Una localidad puede tener varias etapas
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+ 
 
   rewardRules EventRewardRules[] // ← relación inversa
   discounts   EventDcto[] // ← Inverso de EventDcto.locality

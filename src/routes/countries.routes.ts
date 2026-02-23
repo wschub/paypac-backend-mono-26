@@ -20,54 +20,40 @@ import {
 
 const router = Router();
 
-/**
- * POST /api/countries
- * Crear un nuevo país
- * Requiere: PAYPAC
- */
-router.post(
-  '/',
-  authenticate,
-  authorizeRoles('PAYPAC'),
-  validateRequest(createCountrySchema),
-  createCountry
-);
+// Roles con acceso de lectura
+const ALL_ROLES = ['PAYPAC', 'ORGANIZER', 'STAFF', 'STAFF_PROMOTER', 'PROMOTER', 'CUSTOMER'];
 
 /**
  * GET /api/countries
- * Listar todos los países
- * Requiere: PAYPAC
- * 
- * Query params opcionales:
- * - search: string (buscar por nombre o código)
- * - code: string (filtrar por código ISO)
+ * Listar países con filtros opcionales
+ * Acceso: todos los roles autenticados
  */
 router.get(
   '/',
   authenticate,
-  authorizeRoles('PAYPAC'),
+  authorizeRoles(...ALL_ROLES),
   validateRequest(getCountriesQuerySchema),
   getCountries
 );
 
 /**
  * GET /api/countries/with-relations
- * Listar países con estados y ciudades incluidos
- * Requiere: PAYPAC
- * 
- * NOTA: Esta ruta debe ir ANTES de /:id
+ * Listar países con jerarquía completa: estados → ciudades
+ * Acceso: todos los roles autenticados
+ * ⚠️ Debe ir ANTES de /:id para evitar conflicto de rutas
  */
 router.get(
   '/with-relations',
   authenticate,
-  authorizeRoles('PAYPAC'),
+  authorizeRoles(...ALL_ROLES),
   getCountriesWithRelations
 );
 
 /**
  * GET /api/countries/stats
- * Obtener estadísticas de países
- * Requiere: PAYPAC
+ * Estadísticas de países, estados y ciudades
+ * Acceso: solo PAYPAC
+ * ⚠️ Debe ir ANTES de /:id
  */
 router.get(
   '/stats',
@@ -78,21 +64,34 @@ router.get(
 
 /**
  * GET /api/countries/:id
- * Obtener país por ID
- * Requiere: PAYPAC
+ * Obtener país por ID con estados y ciudades anidados
+ * Acceso: todos los roles autenticados
  */
 router.get(
   '/:id',
   authenticate,
-  authorizeRoles('PAYPAC'),
+  authorizeRoles(...ALL_ROLES),
   validateRequest(getCountryByIdSchema),
   getCountryById
 );
 
 /**
+ * POST /api/countries
+ * Crear un nuevo país
+ * Acceso: solo PAYPAC
+ */
+router.post(
+  '/',
+  authenticate,
+  authorizeRoles('PAYPAC'),
+  validateRequest(createCountrySchema),
+  createCountry
+);
+
+/**
  * PUT /api/countries/:id
  * Actualizar país
- * Requiere: PAYPAC
+ * Acceso: solo PAYPAC
  */
 router.put(
   '/:id',
@@ -104,8 +103,8 @@ router.put(
 
 /**
  * DELETE /api/countries/:id
- * Eliminar país
- * Requiere: PAYPAC
+ * Eliminar país (solo si no tiene estados, ciudades o categorías)
+ * Acceso: solo PAYPAC
  */
 router.delete(
   '/:id',

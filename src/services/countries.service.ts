@@ -5,26 +5,20 @@ const countriesRepo = new CountriesRepository();
 
 export class CountriesService {
   /**
-   * Crear un nuevo país
-   * Solo PAYPAC puede crear países
+   * Crear un nuevo país — solo PAYPAC
    */
-  async createCountry(
-    data: Prisma.CountriesCreateInput,
-    userRole: string
-  ) {
+  async createCountry(data: Prisma.CountriesCreateInput, userRole: string) {
     if (userRole !== 'PAYPAC') {
       throw new Error('Solo PAYPAC puede crear países');
     }
 
-    // Validar que no exista un país con el mismo código ISO
-    const existingCountryByCode = await countriesRepo.findByCode(data.code);
-    if (existingCountryByCode) {
+    const existingByCode = await countriesRepo.findByCode(data.code);
+    if (existingByCode) {
       throw new Error(`Ya existe un país con el código ISO "${data.code}"`);
     }
 
-    // Validar que no exista un país con el mismo nombre
-    const existingCountryByName = await countriesRepo.findByName(data.name_country);
-    if (existingCountryByName) {
+    const existingByName = await countriesRepo.findByName(data.name_country);
+    if (existingByName) {
       throw new Error(`Ya existe un país con el nombre "${data.name_country}"`);
     }
 
@@ -32,22 +26,21 @@ export class CountriesService {
   }
 
   /**
-   * Obtener todos los países
-   * Puede filtrar por búsqueda o código
+   * Listar países — todos los roles autenticados
    */
   async getCountries(filters?: { search?: string; code?: string }) {
     return countriesRepo.findAll(filters);
   }
 
   /**
-   * Obtener países con relaciones completas (estados y ciudades)
+   * Países con jerarquía completa estados → ciudades — todos los roles
    */
   async getCountriesWithRelations() {
     return countriesRepo.findAllWithRelations();
   }
 
   /**
-   * Obtener país por ID
+   * País por ID — todos los roles autenticados
    */
   async getCountryById(id: number) {
     const country = await countriesRepo.findById(id);
@@ -58,7 +51,7 @@ export class CountriesService {
   }
 
   /**
-   * Obtener país por código ISO
+   * País por código ISO
    */
   async getCountryByCode(code: string) {
     const country = await countriesRepo.findByCode(code);
@@ -69,8 +62,7 @@ export class CountriesService {
   }
 
   /**
-   * Actualizar país
-   * Solo PAYPAC puede actualizar
+   * Actualizar país — solo PAYPAC
    */
   async updateCountry(
     id: number,
@@ -86,18 +78,18 @@ export class CountriesService {
       throw new Error('País no encontrado');
     }
 
-    // Si se está cambiando el código ISO, validar que no exista otro país con ese código
+    // Validar código ISO único (excluyendo el país actual)
     if (data.code && typeof data.code === 'string') {
-      const existingCountry = await countriesRepo.findByCode(data.code);
-      if (existingCountry && existingCountry.id !== id) {
+      const existing = await countriesRepo.findByCode(data.code);
+      if (existing && existing.id !== id) {
         throw new Error(`Ya existe otro país con el código ISO "${data.code}"`);
       }
     }
 
-    // Si se está cambiando el nombre, validar que no exista otro país con ese nombre
+    // Validar nombre único (excluyendo el país actual)
     if (data.name_country && typeof data.name_country === 'string') {
-      const existingCountry = await countriesRepo.findByName(data.name_country);
-      if (existingCountry && existingCountry.id !== id) {
+      const existing = await countriesRepo.findByName(data.name_country);
+      if (existing && existing.id !== id) {
         throw new Error(`Ya existe otro país con el nombre "${data.name_country}"`);
       }
     }
@@ -106,8 +98,8 @@ export class CountriesService {
   }
 
   /**
-   * Eliminar país
-   * Solo PAYPAC puede eliminar
+   * Eliminar país — solo PAYPAC
+   * Valida que no tenga estados, ciudades o categorías asociadas
    */
   async deleteCountry(id: number, userRole: string) {
     if (userRole !== 'PAYPAC') {
@@ -119,40 +111,39 @@ export class CountriesService {
       throw new Error('País no encontrado');
     }
 
-    // Verificar que no tenga relaciones activas
-    /* 
-    if (country.states.length > 0) {
-      throw new Error('No se puede eliminar: el país tiene estados asociados');
+    // Usa _count que ya viene incluido en findById
+    const counts = (country as any)._count;
+
+    if (counts?.states > 0) {
+      throw new Error(
+        `No se puede eliminar: el país tiene ${counts.states} estado(s) asociado(s). Elimínalos primero.`
+      );
     }
 
-    if (country.cities.length > 0) {
-      throw new Error('No se puede eliminar: el país tiene ciudades asociadas');
+    if (counts?.cities > 0) {
+      throw new Error(
+        `No se puede eliminar: el país tiene ${counts.cities} ciudad(es) asociada(s).`
+      );
     }
 
-    if (country.categories.length > 0) {
-      throw new Error('No se puede eliminar: el país tiene categorías asociadas');
+    if (counts?.categories > 0) {
+      throw new Error(
+        `No se puede eliminar: el país tiene ${counts.categories} categoría(s) asociada(s).`
+      );
     }
-*/
+
     return countriesRepo.delete(id);
   }
 
   /**
-   * Obtener estadísticas de países
-   * Solo PAYPAC puede ver estadísticas
+   * Estadísticas — solo PAYPAC
+   * Usa agregaciones en DB, no carga registros en memoria
    */
   async getCountriesStats(userRole: string) {
     if (userRole !== 'PAYPAC') {
       throw new Error('Solo PAYPAC puede ver estadísticas');
     }
 
-    const allCountries = await countriesRepo.findAll();
-    const totalCount = await countriesRepo.count();
-
-    return {
-      total: totalCount,
-     // with_states: allCountries.filter(c => c.states.length > 0).length,
-     // with_cities: allCountries.filter(c => c.cities.length > 0).length,
-     // with_categories: allCountries.filter(c => c.categories.length > 0).length,
-    };
+    return countriesRepo.getStats();
   }
 }
