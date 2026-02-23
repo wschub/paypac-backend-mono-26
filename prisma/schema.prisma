@@ -118,29 +118,38 @@ model CompanyUserApproval {
 
 
 model Company {
-  id                  Int       @id @default(autoincrement())
-  user_id_register    Int? // quien la crea
-  users_id_approved   Int[] // puedes quitar esto si usas la tabla intermedia
-  company_name        String    @unique
-  company_description         String?
-  company_logo                String?
-  comapny_cover               String?
-  company_phone_number        String?
-  company_email               String?   @unique
-  type_identification String?
-  num_identification  String?
-  website             String?
-  address             String?
-  country_id          Int?
-  state_id            Int?
-  city_id             Int?
-  createdAt           DateTime  @default(now())
-  approved_at         DateTime?
-  updatedAt           DateTime  @updatedAt
-  status              Int       @default(0)
+  id                   Int       @id @default(autoincrement())
+  user_id_register     Int?
+  company_name         String    @unique
+  company_description  String?
+  company_logo         String?
+  company_cover        String?
+  company_phone_number String?
+  company_email        String?   @unique
+  type_identification  String?
+  num_identification   String?
+  website              String?
+  address              String?
+  company_presentation String    @default("")
+  rating               Float     @default(0)
+  createdAt            DateTime  @default(now())
+  approved_at          DateTime?
+  updatedAt            DateTime  @updatedAt
+  status               Int       @default(0)
 
-  registeredBy         User?                 @relation("CompanyRegisteredBy", fields: [user_id_register], references: [id])//companyUserApprovals CompanyUserApproval[] // inverso de CompanyUserApproval.company
-  users                User[]                @relation("UserCompany") // ← AGREGAR ESTA LÍNEA
+  // ✅ FKs a ubicación
+  country_id Int?
+  state_id   Int?
+  city_id    Int?
+
+  // ✅ Relaciones con ubicación
+  country Countries? @relation(fields: [country_id], references: [id])
+  state   States?    @relation(fields: [state_id],   references: [id])
+  city    Cities?    @relation(fields: [city_id],    references: [id])
+
+  // ✅ Relaciones con User
+  registeredBy User?  @relation("CompanyRegisteredBy", fields: [user_id_register], references: [id])
+  users        User[] @relation("UserCompany")
 }
 
 
@@ -208,6 +217,8 @@ model Countries {
   states     States[] // Un país tiene muchos estados
   cities     Cities[] // Un país tiene muchas ciudades
   categories Category[] // ← Relación inversa
+
+   companies Company[] // ← agregar
 }
 
 model States {
@@ -219,6 +230,8 @@ model States {
 
   country Countries @relation(fields: [country_id], references: [id])
   cities  Cities[] // Un estado tiene muchas ciudades
+
+  companies Company[] // ← agregar
 }
 
 model Cities {
@@ -233,6 +246,7 @@ model Cities {
 
   state   States    @relation(fields: [state_id], references: [id])
   country Countries @relation(fields: [country_id], references: [id])
+   companies Company[] // ← agregar
 }
 
 //CATEGORIES
