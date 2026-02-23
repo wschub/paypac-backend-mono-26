@@ -1,16 +1,17 @@
 import { prisma } from '../config/db';
-import { Event, Prisma, EVENT_STATUS } from '@prisma/client';
+import { Prisma, EVENT_STATUS } from '@prisma/client';
 
 export class EventRepository {
   /**
    * Crear un nuevo evento
    */
-  async create(data: Prisma.EventUncheckedCreateInput): Promise<Event> {
+  async create(data: Prisma.EventUncheckedCreateInput) {
     return prisma.event.create({
       data,
       include: {
-        categories: true,
-        subcategories: true,
+        category: true,       // ✅ 1:N singular
+        subcategory: true,    // ✅ 1:N singular
+        subgenre: true,       // ✅ 1:N singular
       },
     });
   }
@@ -26,7 +27,7 @@ export class EventRepository {
     country?: string;
     city?: string;
     search?: string;
-  }): Promise<Event[]> {
+  }) {
     const where: Prisma.EventWhereInput = {};
 
     if (filters?.status) {
@@ -49,12 +50,9 @@ export class EventRepository {
       where.city = filters.city;
     }
 
+    // ✅ Filtro por category_id usando FK directa (1:N)
     if (filters?.category_id) {
-      where.categories = {
-        some: {
-          id: filters.category_id,
-        },
-      };
+      where.category_id = filters.category_id;
     }
 
     if (filters?.search) {
@@ -68,8 +66,9 @@ export class EventRepository {
     return prisma.event.findMany({
       where,
       include: {
-        categories: true,
-        subcategories: true,
+        category: true,
+        subcategory: true,
+        subgenre: true,
         localities: {
           include: {
             stages: true,
@@ -83,12 +82,13 @@ export class EventRepository {
   /**
    * Buscar evento por ID
    */
-  async findById(id: number): Promise<Event | null> {
+  async findById(id: number) {
     return prisma.event.findUnique({
       where: { id },
       include: {
-        categories: true,
-        subcategories: true,
+        category: true,
+        subcategory: true,
+        subgenre: true,
         localities: {
           include: {
             stages: true,
@@ -103,12 +103,13 @@ export class EventRepository {
   /**
    * Buscar eventos de un organizador específico
    */
-  async findByOrganizer(organizerId: number): Promise<Event[]> {
+  async findByOrganizer(organizerId: number) {
     return prisma.event.findMany({
       where: { organizer_id: organizerId },
       include: {
-        categories: true,
-        subcategories: true,
+        category: true,
+        subcategory: true,
+        subgenre: true,
         localities: {
           include: {
             stages: true,
@@ -122,13 +123,14 @@ export class EventRepository {
   /**
    * Actualizar evento
    */
-  async update(id: number, data: Prisma.EventUpdateInput): Promise<Event> {
+  async update(id: number, data: Prisma.EventUpdateInput) {
     return prisma.event.update({
       where: { id },
       data,
       include: {
-        categories: true,
-        subcategories: true,
+        category: true,
+        subcategory: true,
+        subgenre: true,
         localities: {
           include: {
             stages: true,
@@ -141,7 +143,7 @@ export class EventRepository {
   /**
    * Eliminar evento
    */
-  async delete(id: number): Promise<Event> {
+  async delete(id: number) {
     return prisma.event.delete({
       where: { id },
     });
@@ -150,13 +152,13 @@ export class EventRepository {
   /**
    * Actualizar solo el status del evento
    */
-  async updateStatus(id: number, status: EVENT_STATUS): Promise<Event> {
+  async updateStatus(id: number, status: EVENT_STATUS) {
     return prisma.event.update({
       where: { id },
       data: { status },
       include: {
-        categories: true,
-        subcategories: true,
+        category: true,
+        subcategory: true,
       },
     });
   }
@@ -165,9 +167,7 @@ export class EventRepository {
    * Verificar si un evento existe
    */
   async exists(id: number): Promise<boolean> {
-    const count = await prisma.event.count({
-      where: { id },
-    });
+    const count = await prisma.event.count({ where: { id } });
     return count > 0;
   }
 
@@ -175,8 +175,6 @@ export class EventRepository {
    * Contar eventos por organizador
    */
   async countByOrganizer(organizerId: number): Promise<number> {
-    return prisma.event.count({
-      where: { organizer_id: organizerId },
-    });
+    return prisma.event.count({ where: { organizer_id: organizerId } });
   }
 }
