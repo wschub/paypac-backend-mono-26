@@ -58,7 +58,7 @@ export const getSettings = async (req: Request, res: Response): Promise<void> =>
 export const getSettingByName = async (req: Request, res: Response): Promise<void> => {
   try {
     const userRole = req.user?.role || '';
-    const { name } = req.params;
+    const name = String(req.params.name);
 
     const result = await settingsService.getSettingByName(name, userRole);
 
