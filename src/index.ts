@@ -11,6 +11,8 @@ import authRoutes from './routes/auth.routes';
 import userRoutes from './routes/user.routes';
 import categoryRoutes from './routes/category.routes';
 import subCategoryRoutes from './routes/subcategory.routes';
+import subgenreRoutes from './routes/subgenre.routes';
+
 
 import eventRoutes from './routes/event.routes';
 import eventLocalitiesRoutes from './routes/eventlocalities.routes';
@@ -136,6 +138,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/subcategories', subCategoryRoutes);
+app.use('/api/subgenres', subgenreRoutes);
 app.use('/api/countries', countriesRoutes);
 app.use('/api/states', statesRoutes);
 app.use('/api/cities', citiesRoutes);
