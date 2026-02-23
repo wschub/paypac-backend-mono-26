@@ -6,7 +6,7 @@ import {
   getSettingById,
   updateSetting,
   deleteSetting,
-} from '../controllers/Generalsettings.controller';
+} from '../controllers/generalsettings.controller';
 import { authenticate } from '../middlewares/auth.middleware';
 import { authorizeRoles } from '../middlewares/role.middleware';
 import { validateRequest } from '../middlewares/validate.middleware';
