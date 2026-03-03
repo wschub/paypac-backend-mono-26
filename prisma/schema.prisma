@@ -149,7 +149,7 @@ model Company {
 
   // ✅ Relaciones con User
   registeredBy User?  @relation("CompanyRegisteredBy", fields: [user_id_register], references: [id])
-  users        User[] @relation("UserCompany")
+  users        User[] @relation("UserCompany") 
 }
 
 
@@ -159,38 +159,41 @@ model Company {
 model Section {
   id           Int      @id @default(autoincrement())
   name_section String
-  description  String?
   icon         String?
-  link         String? // URL o enlace a la sección
-  level        Int      @default(0) // 0: raíz
-  parent_id    Int?     // Relación recursiva para secciones hijas
+  link         String?  @unique        // índice si se busca por URL
+  level        Int      @default(0)
+  parent_id    Int?                    // null = raíz, sin default(0)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  rolePermissions RoleSectionPermission[] // permisos por rol
+  parent          Section?  @relation("SectionTree", fields: [parent_id], references: [id])
+  children        Section[] @relation("SectionTree")
+  rolePermissions RoleSectionPermission[]
 }
 
 model Permission {
-  id          Int      @id @default(autoincrement())
-  permission_name      String   @unique // crear, editar, ver, eliminar, aprobar
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id              Int      @id @default(autoincrement())
+  permission_name String   @unique
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
-  rolePermissions RoleSectionPermission[] // permisos por rol y sección
+  rolePermissions RoleSectionPermission[]
 }
 
 model RoleSectionPermission {
-  id            Int @id @default(autoincrement())
-  role_id       ROLES @default(PAYPAC) // Enum de roles
+  role          ROLES
   section_id    Int
   permission_id Int
 
-  //role       Roles      @relation(fields: [role_id], references: [id])
   section    Section    @relation(fields: [section_id], references: [id])
   permission Permission @relation(fields: [permission_id], references: [id])
 
-  @@unique([role_id, section_id, permission_id]) // evita duplicados
+  @@id([role, section_id, permission_id])   // PK compuesta, sin id redundante
+  @@index([role])                            // queries por rol
+  @@index([role, section_id])               // queries por rol + sección (el más frecuente)
 }
+
+
 
 /** */
  enum ROLES {
@@ -340,7 +343,9 @@ model Event {
   category        Category?    @relation(fields: [category_id],    references: [id])
   subcategory     SubCategory? @relation(fields: [subcategory_id], references: [id])
   subgenre        Subgenre?    @relation(fields: [subgenre_id],    references: [id])
-
+  //RElaciones Places and seats numbered_place_id
+  numbered_place    EventPlaces?      @relation(fields: [numbered_place_id], references: [id])
+  seatStatuses      EventSeatStatus[] // ← agregar relación inversa
 }
 
 model EventStaffAssignment {
@@ -511,30 +516,6 @@ model EventStages {
   updatedAt DateTime @updatedAt
 }
 
-model EventPlaces {
-  id         Int        @id @default(autoincrement()) // ID único para cada lugar
-  name_place String // Nombre del lugar
-  type_place TypePlaces // Tipo de lugar (Indoor o Outdoor)
-  map_place  String // URL o string del mapa del lugar
-  capacity   Int // Capacidad del lugar
-
-  // Relación uno a muchos con EventPlacesSeats
-  seats EventPlacesSeats[] // Un lugar tiene muchas filas/sillas
-
-  // Relación uno a uno con Event (sin la referencia explícita)
-  //events Event[] // Relación uno a muchos con eventos
-}
-
-model EventPlacesSeats {
-  id          Int    @id @default(autoincrement()) // ID único para cada fila/silla
-  place_id    Int // Relación con el lugar
-  name_row    String // Nombre de la fila (ej. A, B, C)
-  num_seats   Int // Número de sillas en la fila
-  total_seats Int // Número total de sillas en el lugar
-
-  // Relación muchos a uno con EventPlaces
-  place EventPlaces @relation(fields: [place_id], references: [id])
-}
 
 enum TypeEvent {
   PUBLICO // Valor "Público"
@@ -547,14 +528,86 @@ enum Places {
   SIN_NUMERAR // Valor "Sin numerar" 
 }
 
-/* DELETE THIS IF NOT USED
-enum EventStatus {
-  PROGRAMADO //DEFAULT
-  ACTIVO // DIA EVENTO
-  CANCELADO
-  RE_PROGRAMADO
-  FINALIZADO
-}*/
+model EventPlaces {
+  id         Int        @id @default(autoincrement())
+  name_place String
+  type_place TypePlaces         // TEATRO, ESTADIO, CINE, etc.
+  place_type Places             // NUMERADO (siempre, este modelo solo aplica a numerados)
+  map_place  Json?              // JSON con coordenadas x,y por silla — null hasta que se dibuje
+  capacity   Int                // total calculado del venue
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  zones  EventPlaceZone[]
+  events Event[]               // un venue puede usarse en múltiples eventos
+
+  @@index([type_place])
+}
+
+model EventPlaceZone {
+  id       Int    @id @default(autoincrement())
+  place_id Int
+  name     String // "Luneta Izquierda", "Platea Alta", "VIP"
+  capacity Int
+
+  place EventPlaces     @relation(fields: [place_id], references: [id])
+  rows  EventPlaceRow[]
+
+  @@index([place_id])
+}
+
+model EventPlaceRow {
+  id      Int    @id @default(autoincrement())
+  zone_id Int
+  name    String // "A", "B", "H"
+
+  zone  EventPlaceZone   @relation(fields: [zone_id], references: [id])
+  seats EventPlaceSeat[]
+
+  @@index([zone_id])
+}
+
+model EventPlaceSeat {
+  id          Int        @id @default(autoincrement())
+  row_id      Int
+  seat_number String     // "A1", "Y15", "H23"
+  status      SeatStatus @default(ACTIVE) // estado permanente: ACTIVE | BLOCKED_MAINTENANCE
+
+  row         EventPlaceRow     @relation(fields: [row_id], references: [id])
+  eventStatus EventSeatStatus[]
+
+  @@unique([row_id, seat_number])
+  @@index([row_id])
+  @@index([status])
+}
+
+model EventSeatStatus {
+  id         Int             @id @default(autoincrement())
+  seat_id    Int
+  event_id   Int
+  status     SeatEventStatus @default(AVAILABLE)
+  held_until DateTime?       // expira el HELD del carrito
+
+  seat  EventPlaceSeat @relation(fields: [seat_id], references: [id])
+  event Event          @relation(fields: [event_id], references: [id])
+
+  @@unique([seat_id, event_id])
+  @@index([event_id, status])   // query principal del mapa interactivo
+  @@index([event_id])
+}
+
+enum SeatStatus {
+  ACTIVE
+  BLOCKED_MAINTENANCE
+}
+
+enum SeatEventStatus {
+  AVAILABLE
+  HELD        // en carrito — expira con held_until
+  SOLD
+  BLOCKED     // cortesía, prensa, producción
+}
+
 
 
 // Enumeración para el tipo de lugar (Place)
