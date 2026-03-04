@@ -51,6 +51,13 @@ export const paramToInt = (param: string | string[]): number => {
   return parseInt(value, 10);
 };
 
+/*
 export const paramToString = (param: string | string[]): string => {
   return Array.isArray(param) ? param[0] : param;
+};
+*/
+
+export const paramToString = (param: string | string[]): string => {
+  if (Array.isArray(param)) return param[0];
+  return param;
 };

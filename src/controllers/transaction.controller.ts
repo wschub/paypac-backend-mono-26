@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { TransactionService } from '../services/transaction.service';
 import { configManager } from '../utils/ConfigManager';
-import { createNumInvoice, paramToInt } from '../utils/utils';
+import { createNumInvoice, paramToInt, paramToString } from '../utils/utils';
 
 const transactionService = new TransactionService();
 
@@ -117,7 +117,8 @@ export const getTransactionById = async (req: Request, res: Response): Promise<v
 export const getTransactionByReference = async (req: Request, res: Response): Promise<void> => {
   try {
     const userRole    = req.user!.role;
-    const { reference } = req.params;
+    //const { reference } = req.params;
+    const reference = paramToString(req.params.reference);
 
     const transaction = await transactionService.getTransactionByReference(reference, userRole);
 
@@ -134,9 +135,9 @@ export const getTransactionByReference = async (req: Request, res: Response): Pr
 export const getTransactionByInvoiceId = async (req: Request, res: Response): Promise<void> => {
   try {
     const userRole    = req.user!.role;
-    const { invoice_id } = req.params;
-
-    const transaction = await transactionService.getTransactionByInvoiceId(invoice_id, userRole);
+    //const { invoice_id } = req.params;
+    const invoiceId = paramToString(req.params.invoice_id);
+    const transaction = await transactionService.getTransactionByInvoiceId(invoiceId, userRole);
 
     res.status(200).json({ success: true, transaction });
   } catch (err: any) {
@@ -151,8 +152,8 @@ export const getTransactionByInvoiceId = async (req: Request, res: Response): Pr
 export const getTransactionsByStatus = async (req: Request, res: Response): Promise<void> => {
   try {
     const userRole = req.user!.role;
-    const { status } = req.params;
-
+    //const { status } = req.params;
+    const status = paramToString(req.params.status);
     const transactions = await transactionService.getTransactionsByStatus(status, userRole);
 
     res.status(200).json({
