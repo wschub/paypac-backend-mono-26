@@ -10,12 +10,12 @@ import axios from 'axios';
 import { configManager } from '../utils/ConfigManager';
 import { cleanString, createNumInvoice, getExpirationTime } from '../utils/utils';
 
-const transactionRepo = new TransactionRepository();
-const invoiceRepo = new InvoiceRepository();
+const transactionRepo  = new TransactionRepository();
+const invoiceRepo      = new InvoiceRepository();
 const invoiceTicketsRepo = new InvoiceTicketsRepository();
-const eventRepo = new EventRepository();
-const stagesRepo = new EventStagesRepository();
-const userRepo = new UserRepository();
+const eventRepo        = new EventRepository();
+const stagesRepo       = new EventStagesRepository();
+const userRepo         = new UserRepository();
 
 export class TransactionService {
   /**
@@ -57,20 +57,18 @@ export class TransactionService {
         },
       });
 
-      if (!user) {
-        throw new Error('Usuario no encontrado');
-      }
+      if (!user) throw new Error('Usuario no encontrado');
 
       // 2. Bloquear usuario mientras procesa (evitar double-spending)
       await tx.user.update({
         where: { id: data.user_id },
-        data: { status: 99 }, // 99 = Bloqueado temporalmente
+        data: { status: 99 },
       });
 
       try {
         // 3. Crear Invoice
         const numInvoice = await createNumInvoice();
-        
+
         const invoice = await tx.invoice.create({
           data: {
             user_id: data.user_id,
@@ -88,7 +86,7 @@ export class TransactionService {
             total_ticket_dcto: 0,
             total_ticket_regular: data.amount_in_cents / 100,
             total: data.amount_in_cents / 100,
-            status: InvoiceStatus.ISSUED, // Emitida, esperando pago
+            status: InvoiceStatus.ISSUED,
           },
         });
 
@@ -109,15 +107,14 @@ export class TransactionService {
             total_ticket_regular: item.ticket_final_price,
             total_ticket_paid: item.ticket_final_price,
             purchase_date: new Date(),
-            status_item: 0, // Pendiente
+            status_item: 0,
           })),
         });
 
         // 5. Preparar datos para Wompi
-        const currency = 'COP';
+        const currency       = 'COP';
         const expiration_time = await getExpirationTime();
-
-        const customer_email = user.email;
+        const customer_email  = user.email;
         const payment_method_type = data.paymentMethodType;
         const customer_data = {
           phone_number: user.phone_number,
@@ -136,18 +133,16 @@ export class TransactionService {
           customer_email,
           payment_method_type,
           customer_data,
-          reference: numInvoice, // 🆕 Usar num_invoice como reference
+          reference: numInvoice,
         });
 
         console.log('✅ Resultado del pago:', paymentResult);
 
         if (paymentResult.status !== 'success') {
-          // Si falla el pago, desbloquear usuario y lanzar error
           await tx.user.update({
             where: { id: data.user_id },
-            data: { status: 1 }, // Activar de nuevo
+            data: { status: 1 },
           });
-
           throw new Error(`Pago fallido: ${paymentResult.message}`);
         }
 
@@ -168,7 +163,7 @@ export class TransactionService {
               type: payment_method_type,
               installments: data.installments_user,
             },
-            status: 'PENDING', // 🆕 Esperando webhook de Wompi
+            status: 'PENDING',
             status_message: 'Transacción iniciada. Esperando confirmación de Wompi.',
             billing_data: JSON.stringify(customer_data),
             shipping_address: '',
@@ -193,9 +188,6 @@ export class TransactionService {
           data: { status: 1 },
         });
 
-        // 9. 🆕 NO crear Tickets aquí
-        // Se crearán cuando Wompi envíe el webhook con status APPROVED
-
         return {
           invoice,
           transaction,
@@ -203,12 +195,10 @@ export class TransactionService {
           message: 'Transacción procesada. Esperando confirmación de Wompi.',
         };
       } catch (error: any) {
-        // Si hay error, desbloquear usuario
         await tx.user.update({
           where: { id: data.user_id },
           data: { status: 1 },
         });
-
         throw error;
       }
     });
@@ -229,46 +219,36 @@ export class TransactionService {
     reference: string;
   }) {
     try {
-      const wompiUrl = configManager.getWompiUrl();
-      const tokenAcceptance = configManager.getWompiTokenAcceptance();
+      const wompiUrl           = configManager.getWompiUrl();
+      const tokenAcceptance    = configManager.getWompiTokenAcceptance();
       const cleanTokenAcceptance = cleanString(tokenAcceptance);
-      const urlMerchants = `${wompiUrl}/${cleanTokenAcceptance}`;
-      const prvCertificate = cleanString(configManager.paymentSources());
+      const urlMerchants       = `${wompiUrl}/${cleanTokenAcceptance}`;
+      const prvCertificate     = cleanString(configManager.paymentSources());
 
-      // 1. Obtener acceptance token
-      const merchantsResponse = await axios.get(urlMerchants);
-      const acceptanceToken =
-        merchantsResponse.data.data.presigned_acceptance.acceptance_token;
+      const merchantsResponse  = await axios.get(urlMerchants);
+      const acceptanceToken    = merchantsResponse.data.data.presigned_acceptance.acceptance_token;
 
-      // 2. Validar token de tarjeta
       if (!params.token_card_user || params.token_card_user.trim() === '') {
         throw new Error('Token de tarjeta no válido');
       }
 
-      // 3. Crear payment source
-      const paymentSourceUrl = `${wompiUrl}/payment_sources`;
+      const paymentSourceUrl  = `${wompiUrl}/payment_sources`;
       const paymentData = {
         type: 'CARD',
         token: params.token_card_user,
         acceptance_token: acceptanceToken,
         customer_email: params.customer_email,
       };
-
       const headers = {
         Authorization: `Bearer ${prvCertificate}`,
         'Content-Type': 'application/json',
       };
 
-      const paymentSourceResponse = await axios.post(
-        paymentSourceUrl,
-        paymentData,
-        { headers }
-      );
-      const payment_source_id = paymentSourceResponse.data.data.id;
+      const paymentSourceResponse = await axios.post(paymentSourceUrl, paymentData, { headers });
+      const payment_source_id     = paymentSourceResponse.data.data.id;
 
       console.log('✅ Payment source creado:', payment_source_id);
 
-      // 4. Generar signature
       const signature = await configManager.getSignature(
         params.reference,
         params.amount_in_cents,
@@ -276,35 +256,27 @@ export class TransactionService {
         params.expiration_time
       );
 
-      // 5. Crear transacción en Wompi
-      const transactionUrl = `${wompiUrl}/transactions`;
+      const transactionUrl  = `${wompiUrl}/transactions`;
       const transactionData = {
         acceptance_token: acceptanceToken,
         amount_in_cents: params.amount_in_cents,
         currency: params.currency,
-        signature: signature,
+        signature,
         customer_email: params.customer_email,
-        payment_method: {
-          installments: params.installments_user,
-        },
-        payment_source_id: payment_source_id,
+        payment_method: { installments: params.installments_user },
+        payment_source_id,
         redirect_url: 'https://tu-dominio.com/pago/resultado',
         reference: params.reference,
         expiration_time: params.expiration_time,
         customer_data: params.customer_data,
       };
 
-      const transactionResponse = await axios.post(
-        transactionUrl,
-        transactionData,
-        { headers }
-      );
-
+      const transactionResponse = await axios.post(transactionUrl, transactionData, { headers });
       console.log('✅ Transacción creada en Wompi:', transactionResponse.data);
 
       return {
         status: 'success',
-        payment_source_id: payment_source_id,
+        payment_source_id,
         wompi_transaction_id: transactionResponse.data.data.id,
         reference: params.reference,
         message: 'Transacción iniciada exitosamente',
@@ -314,16 +286,11 @@ export class TransactionService {
         console.error('❌ Wompi Error:', error.response?.data);
         return {
           status: 'failed',
-          message:
-            error.response?.data?.error?.reason || 'Error desconocido de Wompi',
+          message: error.response?.data?.error?.reason || 'Error desconocido de Wompi',
         };
       }
-
       console.error('❌ Error desconocido:', error);
-      return {
-        status: 'failed',
-        message: 'Error al procesar el pago',
-      };
+      return { status: 'failed', message: 'Error al procesar el pago' };
     }
   }
 
@@ -336,22 +303,58 @@ export class TransactionService {
 
   /**
    * Obtener transacción por ID
+   * Verifica que el usuario sea el dueño o sea PAYPAC
    */
   async getTransactionById(id: number, userId: number, userRole: string) {
     const transaction = await transactionRepo.findById(id);
+    if (!transaction) throw new Error('Transacción no encontrada');
 
-    if (!transaction) {
-      throw new Error('Transacción no encontrada');
-    }
-
-    // Verificar permisos
-    const isOwner = transaction.user_id === userId;
+    const isOwner  = transaction.user_id === userId;
     const isPaypac = userRole === 'PAYPAC';
 
-    if (!isOwner && !isPaypac) {
-      throw new Error('No tienes permisos para ver esta transacción');
-    }
+    if (!isOwner && !isPaypac) throw new Error('No tienes permisos para ver esta transacción');
 
     return transaction;
+  }
+
+  /**
+   * Obtener transacción por reference (num_invoice)
+   * Solo PAYPAC
+   */
+  async getTransactionByReference(reference: string, userRole: string) {
+    if (userRole !== 'PAYPAC') throw new Error('Solo PAYPAC puede buscar por referencia');
+
+    const transaction = await transactionRepo.findByReference(reference);
+    if (!transaction) throw new Error(`Transacción con referencia "${reference}" no encontrada`);
+
+    return transaction;
+  }
+
+  /**
+   * Obtener transacción por invoice_id
+   * Solo PAYPAC
+   */
+  async getTransactionByInvoiceId(invoiceId: string, userRole: string) {
+    if (userRole !== 'PAYPAC') throw new Error('Solo PAYPAC puede buscar por invoice');
+
+    const transaction = await transactionRepo.findByInvoiceId(invoiceId);
+    if (!transaction) throw new Error(`Transacción con invoice "${invoiceId}" no encontrada`);
+
+    return transaction;
+  }
+
+  /**
+   * Obtener todas las transacciones por status
+   * Solo PAYPAC — vista administrativa
+   */
+  async getTransactionsByStatus(status: string, userRole: string) {
+    if (userRole !== 'PAYPAC') throw new Error('Solo PAYPAC puede filtrar por status');
+
+    const validStatuses = ['APPROVED', 'PENDING', 'DECLINED', 'VOIDED', 'ERROR'];
+    if (!validStatuses.includes(status)) {
+      throw new Error(`Status inválido. Valores permitidos: ${validStatuses.join(', ')}`);
+    }
+
+    return transactionRepo.findByStatus(status);
   }
 }

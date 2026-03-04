@@ -69,20 +69,28 @@ export class TransactionRepository {
    * Actualizar status de la transacción
    */
   async updateStatus(
-    id: number,
-    status: string,
-    statusMessage: string,
-    finalizedAt?: Date
-  ): Promise<Transactions> {
-    return prisma.transactions.update({
-      where: { id },
-      data: {
-        status,
-        status_message: statusMessage,
-        finalized_at: finalizedAt || new Date(),
-      },
-    });
+  id: number,
+  status: string,
+  statusMessage: string,
+  finalizedAt?: Date,
+  extra?: {
+    payment_method?: Prisma.InputJsonValue;
+    customer_data?: string;
+    meta?: Prisma.InputJsonValue;
   }
+): Promise<Transactions> {
+  return prisma.transactions.update({
+    where: { id },
+    data: {
+      status,
+      status_message: statusMessage,
+      finalized_at: finalizedAt ?? new Date(),
+      ...(extra?.payment_method !== undefined && { payment_method: extra.payment_method }),
+      ...(extra?.customer_data  !== undefined && { customer_data:  extra.customer_data  }),
+      ...(extra?.meta           !== undefined && { meta:           extra.meta           }),
+    },
+  });
+}
 
   /**
    * Verificar si existe una transacción
