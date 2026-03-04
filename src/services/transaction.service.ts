@@ -331,6 +331,15 @@ export class TransactionService {
   }
 
   /**
+   * Obtener todas las transacciones
+   * solo PAYPAC
+   */
+  async getAllTransactions(userRole: string) {
+  if (userRole !== 'PAYPAC') throw new Error('Solo PAYPAC puede ver todas las transacciones');
+  return transactionRepo.findAll();
+}
+
+  /**
    * Obtener transacción por invoice_id
    * Solo PAYPAC
    */

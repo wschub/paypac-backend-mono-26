@@ -45,6 +45,15 @@ export class TransactionRepository {
       orderBy: { created_at: 'desc' },
     });
   }
+  
+  /**
+   * Todas las transacciones
+   */
+  async findAll(): Promise<Transactions[]> {
+  return prisma.transactions.findMany({
+    orderBy: { created_at: 'desc' },
+  });
+}
 
   /**
    * Buscar transacción por invoice_id

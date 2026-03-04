@@ -7,6 +7,7 @@ import {
   getTransactionByReference,
   getTransactionByInvoiceId,
   getTransactionsByStatus,
+  getAllTransactions
 } from '../controllers/transaction.controller';
 import { authenticate } from '../middlewares/auth.middleware';
 import { authorizeRoles } from '../middlewares/role.middleware';
@@ -92,6 +93,20 @@ router.get(
   validateRequest(getTransactionByInvoiceIdSchema),
   getTransactionByInvoiceId
 );
+
+/**
+ * GET /api/transactions
+ * Obtener todas las transacciones — vista administrativa
+ * Acceso: solo PAYPAC
+ * ⚠️ Antes de /:id
+ */
+router.get(
+  '/',
+  authenticate,
+  authorizeRoles('PAYPAC'),
+  getAllTransactions
+);
+
 
 /**
  * GET /api/transactions/by-status/:status

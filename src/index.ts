@@ -7,6 +7,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 
+
 import authRoutes from './routes/auth.routes';
 import userRoutes from './routes/user.routes';
 import categoryRoutes from './routes/category.routes';

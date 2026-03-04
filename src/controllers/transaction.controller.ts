@@ -146,6 +146,25 @@ export const getTransactionByInvoiceId = async (req: Request, res: Response): Pr
 };
 
 /**
+ * GET / solo PAYPAC (vista administrativa)
+ * TODAS LAS TRANSACCIONES
+ */
+export const getAllTransactions = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userRole     = req.user!.role;
+    const transactions = await transactionService.getAllTransactions(userRole);
+
+    res.status(200).json({
+      success: true,
+      count: transactions.length,
+      transactions,
+    });
+  } catch (err: any) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+};
+
+/**
  * GET /api/transactions/by-status/:status
  * Listar transacciones por status — solo PAYPAC (vista administrativa)
  */
