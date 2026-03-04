@@ -155,10 +155,3 @@ export const getTransactionById = async (req: Request, res: Response): Promise<v
   }
 };
 
-/**
- * ❌ ELIMINADOS (ya no se usan):
- * - initTransaction
- * - makePayment
- * - createTransaction (ahora está en el service)
- * - sendTransaction (ahora está en el service)
- */

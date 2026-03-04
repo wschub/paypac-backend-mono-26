@@ -1,5 +1,6 @@
 import { Router } from 'express';
-import { wompiWebhook } from '../controllers/wompi.controller';
+//import { wompiWebhook } from '../controllers/wompi.controller';
+import { wompiWebhook } from '../controllers/webhook.controller';
 
 const router = Router();
 
