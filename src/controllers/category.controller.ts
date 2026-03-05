@@ -3,6 +3,9 @@ import { CategoryService } from '../services/category.service';
 
 const categoryService = new CategoryService();
 
+
+
+
 /**
  * POST /api/categories
  * Crear una nueva categoría

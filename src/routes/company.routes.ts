@@ -9,6 +9,8 @@ import {
   approveCompany,
   updateCompanyStatus,
   deleteCompany,
+  getCompanyFollowers,
+  getMyCompany,
 } from '../controllers/company.controller';
 import { authenticate } from '../middlewares/auth.middleware';
 import { authorizeRoles } from '../middlewares/role.middleware';
@@ -25,6 +27,10 @@ import {
 const router = Router();
 
 const ALL_ROLES = ['PAYPAC', 'ORGANIZER', 'STAFF', 'STAFF_PROMOTER', 'PROMOTER', 'CUSTOMER'];
+
+ 
+
+
 
 /**
  * GET /api/companies
@@ -67,6 +73,19 @@ router.get(
 );
 
 /**
+ * GET /api/companies/my-profile
+ * Retorna la empresa del ORGANIZER autenticado
+ * Acceso: solo ORGANIZER
+ * ⚠️ Debe ir ANTES de /:id
+ */
+router.get(
+  '/my-profile',
+  authenticate,
+  authorizeRoles('ORGANIZER'),
+  getMyCompany
+);
+
+/**
  * GET /api/companies/:id
  * Empresa por ID
  * Acceso: todos los roles autenticados
@@ -77,6 +96,17 @@ router.get(
   authorizeRoles(...ALL_ROLES),
   validateRequest(getCompanyByIdSchema),
   getCompanyById
+);
+
+/*
+ PROVISIONAL
+*/
+router.get(
+  '/:id/followers',
+  authenticate,
+  authorizeRoles(...ALL_ROLES),
+  validateRequest(getCompanyByIdSchema), // reutiliza el mismo schema, valida :id
+  getCompanyFollowers
 );
 
 /**

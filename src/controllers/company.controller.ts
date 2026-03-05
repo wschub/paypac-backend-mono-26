@@ -4,6 +4,19 @@ import { CompanyService } from '../services/company.service';
 const companyService = new CompanyService();
 
 /**
+ * PROVISIONAL
+ */
+export const getCompanyFollowers = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const companyId = Number(req.params.id);
+    const result    = await companyService.getCompanyFollowers(companyId);
+    res.status(200).json({ success: true, data: result });
+  } catch (err: any) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+};
+
+/**
  * POST /api/companies
  * Crear empresa
  * Requiere: PAYPAC | ORGANIZER
@@ -114,6 +127,29 @@ export const getMyCompanies = async (req: Request, res: Response): Promise<void>
     res.status(400).json({ message: err.message });
   }
 };
+
+/**
+ * GET MY COMPANY
+ * 
+ */
+export const getMyCompany = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userRole  = req.user!.role;
+    const companyId = req.user!.company_id;
+
+    if (!companyId) {
+      res.status(400).json({ success: false, message: 'Tu cuenta no tiene una empresa asociada' });
+      return;
+    }
+
+    const company = await companyService.getMyCompany(companyId, userRole);
+
+    res.status(200).json({ success: true, data: company });
+  } catch (err: any) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+};
+
 
 /**
  * GET /api/companies/:id

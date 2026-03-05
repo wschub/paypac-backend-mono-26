@@ -8,7 +8,28 @@ const countriesRepo = new CountriesRepository();
 const statesRepo = new StatesRepository();
 const citiesRepo = new CitiesRepository();
 
+
 export class CompanyService {
+
+
+  /**
+ * PROVISIONAL
+ */
+async getCompanyFollowers(companyId: number) {
+  const company = await companyRepo.findById(companyId);
+  if (!company) throw new Error('Empresa no encontrada');
+
+  // TODO: reemplazar con queries reales cuando exista la entidad CompanyFollower
+  return {
+    total_followers:    1234,
+    growth_percentage:  15.5,
+    new_this_month:     48,
+    last_follower_date: '2025-03-01',
+    trending:           'up',
+  };
+}
+
+
   /**
    * Crear empresa
    * - PAYPAC: puede crear cualquier empresa
@@ -248,6 +269,20 @@ export class CompanyService {
 
     return companyRepo.getStats(filters);
   }
+
+  /*
+   PROFILE-COMPANY
+  */
+  async getMyCompany(companyId: number, userRole: string) {
+  if (userRole !== 'ORGANIZER') throw new Error('Solo ORGANIZER puede acceder a su perfil de empresa');
+
+  if (!companyId) throw new Error('Tu cuenta no tiene una empresa asociada');
+
+  const company = await companyRepo.findById(companyId);
+  if (!company) throw new Error('Empresa no encontrada');
+
+  return company;
+}
 
   // ─── Helpers ────────────────────────────────────────────────────────────────
 
