@@ -7,6 +7,7 @@ import {
   deleteUser,
   getUsersByRole,
   getUserStats,
+  searchUsers,
 } from '../controllers/user.controller';
 import { authenticate } from '../middlewares/auth.middleware';
 import { authorizeRoles } from '../middlewares/role.middleware';
@@ -16,6 +17,7 @@ import {
   getUserByIdSchema,
   getUsersSchema,
   getUsersByRoleSchema,
+  searchUsersSchema
 } from '../validators/user.validation';
 
 const router = Router();
@@ -59,6 +61,21 @@ router.get(
   authorizeRoles('PAYPAC'),
   getUserStats
 );
+
+/**
+ * GET /api/users/search?q=<email_o_telefono>&role=STAFF,STAFF_PROMOTER
+ * Buscar usuarios por email o teléfono con filtro opcional de roles
+ * Acceso: PAYPAC y ORGANIZER
+ * ⚠️ Antes de /:id
+ */
+router.get(
+  '/search',
+  authenticate,
+  authorizeRoles('PAYPAC', 'ORGANIZER'),
+  validateRequest(searchUsersSchema),
+  searchUsers
+);
+
 
 /**
  * GET /api/users/role/:role

@@ -116,4 +116,32 @@ export class UserRepository {
       },
     });
   }
+
+  /**
+   * Buscar si existe un usuario para asignarlo como STAFF
+   */
+  async search(q: string, roles?: $Enums.ROLES[]) {
+  return prisma.user.findMany({
+    where: {
+      AND: [
+        {
+          OR: [
+            { email:        { contains: q, mode: 'insensitive' } },
+            { phone_number: { contains: q, mode: 'insensitive' } },
+          ],
+        },
+        ...(roles && roles.length > 0 ? [{ role: { in: roles } }] : []),
+      ],
+    },
+    select: {
+      id:           true,
+      name:         true,
+      last_name:    true,
+      email:        true,
+      phone_number: true,
+      role:         true,
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+}
 }

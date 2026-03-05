@@ -167,4 +167,23 @@ export const getUserStats = async (req: Request, res: Response): Promise<void> =
     console.error('❌ Error en getUserStats:', err);
     res.status(403).json({ error: err.message });
   }
+
+};
+
+ /**
+   * Buscar si existe un usuario para asignarlo como STAFF
+   */
+  export const searchUsers = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const q     = req.query.q as string;
+    const roles = req.query.role
+      ? (req.query.role as string).split(',').map((r) => r.trim())
+      : undefined;
+
+    const result = await userService.searchUsers(q, roles);
+
+    res.status(200).json({ success: true, ...result });
+  } catch (err: any) {
+    res.status(400).json({ success: false, message: err.message });
+  }
 };

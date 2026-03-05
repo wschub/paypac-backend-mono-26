@@ -160,7 +160,7 @@ export class TicketService {
    */
   async getMyTickets(userId: number) {
     return ticketRepo.findByCustomer(userId);
-  }
+ }
 
   /**
    * Obtener ticket por ID

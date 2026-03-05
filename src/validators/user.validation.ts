@@ -68,3 +68,20 @@ export const getUsersByRoleSchema = z.object({
     role: z.nativeEnum(ROLES), // ✅ SIN errorMap
   }),
 });
+
+
+ /**
+   * Buscar si existe un usuario para asignarlo como STAFF
+   */
+export const searchUsersSchema = z.object({
+  query: z.object({
+    q: z.string().min(3, 'El término de búsqueda debe tener al menos 3 caracteres'),
+    role: z
+      .string()
+      .regex(
+        /^(PAYPAC|ORGANIZER|STAFF|STAFF_PROMOTER|PROMOTER|CUSTOMER)(,(PAYPAC|ORGANIZER|STAFF|STAFF_PROMOTER|PROMOTER|CUSTOMER))*$/,
+        'Roles inválidos'
+      )
+      .optional(),
+  }),
+});

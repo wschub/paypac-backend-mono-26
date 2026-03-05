@@ -1,5 +1,6 @@
 import { UserRepository } from '../repositories/user.repository';
-import { Prisma, ROLES } from '@prisma/client';
+import { Prisma, ROLES, $Enums } from '@prisma/client';
+
 
 const userRepo = new UserRepository();
 
@@ -145,4 +146,19 @@ export class UserService {
 
     return stats;
   }
+
+  /**
+   * Buscar si existe un usuario para asignarlo como STAFF
+   */
+  async searchUsers(q: string, roles?: string[]) {
+  if (!q || q.trim().length < 3)
+    throw new Error('El término de búsqueda debe tener al menos 3 caracteres');
+
+  const parsedRoles = roles?.map((r) => r as $Enums.ROLES);
+
+  const users = await userRepo.search(q.trim(), parsedRoles);
+
+  return { users, total: users.length };
+}
+
 }

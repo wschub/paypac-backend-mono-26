@@ -24,10 +24,7 @@ import {
 const router = Router();
 
 
-/**
- * 🧪 POST /api/tickets/create-test
- * Crear tickets de prueba (SOLO DESARROLLO)
- */
+
 
 
 
