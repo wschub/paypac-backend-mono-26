@@ -12,12 +12,12 @@ const staffAssignmentService = new EventStaffAssignmentService();
 export const assignStaffToEvent = async (req: Request, res: Response): Promise<void> => {
   try {
     const eventId = paramToInt(req.params.eventId);
-    const { staff_user_id, role_type } = req.body;
+    const { user_id, role_type } = req.body;
     const assignedBy = req.user!;
 
     const result = await staffAssignmentService.assignStaffToEvent(
       eventId,
-      staff_user_id,
+      user_id,
       role_type,
       assignedBy.id,
       assignedBy.role

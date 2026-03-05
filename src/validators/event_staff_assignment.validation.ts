@@ -8,7 +8,7 @@ export const assignStaffSchema = z.object({
     eventId: z.string().regex(/^\d+$/, 'El eventId debe ser numérico'),
   }),
   body: z.object({
-    staff_user_id: z.number().int().positive('El ID del staff es requerido'),
+    user_id: z.number({ message: 'El user_id es requerido y debe ser un número' }).int().positive(),
     role_type: z.enum(['STAFF', 'STAFF_PROMOTER'], {
       message: 'El tipo de rol debe ser STAFF o STAFF_PROMOTER',
     }),
