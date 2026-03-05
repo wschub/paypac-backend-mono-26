@@ -81,7 +81,7 @@ router.get(
 router.get(
   '/my-profile',
   authenticate,
-  authorizeRoles('ORGANIZER'),
+  authorizeRoles('ORGANIZER','PAYPAC'),
   getMyCompany
 );
 
