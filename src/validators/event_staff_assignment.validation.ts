@@ -64,3 +64,26 @@ export const getStaffStatsSchema = z.object({
     eventId: z.string().regex(/^\d+$/, 'El eventId debe ser numérico'),
   }),
 });
+
+//enviar invitacion 
+export const inviteStaffSchema = z.object({
+  params: z.object({
+    eventId: z.string().regex(/^\d+$/, 'El eventId debe ser numérico'),
+  }),
+  query: z.object({
+    invite: z.literal('true'),
+  }),
+  body: z.object({
+    role_type: z.enum(['STAFF', 'STAFF_PROMOTER'], {
+      error: 'role_type debe ser STAFF o STAFF_PROMOTER',
+    }),
+    door_identifier: z.string().optional(),
+    email_or_phone: z
+      .string()
+      .min(5, 'Email o teléfono requerido')
+      .refine(
+        (val) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val) || /^\+?[\d\s\-]{7,15}$/.test(val),
+        { message: 'Debe ser un email o teléfono válido' }
+      ),
+  }),
+});

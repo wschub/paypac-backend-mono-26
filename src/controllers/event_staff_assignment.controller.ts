@@ -198,3 +198,33 @@ export const getEventStaffStats = async (req: Request, res: Response): Promise<v
     });
   }
 };
+
+/**
+ * POST /api/events/:eventId/staff?invite=true
+ * Invitar staff que aún no existe como usuario
+ * Requiere: ORGANIZER o PAYPAC
+ */
+export const inviteStaffToEvent = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const eventId        = paramToInt(req.params.eventId);
+    const assignedBy     = req.user!;
+    const { role_type, door_identifier, email_or_phone } = req.body;
+
+    const result = await staffAssignmentService.inviteStaffToEvent(
+      eventId,
+      role_type,
+      door_identifier,
+      email_or_phone,
+      assignedBy.id,
+      assignedBy.role
+    );
+
+    res.status(201).json({
+      success: true,
+      message: result.message,
+      assignment: result.assignment,
+    });
+  } catch (err: any) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+};

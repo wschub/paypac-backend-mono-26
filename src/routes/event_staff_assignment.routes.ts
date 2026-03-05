@@ -7,6 +7,7 @@ import {
   checkInStaff,
   checkOutStaff,
   getEventStaffStats,
+  inviteStaffToEvent,
 } from '../controllers/event_staff_assignment.controller';
 import { authenticate } from '../middlewares/auth.middleware';
 import { authorizeRoles } from '../middlewares/role.middleware';
@@ -18,6 +19,7 @@ import {
   checkInStaffSchema,
   checkOutStaffSchema,
   getStaffStatsSchema,
+  inviteStaffSchema,
 } from '../validators/event_staff_assignment.validation';
 
 const router = Router();
@@ -38,16 +40,26 @@ router.get(
 
 /**
  * POST /api/events/:eventId/staff
- * Asignar un STAFF a un evento
- * Requiere: ORGANIZER (dueño) o PAYPAC
+ * Asignar staff existente o invitar uno nuevo (?invite=true)
+ * Requiere: ORGANIZER o PAYPAC
  */
+/** */
 router.post(
   '/:eventId/staff',
   authenticate,
   authorizeRoles('ORGANIZER', 'PAYPAC'),
-  validateRequest(assignStaffSchema),
-  assignStaffToEvent
+  (req, res, next) => {
+    const schema = req.query.invite === 'true' ? inviteStaffSchema : assignStaffSchema;
+    validateRequest(schema)(req, res, next);
+  },
+  (req, res) => {
+    if (req.query.invite === 'true') {
+      return inviteStaffToEvent(req, res);
+    }
+    return assignStaffToEvent(req, res);
+  }
 );
+
 
 /**
  * GET /api/events/:eventId/staff
@@ -113,5 +125,8 @@ router.delete(
   validateRequest(removeStaffSchema),
   removeStaffFromEvent
 );
+
+
+
 
 export default router;

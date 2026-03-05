@@ -239,4 +239,61 @@ export class EventStaffAssignmentService {
       },
     };
   }
+
+ async inviteStaffToEvent(
+  eventId: number,
+  roleType: 'STAFF' | 'STAFF_PROMOTER',
+  doorIdentifier: string | undefined,
+  emailOrPhone: string,
+  assignedByUserId: number,
+  assignedByUserRole: string
+) {
+  // 1. Verificar que el evento existe
+  const event = await eventRepo.findById(eventId);
+  if (!event) throw new Error('Evento no encontrado');
+
+  // 2. Verificar permisos
+  const isOwner  = event.organizer_id === assignedByUserId;
+  const isPaypac = assignedByUserRole === 'PAYPAC';
+  if (!isOwner && !isPaypac)
+    throw new Error('Solo el organizador del evento o PAYPAC pueden invitar staff');
+
+  // 3. Validar que el usuario NO existe — es el propósito de invite=true
+  const existingByEmail = await userRepo.findByEmail(emailOrPhone);
+  const existingByPhone = await userRepo.search(emailOrPhone);
+
+  if (existingByEmail || existingByPhone.length > 0)
+    throw new Error(
+      'El usuario ya existe en el sistema. Usa el flujo normal de asignación sin invite=true'
+    );
+
+  // 4. Crear asignación temporal con user_id = assigned_by (organizador)
+  //    hasta que el invitado acepte y creemos su cuenta
+  const assignment = await staffAssignmentRepo.create({
+    event_id:         eventId,
+    user_id:          assignedByUserId, // temporal hasta aceptación
+    role_type:        roleType,
+    assigned_by:      assignedByUserId,
+    door_identifier:  doorIdentifier,
+    invited_contact:  emailOrPhone,     // requiere campo en el modelo
+    invitation_pending: true,           // requiere campo en el modelo
+  });
+
+  // 5. Enviar correo/SMS de invitación
+  // TODO: implementar con Brevo
+  // await emailService.sendStaffInvitation({
+  //   to: emailOrPhone,
+  //   eventName: event.name,
+  //   eventDate: event.date_event,
+  //   role: roleType,
+  //   invitedBy: assignedByUserId,
+  // });
+  console.log(`📧 Invitación pendiente de envío a: ${emailOrPhone} para evento: ${event.name}`);
+
+  return {
+    assignment,
+    message: `Invitación enviada a ${emailOrPhone}. El staff quedará activo una vez acepte.`,
+  };
+}
+
 }

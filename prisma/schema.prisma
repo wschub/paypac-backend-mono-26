@@ -361,6 +361,8 @@ model EventStaffAssignment {
   longitude     String? // Long donde está el staff
   checked_in    Boolean   @default(false) // ¿Se "logeó" en el evento?
   checked_in_at DateTime? // Cuándo se logeó
+  invited_contact String? // email o teléfono del invitado pendiente de aceptar
+invitation_pending Boolean @default(false) // true hasta que acepte
 
 
   assigned_at DateTime @default(now())
