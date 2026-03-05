@@ -38,6 +38,7 @@ router.get(
   getMyAssignedEvents
 );
 
+
 /**
  * POST /api/events/:eventId/staff
  * Asignar staff existente o invitar uno nuevo (?invite=true)
@@ -60,6 +61,18 @@ router.post(
   }
 );
 
+/**
+ * POST /api/events/:eventId/staff
+ * Asignar un STAFF a un evento
+ * Requiere: ORGANIZER (dueño) o PAYPAC
+ */
+router.post(
+  '/:eventId/staff',
+  authenticate,
+  authorizeRoles('ORGANIZER', 'PAYPAC'),
+  validateRequest(assignStaffSchema),
+  assignStaffToEvent
+);
 
 /**
  * GET /api/events/:eventId/staff
