@@ -51,6 +51,10 @@ import webhookRoutes from './routes/webhook.routes';
 import fcmTokenRoutes from './routes/fcm-token.routes';
 import { validateOnurixConfig } from './config/onurix';
 
+//upload files
+import uploadRoutes from "./routes/upload.routes";
+
+
 // Validar solo si las credenciales están configuradas
 try {
   validateOnurixConfig();
@@ -182,6 +186,9 @@ app.use('/api/countries', countriesRoutes);
 app.use('/api/webhooks', webhookRoutes); // Sin autenticación
 // Registrar rutas de FCM token
 app.use('/api/fcm-token', fcmTokenRoutes);
+
+//files 
+app.use("/api/upload", uploadRoutes);
 
 
 // Iniciar CRON jobs
