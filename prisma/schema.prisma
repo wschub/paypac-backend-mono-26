@@ -391,6 +391,7 @@ enum EVENT_STATUS {
   FINALIZED
 }
 
+
 model EventFavorites {
   id           Int      @id @default(autoincrement())
   user_id      Int // Usuario que marca como favorito

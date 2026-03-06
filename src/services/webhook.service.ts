@@ -2,7 +2,7 @@ import { prisma } from '../config/db';
 import { InvoiceService } from '../services/invoice.service';
 import { TransactionRepository } from '../repositories/transaction.repository';
 import { PushNotificationService } from '../services/push-notification.service';
-import { getIO } from '../sockets/socket.manager';
+import { io } from '../index';
 
 const invoiceService   = new InvoiceService();
 const transactionRepo  = new TransactionRepository();
@@ -149,7 +149,7 @@ export class WebhookService {
       console.log('   Nuevo Transaction ID:', transactionRecord.id, '\n');
     }
 
-    const io = getIO();
+    //const io = getIO();
 
     // ============================================
     // 3️⃣ NOTIFICAR VÍA SOCKET.IO - TRANSACTION UPDATED
