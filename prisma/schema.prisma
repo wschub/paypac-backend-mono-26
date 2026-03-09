@@ -70,9 +70,11 @@ model User {
 
   staffAssignments EventStaffAssignment[] @relation("StaffAssignments")
   staffAssigned    EventStaffAssignment[] @relation("StaffAssigner")
-  
+
   // ... campos existentes
   notifications NotificationMessageQueue[]
+  transactions  Transactions[]
+  tickets       Ticket[]
 
 }
 
@@ -352,6 +354,7 @@ model Event {
   //RElaciones Places and seats numbered_place_id
   numbered_place    EventPlaces?      @relation(fields: [numbered_place_id], references: [id])
   seatStatuses      EventSeatStatus[] // ← agregar relación inversa
+  tickets           Ticket[]
 }
 
 model EventStaffAssignment {
@@ -689,6 +692,11 @@ model Invoice {
   total_ticket_regular Int // Total del ticket sin descuento
   total                Int //Total tckets pagado con o sin dcto
   status               InvoiceStatus
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+
+  invoiceTickets InvoiceTickets[]
+  transactions   Transactions[]
 }
 
 enum InvoiceStatus {
@@ -717,6 +725,10 @@ model InvoiceTickets {
   total_ticket_paid    Int //Total tckets pagado con o sin dcto
   purchase_date        DateTime
   status_item          Int      @default(0) // 0: Pendiente, 1: Expedido (WHEN INVOICE IS PAID), 2: Cancelado
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  invoice Invoice @relation(fields: [invoice_id], references: [id])
 }
 
 //Ticket
@@ -751,6 +763,9 @@ model Ticket {
   created_at               DateTime     @default(now())
   updated_at               DateTime     @updatedAt
   used_at                  DateTime? // Nullable, si es null, no se ha usado
+
+  event    Event @relation(fields: [event_id], references: [id])
+  customer User  @relation(fields: [customer_id], references: [id])
 }
 
 enum TicketStatus {
@@ -804,7 +819,7 @@ model Transactions {
   id                  Int      @id @default(autoincrement())
   user_id             Int
   user_uid            String
-  invoice_id          String
+  invoice_id          Int?
   created_at          DateTime
   finalized_at        DateTime
   amount_in_cents     Int
@@ -825,6 +840,9 @@ model Transactions {
   taxes               String[]
   tip_in_cents        String
   meta                Json
+
+  user    User     @relation(fields: [user_id], references: [id])
+  invoice Invoice? @relation(fields: [invoice_id], references: [id])
 }
 
 /*
