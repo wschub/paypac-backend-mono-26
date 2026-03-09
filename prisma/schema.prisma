@@ -301,7 +301,7 @@ model Event {
   description       String        @default("")
   image             String        @default("")
   cover             String        @default("")
-  date_event        DateTime      @default("") //quite now
+  date_event        DateTime      @default(now())
   place_address     String        @default("")
   latitude          String        @default("")
   longitude         String        @default("")
