@@ -12,11 +12,14 @@ Ticket + TicketTransaction (boletos y transferencias)
 Evento:
 Fecha-hora de terminación evento
 FEcha-hora de terminación ventas (última etapa).
+
 Fecha-inicio check-in 
 Fecha-fin check-in 
 porcentaje_comisio
 -Checklist aprobar evento, sino se envia correo con faltantes:
 Notificación Aprobación/Scheduled evento *
+
+event: 2026-03-07T06:00:00.000Z,
 
 Privado: lista de invitados. (tickets)
 -Envia invitaciones, lista de invitados. comfirma asistencia.

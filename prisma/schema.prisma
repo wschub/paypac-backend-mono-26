@@ -301,7 +301,11 @@ model Event {
   description       String        @default("")
   image             String        @default("")
   cover             String        @default("")
-  date_event        DateTime      @default(now())
+  date_event        DateTime     
+  date_end_event    DateTime? // Fin del evento — opcional (conciertos pueden no tener hora fija)
+  date_checkin_open DateTime? // Desde cuándo se puede hacer check-in — opcional
+  date_checkin_close DateTime?
+  commission_percentage Float?
   place_address     String        @default("")
   latitude          String        @default("")
   longitude         String        @default("")
