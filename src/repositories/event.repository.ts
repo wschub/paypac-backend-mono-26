@@ -96,6 +96,7 @@ export class EventRepository {
         },
         rewardRules: true,
         discounts: true,
+        status:true,
       },
     });
   }

@@ -7,3 +7,46 @@ Invoice + InvoiceTickets (proceso de compra)
 Ticket + TicketTransaction (boletos y transferencias)
 
 ¿Cuál prefieres que desarrollemos ahora? 🎯
+=================================================================
+-- 
+Evento:
+Fecha-hora de terminación evento
+FEcha-hora de terminación ventas (última etapa).
+Fecha-inicio check-in 
+Fecha-fin check-in 
+porcentaje_comisio
+-Checklist aprobar evento, sino se envia correo con faltantes:
+Notificación Aprobación/Scheduled evento *
+
+Privado: lista de invitados. (tickets)
+-Envia invitaciones, lista de invitados. comfirma asistencia.
+-No se pueden transferir 
+-Se puede pedir regalos
+-Instrucciones adicionales entrada: Código vestimenta
+-Diseño personalizado 
+-puede pagar si/no al recibir y aceptra invitación 
+
+
+--- Ajustes Generales 
++Opciones default x evento: No. máximo de tickets x usuario/localidad
++Medios de apgo activos (GENERAL TODOS LOS CANALES)
+
+
+---
++Fecha-hora para hacer check-in -check-out
++Guardar Tickets sesión activa x staff -> nueva tabla. (tickets)
++Datos personales ticket 
+
+
+
++Checklist bloc de notas organziador (tabla)
+
+--MAILS : Add campo de envio mails, ahora o programado. estado   
++ Mail bienvenida registro
++ Mail Confirmación/Activación cuenta
++ Notificacióna Asignación como Staff 
++ Recordatorio el dia del evento 
++ Notificación Staff inicio sesión en el evento con ubicación (ORGANZIASER,STAFF)
++ Notificación Estado Transacción/compra 
++ Email Invoice confirma compara cuándo expide tickets 
++ Notificación Aprobación/Scheduled evento *
