@@ -75,6 +75,7 @@ model User {
   notifications NotificationMessageQueue[]
   tickets       Ticket[]
   transactions  Transactions[]
+  followedCompanies CompanyFollwers[]
 
 }
 
@@ -154,8 +155,26 @@ model Company {
   // ✅ Relaciones con User
   registeredBy User?  @relation("CompanyRegisteredBy", fields: [user_id_register], references: [id])
   users        User[] @relation("UserCompany") 
+    // ✅ Relación con seguidores
+  followers CompanyFollwers[]
 }
 
+model CompanyFollwers{
+  id           Int      @id @default(autoincrement())
+  company_id   Int
+  user_id     Int 
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // ✅ Relaciones
+  company Company @relation(fields: [company_id], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  // ✅ Un usuario no puede seguir la misma empresa dos veces
+  @@unique([company_id, user_id])
+  @@index([company_id])
+  @@index([user_id])
+}
 
 
 
@@ -312,7 +331,7 @@ model Event {
   latitude          String        @default("")
   longitude         String        @default("")
   currency          String        @default("COP")
-    category_id     Int?
+  category_id     Int?
   subcategory_id  Int?
   subgenre_id     Int?
   city              String        @default("")
@@ -356,6 +375,8 @@ model Event {
   seatStatuses      EventSeatStatus[] // ← agregar relación inversa
   tickets           Ticket[]
 }
+
+
 
 model EventStaffAssignment {
   id          Int    @id @default(autoincrement())
@@ -762,7 +783,9 @@ model Ticket {
   created_at               DateTime     @default(now())
   updated_at               DateTime     @updatedAt
   used_at                  DateTime? // Nullable, si es null, no se ha usado
-
+  read_by_user             Int?  //id customer
+  first_name_user          String? //informativo
+  last_name_user           String? //informativo
   event    Event @relation(fields: [event_id], references: [id])
   customer User  @relation(fields: [customer_id], references: [id])
 }
