@@ -44,6 +44,8 @@ import smsRoutes from './routes/sms.routes';
 import countriesRoutes from './routes/countries.routes';
 import statesRoutes from './routes/states.routes';
 import citiesRoutes from './routes/cities.routes';
+import companyFollowersRoutes from './routes/company_followers.routes';
+
 
 
 //webkook routes
@@ -156,6 +158,7 @@ app.use('/api/companies', companyRoutes);
 app.use('/api/countries', countriesRoutes);
 app.use('/api/states', statesRoutes);
 app.use('/api/cities', citiesRoutes);
+app.use('/api/companies', companyFollowersRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api', eventLocalitiesRoutes);
 app.use('/api', eventStagesRoutes);
