@@ -665,6 +665,205 @@ NOTIFICATION_ASSIGNING_EVENT: {
     `,
   },
 
+
+  INVOICE_STATUS: {
+  subject: 'Estado de tu transacción PayPac - ${vars.num_invoice}',
+  requiredVariables: [
+    'user_name',
+    'num_invoice',
+    'status',
+    'status_message',
+    'amount',
+    'payment_method_type',
+  ],
+  html: (vars) => `
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Estado de tu transacción - PayPac</title>
+  <!--[if mso]>
+  <noscript>
+    <xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml>
+  </noscript>
+  <![endif]-->
+</head>
+<body style="margin:0; padding:0; background-color:#f0f2f5; font-family: Arial, Helvetica, sans-serif;">
+
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"
+    style="background-color:#f0f2f5; min-height:100vh;">
+    <tr>
+      <td align="center" style="padding: 40px 16px;">
+
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"
+          style="max-width:520px; background-color:#ffffff; border-radius:14px;
+                 box-shadow:0 4px 20px rgba(0,0,0,0.08); overflow:hidden;">
+
+          <!-- Header with logo -->
+          <tr>
+            <td style="background-color:#ffffff; padding: 24px 30px; text-align:center;">
+              <img
+                src="https://fabritek.co/paypac/logos/logo_paypac.png"
+                alt="PayPac"
+                width="200"
+                style="display:inline-block; max-width:200px; height:auto;"
+              />
+            </td>
+          </tr>
+
+          <!-- Status banner — color cambia según status -->
+          <tr>
+            <td style="background-color:${
+              vars.status === 'APPROVED' ? '#f0fdf4' :
+              vars.status === 'PENDING'  ? '#fffbeb' :
+              vars.status === 'VOIDED'   ? '#f8fafc' : '#fef2f2'
+            }; padding:20px 32px; text-align:center;
+               border-top:1px solid ${
+                 vars.status === 'APPROVED' ? '#bbf7d0' :
+                 vars.status === 'PENDING'  ? '#fde68a' :
+                 vars.status === 'VOIDED'   ? '#e5e7eb' : '#fecaca'
+               };
+               border-bottom:1px solid ${
+                 vars.status === 'APPROVED' ? '#bbf7d0' :
+                 vars.status === 'PENDING'  ? '#fde68a' :
+                 vars.status === 'VOIDED'   ? '#e5e7eb' : '#fecaca'
+               };">
+              <p style="margin:0; font-size:32px; line-height:1;">${
+                vars.status === 'APPROVED' ? '✅' :
+                vars.status === 'PENDING'  ? '⏳' :
+                vars.status === 'VOIDED'   ? '↩️' : '❌'
+              }</p>
+              <p style="margin:8px 0 0 0; font-size:15px; font-weight:700; color:${
+                vars.status === 'APPROVED' ? '#15803d' :
+                vars.status === 'PENDING'  ? '#92400e' :
+                vars.status === 'VOIDED'   ? '#374151' : '#b91c1c'
+              };">
+                ${vars.status_message}
+              </p>
+            </td>
+          </tr>
+
+          <!-- Body -->
+          <tr>
+            <td style="padding: 32px 32px 28px 32px;">
+
+              <!-- Greeting -->
+              <h2 style="margin:0 0 8px 0; font-size:22px; color:#111827; font-weight:700;">
+                👋 Hola, ${vars.user_name}
+              </h2>
+
+              <!-- Divider -->
+              <div style="width:48px; height:4px; background-color:#0031FB; border-radius:2px; margin-bottom:24px;"></div>
+
+              <!-- Message -->
+              <p style="margin:0 0 24px 0; font-size:15px; line-height:1.7; color:#374151;">
+                A continuación encontrarás el detalle de tu transacción:
+              </p>
+
+              <!-- Transaction details -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"
+                style="background-color:#f8fafc; border-radius:10px; border:1px solid #e5e7eb;
+                       margin-bottom:28px;">
+
+                <!-- Invoice ref -->
+                <tr>
+                  <td style="padding:14px 18px; border-bottom:1px solid #e5e7eb;">
+                    <p style="margin:0 0 4px 0; font-size:11px; color:#9ca3af;
+                               text-transform:uppercase; letter-spacing:0.6px;">
+                      🧾 Referencia
+                    </p>
+                    <p style="margin:0; font-size:14px; color:#111827; font-weight:600;
+                               font-family:'Courier New', monospace;">
+                      ${vars.num_invoice}
+                    </p>
+                  </td>
+                </tr>
+
+                <!-- Status -->
+                <tr>
+                  <td style="padding:14px 18px; border-bottom:1px solid #e5e7eb;">
+                    <p style="margin:0 0 4px 0; font-size:11px; color:#9ca3af;
+                               text-transform:uppercase; letter-spacing:0.6px;">
+                      📊 Estado
+                    </p>
+                    <span style="display:inline-block; font-size:12px; font-weight:700;
+                                 letter-spacing:0.8px; text-transform:uppercase;
+                                 padding:4px 12px; border-radius:20px;
+                                 background-color:${
+                                   vars.status === 'APPROVED' ? '#dcfce7' :
+                                   vars.status === 'PENDING'  ? '#fef9c3' :
+                                   vars.status === 'VOIDED'   ? '#f1f5f9' : '#fee2e2'
+                                 };
+                                 color:${
+                                   vars.status === 'APPROVED' ? '#15803d' :
+                                   vars.status === 'PENDING'  ? '#854d0e' :
+                                   vars.status === 'VOIDED'   ? '#475569' : '#b91c1c'
+                                 };">
+                      ${vars.status}
+                    </span>
+                  </td>
+                </tr>
+
+                <!-- Amount -->
+                <tr>
+                  <td style="padding:14px 18px; border-bottom:1px solid #e5e7eb;">
+                    <p style="margin:0 0 4px 0; font-size:11px; color:#9ca3af;
+                               text-transform:uppercase; letter-spacing:0.6px;">
+                      💳 Total
+                    </p>
+                    <p style="margin:0; font-size:18px; color:#0031FB; font-weight:800;">
+                      $${vars.amount} COP
+                    </p>
+                  </td>
+                </tr>
+
+                <!-- Payment method -->
+                <tr>
+                  <td style="padding:14px 18px;">
+                    <p style="margin:0 0 4px 0; font-size:11px; color:#9ca3af;
+                               text-transform:uppercase; letter-spacing:0.6px;">
+                      🏦 Método de pago
+                    </p>
+                    <p style="margin:0; font-size:14px; color:#111827; font-weight:600;">
+                      ${vars.payment_method_type}
+                    </p>
+                  </td>
+                </tr>
+
+              </table>
+
+              <!-- Support note -->
+              <p style="margin:0; font-size:13px; color:#9ca3af; line-height:1.6; text-align:center;">
+                ¿Tienes preguntas sobre esta transacción? Escríbenos a<br/>
+                <a href="mailto:soporte@paypac.com.co" style="color:#0031FB;">soporte@paypac.com.co</a>
+              </p>
+
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background-color:#f8fafc; border-top:1px solid #e5e7eb;
+                       padding:18px 32px; text-align:center;">
+              <p style="margin:0; font-size:12px; color:#9ca3af; line-height:1.6;">
+                © ${new Date().getFullYear()} PayPac. Todos los derechos reservados.
+              </p>
+            </td>
+          </tr>
+
+        </table>
+
+      </td>
+    </tr>
+  </table>
+
+</body>
+</html>
+  `,
+},
+
+
 TICKET_PURCHASE: {
   subject: '¡Tu compra fue exitosa! - ${vars.event_name}',
   requiredVariables: ['user_name', 'event_name', 'tickets_qty', 'total_amount'],

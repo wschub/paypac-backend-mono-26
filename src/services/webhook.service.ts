@@ -2,16 +2,15 @@ import { prisma } from '../config/db';
 import { InvoiceService } from '../services/invoice.service';
 import { TransactionRepository } from '../repositories/transaction.repository';
 import { PushNotificationService } from '../services/push-notification.service';
+import { NotificationMessageQueueService } from '../services/notificationmessagequeue.service';
 import { io } from '../index';
 
-const invoiceService   = new InvoiceService();
-const transactionRepo  = new TransactionRepository();
-const pushService      = new PushNotificationService();
+const invoiceService  = new InvoiceService();
+const transactionRepo = new TransactionRepository();
+const pushService     = new PushNotificationService();
+const emailService    = new NotificationMessageQueueService(); // ← agregar
 
 export class WebhookService {
-  /**
-   * Manejar actualización de transacción enviada por Wompi
-   */
   async handleTransactionUpdated(transaction: any): Promise<void> {
     console.log('📨 PROCESANDO TRANSACTION.UPDATED');
     console.log('-'.repeat(80));
@@ -51,20 +50,10 @@ export class WebhookService {
 
     if (!invoice) {
       console.error(`❌ Invoice no encontrada para reference: ${reference}`);
-      console.error('   ⚠️ Posibles causas:');
-      console.error('   - El num_invoice no existe en la BD');
-      console.error('   - Hay un error en el reference enviado');
-      console.error('   - La transacción fue creada manualmente\n');
       return;
     }
 
-    console.log('✅ Invoice encontrada:');
-    console.log('   ID:', invoice.id);
-    console.log('   num_invoice:', invoice.num_invoice);
-    console.log('   User ID:', invoice.user_id);
-    console.log('   Event ID:', invoice.event_id);
-    console.log('   Status actual:', invoice.status);
-    console.log('   Total:', invoice.total, 'COP\n');
+    console.log('✅ Invoice encontrada:', invoice.id, '\n');
 
     // ============================================
     // 2️⃣ BUSCAR O CREAR TRANSACTION
@@ -74,14 +63,9 @@ export class WebhookService {
 
     if (transactionRecord) {
       console.log('✅ Transaction encontrada - Actualizando...');
-      console.log('   Transaction ID:', transactionRecord.id);
-      console.log('   Status anterior:', transactionRecord.status);
-      console.log('   Status nuevo:', status);
 
-      // Evitar duplicados
       if (transactionRecord.status === 'APPROVED' && status === 'APPROVED') {
         console.log('⚠️ WEBHOOK DUPLICADO DETECTADO - Ignorando...');
-        console.log('   Esta transacción ya fue procesada anteriormente\n');
         return;
       }
 
@@ -117,13 +101,13 @@ export class WebhookService {
         invoice_id: reference,
         created_at: created_at ? new Date(created_at) : new Date(),
         finalized_at: finalized_at ? new Date(finalized_at) : new Date(),
-        amount_in_cents: amount_in_cents,
-        reference: reference,
-        customer_email: customer_email,
+        amount_in_cents,
+        reference,
+        customer_email,
         currency: 'COP',
-        payment_method_type: payment_method_type,
+        payment_method_type,
         payment_method: payment_method || {},
-        status: status,
+        status,
         status_message: getStatusMessage(status),
         billing_data: JSON.stringify(customer_data || {}),
         shipping_address: '',
@@ -145,38 +129,29 @@ export class WebhookService {
         },
       });
 
-      console.log('✅ Transaction creada exitosamente');
-      console.log('   Nuevo Transaction ID:', transactionRecord.id, '\n');
+      console.log('✅ Transaction creada exitosamente:', transactionRecord.id, '\n');
     }
-
-    //const io = getIO();
 
     // ============================================
     // 3️⃣ NOTIFICAR VÍA SOCKET.IO - TRANSACTION UPDATED
     // ============================================
     console.log('🔔 PASO 3: Emitiendo notificación Socket.IO (transaction:updated)...');
-    console.log('   Room:', `user:${invoice.user_id}`);
-    console.log('   Event:', 'transaction:updated');
-    console.log('   Status:', status);
-
     io.to(`user:${invoice.user_id}`).emit('transaction:updated', {
       transaction_id: transactionRecord.id,
       invoice_id: invoice.id,
       num_invoice: invoice.num_invoice,
-      status: status,
+      status,
       status_message: getStatusMessage(status),
       amount: amount_in_cents / 100,
       timestamp: new Date().toISOString(),
     });
-
     console.log('✅ Notificación Socket.IO enviada\n');
 
     // ============================================
     // 4️⃣ PROCESAR SEGÚN EL STATUS
     // ============================================
     console.log('🎯 PASO 4: Procesando según status...');
-    console.log('   Status recibido:', status);
-    console.log('');
+    console.log('   Status recibido:', status, '\n');
 
     // ============================================
     // 🟢 STATUS: APPROVED
@@ -184,13 +159,6 @@ export class WebhookService {
     if (status === 'APPROVED') {
       console.log('🟢'.repeat(40));
       console.log('🟢 STATUS: APPROVED - PAGO EXITOSO');
-      console.log('🟢'.repeat(40));
-      console.log('📌 Acciones a ejecutar:');
-      console.log('   1. Crear tickets reales');
-      console.log('   2. Actualizar Invoice a PAID');
-      console.log('   3. Socket.IO: tickets:created');
-      console.log('   4. Email: Tickets con QR');
-      console.log('   5. Push: "¡Tus tickets están listos!"');
       console.log('🟢'.repeat(40) + '\n');
 
       const meta = (transactionRecord.meta as any) || {};
@@ -200,11 +168,7 @@ export class WebhookService {
         customer_data?.legal_id ||
         'UNKNOWN';
 
-      console.log('📱 Customer ID Phone:', customer_ID_phone);
-
       try {
-        console.log('🎫 Llamando a invoiceService.updateInvoiceStatus()...\n');
-
         await invoiceService.updateInvoiceStatus(
           invoice.id,
           transactionRecord.id,
@@ -212,17 +176,9 @@ export class WebhookService {
           customer_ID_phone
         );
 
-        console.log('\n' + '✅'.repeat(40));
-        console.log('✅ TICKETS CREADOS EXITOSAMENTE');
-        console.log('✅'.repeat(40));
-        console.log('   Invoice:', invoice.num_invoice);
-        console.log('   User ID:', invoice.user_id);
-        console.log('   Transaction ID:', transactionRecord.id);
-        console.log('   Total tickets:', invoice.num_items);
-        console.log('✅'.repeat(40) + '\n');
+        console.log('✅ TICKETS CREADOS EXITOSAMENTE\n');
 
         // Socket.IO: tickets:created
-        console.log('🔔 Emitiendo Socket.IO: tickets:created');
         io.to(`user:${invoice.user_id}`).emit('tickets:created', {
           invoice_id: invoice.id,
           num_invoice: invoice.num_invoice,
@@ -234,27 +190,60 @@ export class WebhookService {
         });
         console.log('✅ Socket.IO: tickets:created emitido\n');
 
-        // Email con Brevo (TODO)
-        console.log('📧 Email con Brevo:');
-        console.log('   ⏳ Pendiente de implementación');
-        console.log('   Email:', customer_email);
-        console.log('   Tickets:', invoice.num_items);
-        console.log('');
-
-        // Push notification
-        console.log('📱 Push notification (FCM):');
+        // Traer usuario para nombre + FCM
         const user = await prisma.user.findUnique({
           where: { id: invoice.user_id },
-          select: { fcm_token: true },
+          select: { name: true, last_name: true, fcm_token: true },
         });
 
-        if (user?.fcm_token) {
-          console.log('   ✅ Usuario tiene FCM token');
-          const event = await prisma.event.findUnique({
-            where: { id: invoice.event_id },
-            select: { name: true },
-          });
+        const userName = user ? `${user.name} ${user.last_name}` : 'Usuario';
 
+        // Traer evento para nombre
+        const event = await prisma.event.findUnique({
+          where: { id: invoice.event_id },
+          select: { name: true },
+        });
+
+        // 📧 Email INVOICE_STATUS (pago aprobado)
+        try {
+          await emailService.queueEmail({
+            userId: invoice.user_id,
+            email: customer_email,
+            templateCode: 'INVOICE_STATUS',
+            variables: {
+              user_name: userName,
+              num_invoice: invoice.num_invoice,
+              status,
+              status_message: getStatusMessage(status),
+              amount: (amount_in_cents / 100).toLocaleString('es-CO'),
+              payment_method_type,
+            },
+          });
+          console.log('📧 Email INVOICE_STATUS encolado');
+        } catch (e: any) {
+          console.error('⚠️ No se pudo encolar INVOICE_STATUS:', e.message);
+        }
+
+        // 📧 Email TICKET_PURCHASE (detalle de tickets)
+        try {
+          await emailService.queueEmail({
+            userId: invoice.user_id,
+            email: customer_email,
+            templateCode: 'TICKET_PURCHASE',
+            variables: {
+              user_name: userName,
+              event_name: event?.name || 'tu evento',
+              tickets_qty: invoice.num_items,
+              total_amount: (amount_in_cents / 100).toLocaleString('es-CO'),
+            },
+          });
+          console.log('📧 Email TICKET_PURCHASE encolado');
+        } catch (e: any) {
+          console.error('⚠️ No se pudo encolar TICKET_PURCHASE:', e.message);
+        }
+
+        // Push notification
+        if (user?.fcm_token) {
           const pushResult = await pushService.sendTicketsCreatedNotification(
             user.fcm_token,
             {
@@ -265,23 +254,13 @@ export class WebhookService {
               eventId: invoice.event_id,
             }
           );
-
-          if (pushResult.success) {
-            console.log('   ✅ Push notification enviada');
-          } else {
-            console.log('   ❌ Error:', pushResult.error);
-          }
+          console.log(pushResult.success ? '✅ Push enviada' : `❌ Push error: ${pushResult.error}`);
         } else {
-          console.log('   ⚠️ Usuario no tiene FCM token');
+          console.log('⚠️ Usuario no tiene FCM token');
         }
-        console.log('');
+
       } catch (error: any) {
-        console.error('\n' + '❌'.repeat(40));
-        console.error('❌ ERROR AL CREAR TICKETS');
-        console.error('❌'.repeat(40));
-        console.error('Error:', error.message);
-        console.error('Stack:', error.stack);
-        console.error('❌'.repeat(40) + '\n');
+        console.error('❌ ERROR AL CREAR TICKETS:', error.message);
 
         const meta = (transactionRecord.meta as any) || {};
         await transactionRepo.updateStatus(
@@ -306,54 +285,60 @@ export class WebhookService {
         });
       }
     }
+
     // ============================================
     // 🔴 STATUS: DECLINED
     // ============================================
     else if (status === 'DECLINED') {
-      console.log('🔴'.repeat(40));
-      console.log('🔴 STATUS: DECLINED - PAGO RECHAZADO');
-      console.log('🔴'.repeat(40));
-      console.log('📌 Acciones a ejecutar:');
-      console.log('   1. Actualizar Invoice a REJECTED');
-      console.log('   2. Socket.IO: payment:declined');
-      console.log('   3. Email: Pago rechazado + razón');
-      console.log('   4. Push: "Tu pago fue rechazado"');
-      console.log('🔴'.repeat(40) + '\n');
+      console.log('🔴 STATUS: DECLINED - PAGO RECHAZADO\n');
 
       await prisma.invoice.update({
         where: { id: invoice.id },
         data: { status: 'REJECTED' },
       });
-      console.log('✅ Invoice actualizada a REJECTED');
 
       io.to(`user:${invoice.user_id}`).emit('payment:declined', {
         invoice_id: invoice.id,
         num_invoice: invoice.num_invoice,
-        status: status,
+        status,
         message: getStatusMessage(status),
         timestamp: new Date().toISOString(),
       });
-      console.log('✅ Socket.IO: payment:declined emitido\n');
+
+      try {
+        const user = await prisma.user.findUnique({
+          where: { id: invoice.user_id },
+          select: { name: true, last_name: true },
+        });
+        await emailService.queueEmail({
+          userId: invoice.user_id,
+          email: customer_email,
+          templateCode: 'INVOICE_STATUS',
+          variables: {
+            user_name: user ? `${user.name} ${user.last_name}` : 'Usuario',
+            num_invoice: invoice.num_invoice,
+            status,
+            status_message: getStatusMessage(status),
+            amount: (amount_in_cents / 100).toLocaleString('es-CO'),
+            payment_method_type,
+          },
+        });
+        console.log('📧 Email INVOICE_STATUS (DECLINED) encolado');
+      } catch (e: any) {
+        console.error('⚠️ No se pudo encolar INVOICE_STATUS:', e.message);
+      }
     }
+
     // ============================================
     // ⚪ STATUS: VOIDED
     // ============================================
     else if (status === 'VOIDED') {
-      console.log('⚪'.repeat(40));
-      console.log('⚪ STATUS: VOIDED - PAGO ANULADO');
-      console.log('⚪'.repeat(40));
-      console.log('📌 Acciones a ejecutar:');
-      console.log('   1. Actualizar Invoice a CANCELED');
-      console.log('   2. Socket.IO: payment:voided');
-      console.log('   3. Email: Reembolso procesado');
-      console.log('   4. Push: "Tu pago fue anulado"');
-      console.log('⚪'.repeat(40) + '\n');
+      console.log('⚪ STATUS: VOIDED - PAGO ANULADO\n');
 
       await prisma.invoice.update({
         where: { id: invoice.id },
         data: { status: 'CANCELED' },
       });
-      console.log('✅ Invoice actualizada a CANCELED');
 
       io.to(`user:${invoice.user_id}`).emit('payment:voided', {
         invoice_id: invoice.id,
@@ -361,22 +346,36 @@ export class WebhookService {
         message: 'El pago ha sido anulado',
         timestamp: new Date().toISOString(),
       });
-      console.log('✅ Socket.IO: payment:voided emitido\n');
+
+      try {
+        const user = await prisma.user.findUnique({
+          where: { id: invoice.user_id },
+          select: { name: true, last_name: true },
+        });
+        await emailService.queueEmail({
+          userId: invoice.user_id,
+          email: customer_email,
+          templateCode: 'INVOICE_STATUS',
+          variables: {
+            user_name: user ? `${user.name} ${user.last_name}` : 'Usuario',
+            num_invoice: invoice.num_invoice,
+            status,
+            status_message: getStatusMessage(status),
+            amount: (amount_in_cents / 100).toLocaleString('es-CO'),
+            payment_method_type,
+          },
+        });
+        console.log('📧 Email INVOICE_STATUS (VOIDED) encolado');
+      } catch (e: any) {
+        console.error('⚠️ No se pudo encolar INVOICE_STATUS:', e.message);
+      }
     }
+
     // ============================================
-    // 🟡 STATUS: PENDING
+    // 🟡 STATUS: PENDING — sin email
     // ============================================
     else if (status === 'PENDING') {
-      console.log('🟡'.repeat(40));
-      console.log('🟡 STATUS: PENDING - PAGO EN PROCESO');
-      console.log('🟡'.repeat(40));
-      console.log('📌 Acciones a ejecutar:');
-      console.log('   1. Mantener Invoice en ISSUED');
-      console.log('   2. Socket.IO: payment:pending');
-      console.log('   3. Email: NO enviar');
-      console.log('   4. Push: NO enviar');
-      console.log('   5. Esperar siguiente webhook');
-      console.log('🟡'.repeat(40) + '\n');
+      console.log('🟡 STATUS: PENDING - esperando siguiente webhook\n');
 
       io.to(`user:${invoice.user_id}`).emit('payment:pending', {
         invoice_id: invoice.id,
@@ -384,54 +383,57 @@ export class WebhookService {
         message: 'El pago está siendo procesado',
         timestamp: new Date().toISOString(),
       });
-      console.log('✅ Socket.IO: payment:pending emitido\n');
     }
+
     // ============================================
     // ⚫ STATUS: ERROR
     // ============================================
     else if (status === 'ERROR') {
-      console.log('⚫'.repeat(40));
-      console.log('⚫ STATUS: ERROR - ERROR EN PAGO');
-      console.log('⚫'.repeat(40));
-      console.log('📌 Acciones a ejecutar:');
-      console.log('   1. Actualizar Invoice a REJECTED');
-      console.log('   2. Socket.IO: payment:declined');
-      console.log('   3. Email: Error técnico + soporte');
-      console.log('   4. Push: "Hubo un error"');
-      console.log('⚫'.repeat(40) + '\n');
+      console.log('⚫ STATUS: ERROR - ERROR EN PAGO\n');
 
       await prisma.invoice.update({
         where: { id: invoice.id },
         data: { status: 'REJECTED' },
       });
-      console.log('✅ Invoice actualizada a REJECTED');
 
       io.to(`user:${invoice.user_id}`).emit('payment:declined', {
         invoice_id: invoice.id,
         num_invoice: invoice.num_invoice,
-        status: status,
+        status,
         message: getStatusMessage(status),
         timestamp: new Date().toISOString(),
       });
-      console.log('✅ Socket.IO: payment:declined emitido\n');
+
+      try {
+        const user = await prisma.user.findUnique({
+          where: { id: invoice.user_id },
+          select: { name: true, last_name: true },
+        });
+        await emailService.queueEmail({
+          userId: invoice.user_id,
+          email: customer_email,
+          templateCode: 'INVOICE_STATUS',
+          variables: {
+            user_name: user ? `${user.name} ${user.last_name}` : 'Usuario',
+            num_invoice: invoice.num_invoice,
+            status,
+            status_message: getStatusMessage(status),
+            amount: (amount_in_cents / 100).toLocaleString('es-CO'),
+            payment_method_type,
+          },
+        });
+        console.log('📧 Email INVOICE_STATUS (ERROR) encolado');
+      } catch (e: any) {
+        console.error('⚠️ No se pudo encolar INVOICE_STATUS:', e.message);
+      }
     }
-    // ============================================
-    // ❓ STATUS: DESCONOCIDO
-    // ============================================
+
     else {
-      console.log('❓'.repeat(40));
-      console.log('❓ STATUS DESCONOCIDO:', status);
-      console.log('❓'.repeat(40));
-      console.log('⚠️ Este status no está manejado');
-      console.log('   Por favor, revisar documentación de Wompi');
-      console.log('❓'.repeat(40) + '\n');
+      console.log('❓ STATUS DESCONOCIDO:', status, '\n');
     }
   }
 }
 
-/**
- * Obtener mensaje de status en español
- */
 function getStatusMessage(status: string): string {
   const messages: Record<string, string> = {
     APPROVED: 'Transacción aprobada exitosamente',
