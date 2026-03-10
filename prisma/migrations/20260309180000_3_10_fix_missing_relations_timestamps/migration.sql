@@ -13,22 +13,13 @@ ALTER TABLE "InvoiceTickets"
   FOREIGN KEY ("invoice_id") REFERENCES "Invoice"("id")
   ON DELETE RESTRICT ON UPDATE CASCADE;
 
--- Issue 4: Transactions — cambiar invoice_id de TEXT a INT (nullable) + FKs
-ALTER TABLE "Transactions"
-  ALTER COLUMN "invoice_id" TYPE INTEGER USING ("invoice_id"::INTEGER),
-  ALTER COLUMN "invoice_id" DROP NOT NULL;
-
+-- Issue 4: Transactions — FK a User (invoice_id permanece como String, es referencia externa del gateway)
 ALTER TABLE "Transactions"
   ADD CONSTRAINT "Transactions_user_id_fkey"
   FOREIGN KEY ("user_id") REFERENCES "User"("id")
   ON DELETE RESTRICT ON UPDATE CASCADE;
 
-ALTER TABLE "Transactions"
-  ADD CONSTRAINT "Transactions_invoice_id_fkey"
-  FOREIGN KEY ("invoice_id") REFERENCES "Invoice"("id")
-  ON DELETE SET NULL ON UPDATE CASCADE;
-
--- Issue 5: Ticket — agregar FKs a Event y User
+-- Issue 5: Ticket — FKs a Event y User
 ALTER TABLE "Ticket"
   ADD CONSTRAINT "Ticket_event_id_fkey"
   FOREIGN KEY ("event_id") REFERENCES "Event"("id")

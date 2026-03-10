@@ -12,7 +12,7 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
   //directUrl = env("DIRECT_URL")
-  shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
+  //shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
 }
 
 model GeneralSettingsVariables {
@@ -73,8 +73,8 @@ model User {
 
   // ... campos existentes
   notifications NotificationMessageQueue[]
-  transactions  Transactions[]
   tickets       Ticket[]
+  transactions  Transactions[]
 
 }
 
@@ -696,7 +696,6 @@ model Invoice {
   updatedAt            DateTime      @updatedAt
 
   invoiceTickets InvoiceTickets[]
-  transactions   Transactions[]
 }
 
 enum InvoiceStatus {
@@ -819,7 +818,7 @@ model Transactions {
   id                  Int      @id @default(autoincrement())
   user_id             Int
   user_uid            String
-  invoice_id          Int?
+  invoice_id          String  // Referencia externa del gateway de pagos (ej: "INV-xxx")
   created_at          DateTime
   finalized_at        DateTime
   amount_in_cents     Int
@@ -841,8 +840,7 @@ model Transactions {
   tip_in_cents        String
   meta                Json
 
-  user    User     @relation(fields: [user_id], references: [id])
-  invoice Invoice? @relation(fields: [invoice_id], references: [id])
+  user User @relation(fields: [user_id], references: [id])
 }
 
 /*
