@@ -1,10 +1,12 @@
 import { EventStaffAssignmentRepository } from '../repositories/event_staff_assignment.repository';
 import { EventRepository } from '../repositories/event.repository';
 import { UserRepository } from '../repositories/user.repository';
+import { NotificationMessageQueueService } from './notificationmessagequeue.service';
 
 const staffAssignmentRepo = new EventStaffAssignmentRepository();
 const eventRepo = new EventRepository();
 const userRepo = new UserRepository();
+const emailService = new NotificationMessageQueueService(); // ← agregar
 
 export class EventStaffAssignmentService {
   /**
@@ -57,6 +59,34 @@ export class EventStaffAssignmentService {
       role_type: roleType,
       assigned_by: assignedByUserId,
     });
+
+    // 📧 Notificar al STAFF asignado
+try {
+  const assignedByUser = await userRepo.findByIdWithCompany(assignedByUserId);
+  const companyName = assignedByUser?.company?.company_name ?? 'El organizador';
+
+  await emailService.queueEmail({
+    userId: staffUserId,
+    email: staffUser.email,
+    templateCode: 'NOTIFICATION_ASSIGNING_EVENT',
+    variables: {
+      user_name: `${staffUser.name} ${staffUser.last_name}`,
+      name: event.name,
+      image: event.image,
+      date_event: new Date(event.date_event).toLocaleString('es-CO', {
+        dateStyle: 'full',
+        timeStyle: 'short',
+      }),
+      place_address: event.place_address,
+      company: companyName,
+      rol: roleType,
+    },
+  });
+  console.log('📧 Notificación de asignación encolada para:', staffUser.email);
+} catch (emailError: any) {
+  console.error('⚠️ No se pudo encolar el email de asignación:', emailError.message);
+}
+
 
     return {
       assignment,
@@ -288,6 +318,9 @@ export class EventStaffAssignmentService {
   //   role: roleType,
   //   invitedBy: assignedByUserId,
   // });
+
+  //temp borrar 
+  
   console.log(`📧 Invitación pendiente de envío a: ${emailOrPhone} para evento: ${event.name}`);
 
   return {

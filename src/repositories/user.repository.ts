@@ -29,6 +29,15 @@ export class UserRepository {
   async findById(id: number): Promise<User | null> {
     return prisma.user.findUnique({ where: { id } });
   }
+/**
+   * Buscar usuario por ID y retorna com company
+   */
+  async findByIdWithCompany(id: number) {
+  return prisma.user.findUnique({
+    where: { id },
+    include: { company: true },
+  });
+}
 
   /**
    * Obtener todos los usuarios
