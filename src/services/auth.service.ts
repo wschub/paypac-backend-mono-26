@@ -112,24 +112,51 @@ export class AuthService {
         isAutoRegister: !createdBy,
         createdByAdmin: createdBy ? `${createdBy.userRole} (ID: ${createdBy.userId})` : null,
       });
-      // 7. 📧 Enviar email de verificación
-try {
-  const otpTemp = Math.floor(100000 + Math.random() * 900000).toString(); // 6 dígitos random
+      
+      // 7. 📧 Enviar email según rol y origen del registro
+if (!createdBy) {
+  // ── Auto-registro CUSTOMER ──────────────────────────
+  try {
+    const otpTemp = Math.floor(100000 + Math.random() * 900000).toString();
+    await emailService.queueEmail({
+      userId: user.id,
+      email: user.email,
+      templateCode: 'REGISTRATION_VERIFY_MAIL',
+      variables: {
+        user_name: `${user.name} ${user.last_name}`,
+        otp_code: otpTemp,
+        verify_link: 'https://paypac.co/verify-account',
+      },
+    });
+    console.log('📧 Email de verificación encolado para:', user.email);
+  } catch (emailError: any) {
+    console.error('⚠️ No se pudo encolar el email de verificación:', emailError.message);
+  }
 
-  await emailService.queueEmail({
-    userId: user.id,
-    email: user.email,
-    templateCode: 'REGISTRATION_VERIFY_MAIL',
-    variables: {
-      user_name: `${user.name} ${user.last_name}`,
-      otp_code: otpTemp,
-      verify_link: 'https://paypac.co/verify-account',
-    },
-  });
-  console.log('📧 Email de verificación encolado para:', user.email);
-} catch (emailError: any) {
-  console.error('⚠️ No se pudo encolar el email de verificación:', emailError.message);
+} else {
+  // ── Creado por admin (ORGANIZER, STAFF, STAFF_PROMOTER, PAYPAC) ──
+  try {
+    await emailService.queueEmail({
+      userId: user.id,
+      email: user.email,
+      templateCode: 'REGISTRATION_ACCEPT',
+      variables: {
+        name: user.name,
+        last_name: user.last_name,
+        inviter_name: 'PayPac',       // TODO: traer nombre real del createdBy.userId si se requiere
+        inviter_last_name: 'Admin',
+        role: user.role,
+        email: user.email,
+        accept_link: 'https://paypac.co/login',
+      },
+    });
+    console.log('📧 Email de invitación encolado para:', user.email);
+  } catch (emailError: any) {
+    console.error('⚠️ No se pudo encolar el email de invitación:', emailError.message);
+  }
 }
+
+
       console.log('📧 ============================================');
 
       // TODO: Aquí irá la integración con el servicio de email

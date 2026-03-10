@@ -308,7 +308,7 @@ REGISTRATION_VERIFY_MAIL: {
 //-------- ORGANOZER, STAFF --
   //Verificación aceptando ser staff 
   REGISTRATION_ACCEPT: {
-    subject: 'Has sido invitado a unirte a PayPac',
+    subject: 'NOTIFICACION PAYPAC: Has sido invitado a unirte a PayPac',
     requiredVariables: [
       'name',
       'last_name',
