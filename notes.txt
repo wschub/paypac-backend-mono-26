@@ -45,7 +45,7 @@ Privado: lista de invitados. (tickets)
 +Checklist bloc de notas organziador (tabla)
 
 --MAILS : Add campo de envio mails, ahora o programado. estado   
-+ Mail bienvenida registro
++ Mail bienvenida registro 
 + Mail Confirmación/Activación cuenta
 + Notificacióna Asignación como Staff 
 + Recordatorio el dia del evento 
@@ -53,3 +53,36 @@ Privado: lista de invitados. (tickets)
 + Notificación Estado Transacción/compra 
 + Email Invoice confirma compara cuándo expide tickets 
 + Notificación Aprobación/Scheduled evento *
+
+REGISTRATION_VERIFY_MAIL:
+subject: 'Verifica tu cuenta en PayPac',
+requiredVariables: ['user_name', 'otp_code'],
+MENSAJE REEMPLAZAR:"Gracias por registrarte en PayPac. Para completar tu registro, verifica tu email usando el siguiente código:
+${vars.otp_code}
+Este código expira en <strong>5 minutos</strong>.
+Si no solicitaste este código, puedes ignorar este mensaje.
+" 
+
+REGISTRATION_ACCEPT_STAFF *
+REGISTRATION_ACCEPT_ORGANIZER *
+
+
+NOTIFICATION_ASSIGNING_EVENT: 
+subject: 'NOTIFICACION PAYPAC: Asignación de Evento',
+requiredVariables: ['user_name', 'name','image','date_event','place_address','company','rol'],
+MENSAJE REEMPLAZAR:"
+Hola user_name
+
+Has sido asignado por company como rol. 
+Evento: name
+Fecha: date_event
+Dirección: place_address
+"    
+
+
+TICKET_PURCHASE
+
+
+later 
+LOGIN_OTP
+PASSWORD_RESET

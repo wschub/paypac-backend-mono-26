@@ -1,8 +1,10 @@
 import { UserRepository } from '../repositories/user.repository';
 import { firebaseAuth } from '../config/firebase';
 import { ROLES } from '@prisma/client';
+import { NotificationMessageQueueService } from './notificationmessagequeue.service';
 
 const userRepository = new UserRepository();
+const emailService = new NotificationMessageQueueService();
 
 export class AuthService {
   /**
@@ -110,6 +112,24 @@ export class AuthService {
         isAutoRegister: !createdBy,
         createdByAdmin: createdBy ? `${createdBy.userRole} (ID: ${createdBy.userId})` : null,
       });
+      // 7. 📧 Enviar email de verificación
+try {
+  const otpTemp = Math.floor(100000 + Math.random() * 900000).toString(); // 6 dígitos random
+
+  await emailService.queueEmail({
+    userId: user.id,
+    email: user.email,
+    templateCode: 'REGISTRATION_VERIFY_MAIL',
+    variables: {
+      user_name: `${user.name} ${user.last_name}`,
+      otp_code: otpTemp,
+      verify_link: 'https://paypac.co/verify-account',
+    },
+  });
+  console.log('📧 Email de verificación encolado para:', user.email);
+} catch (emailError: any) {
+  console.error('⚠️ No se pudo encolar el email de verificación:', emailError.message);
+}
       console.log('📧 ============================================');
 
       // TODO: Aquí irá la integración con el servicio de email
