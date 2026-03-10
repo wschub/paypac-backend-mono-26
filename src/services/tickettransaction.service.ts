@@ -1,6 +1,7 @@
 import { TicketTransactionRepository } from '../repositories/tickettransaction.repository';
 import { TicketRepository } from '../repositories/ticket.repository';
 import { Prisma } from '@prisma/client';
+import { TicketStatus } from '@prisma/client';
 
 const transactionRepo = new TicketTransactionRepository();
 const ticketRepo = new TicketRepository();
@@ -106,13 +107,17 @@ export class TicketTransactionService {
     }
 
     // Regresar el ticket al remitente original
-    await ticketRepo.update(transaction.ticket_id, {
-      customer_id: transaction.from_customer_id,
-      customer_uid: transaction.from_customer_uid,
-      customer_ID_phone: transaction.from_customer_UUID_phone,
-      token_ticket: transaction.from_customer_token, // Restaurar token anterior
-      status_ticket: 'ACTIVE',
-    });
+   
+    await ticketRepo.transferOwnership(
+  transaction.ticket_id,
+  transaction.from_customer_id,
+  transaction.from_customer_uid,
+  transaction.from_customer_UUID_phone,
+  transaction.from_customer_token,
+);
+    
+// ← agregar aquí
+await ticketRepo.updateStatus(transaction.ticket_id, TicketStatus.ACTIVE);
 
     // Cancelar la transacción
     const canceledTransaction = await transactionRepo.cancel(transactionId);
@@ -194,13 +199,16 @@ export class TicketTransactionService {
     }
 
     // Regresar el ticket al remitente
-    await ticketRepo.update(transaction.ticket_id, {
-      customer_id: transaction.from_customer_id,
-      customer_uid: transaction.from_customer_uid,
-      customer_ID_phone: transaction.from_customer_UUID_phone,
-      token_ticket: transaction.from_customer_token,
-      status_ticket: 'ACTIVE',
-    });
+    await ticketRepo.transferOwnership(
+  transaction.ticket_id,
+  transaction.from_customer_id,
+  transaction.from_customer_uid,
+  transaction.from_customer_UUID_phone,
+  transaction.from_customer_token,
+)
+   
+// ← agregar aquí
+await ticketRepo.updateStatus(transaction.ticket_id, TicketStatus.ACTIVE);
 
     // Cancelar la transacción
     const canceledTransaction = await transactionRepo.cancel(transactionId);
