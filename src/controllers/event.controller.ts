@@ -48,16 +48,22 @@ export const getEvents = async (
       return;
     }
 
-    const filters = {
-      status: req.query.status as EVENT_STATUS | undefined,
-      event_type: req.query.event_type as string | undefined,
-      category_id: req.query.category_id
-        ? Number(req.query.category_id)
-        : undefined,
-      country: req.query.country as string | undefined,
-      city: req.query.city as string | undefined,
-      search: req.query.search as string | undefined,
-    };
+    const rawStatus = req.query.status as string | undefined;
+
+const filters = {
+  status: rawStatus
+    ? rawStatus.includes(',')
+      ? (rawStatus.split(',') as EVENT_STATUS[])
+      : (rawStatus as EVENT_STATUS)
+    : undefined,
+  event_type: req.query.event_type as string | undefined,
+  category_id: req.query.category_id
+    ? Number(req.query.category_id)
+    : undefined,
+  country: req.query.country as string | undefined,
+  city: req.query.city as string | undefined,
+  search: req.query.search as string | undefined,
+};
 
     const events = await eventService.getEvents(
       filters,

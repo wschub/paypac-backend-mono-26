@@ -105,17 +105,19 @@ export const updateEventStatusSchema = z.object({
 /**
  * Schema para validar query params en GET /events
  */
+const EVENT_STATUS_VALUES = [
+  'CREATED', 'APPROVED', 'SCHEDULED', 'ACTIVE',
+  'CANCELED', 'RE_SCHEDULED', 'FINALIZED',
+] as const;
+
 export const getEventsQuerySchema = z.object({
   query: z.object({
-    status: z.enum([
-      'CREATED',
-      'APPROVED',
-      'SCHEDULED',
-      'ACTIVE',
-      'CANCELED',
-      'RE_SCHEDULED',
-      'FINALIZED',
-    ]).optional(),
+    status: z.string()
+      .optional()
+      .refine(
+        (val) => !val || val.split(',').every(s => EVENT_STATUS_VALUES.includes(s as any)),
+        { message: `Status inválido. Valores permitidos: ${EVENT_STATUS_VALUES.join(', ')}` }
+      ),
     event_type: z.enum(['PUBLICO', 'PRIVADO']).optional(),
     category_id: z.string().regex(/^\d+$/).optional(),
     country: z.string().optional(),
