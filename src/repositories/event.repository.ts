@@ -20,7 +20,7 @@ export class EventRepository {
    * Obtener todos los eventos con filtros opcionales
    */
   async findAll(filters?: {
-    status?: EVENT_STATUS;
+     status?: EVENT_STATUS | EVENT_STATUS[];  // ← cambio
     event_type?: string;
     organizer_id?: number;
     category_id?: number;
@@ -30,9 +30,12 @@ export class EventRepository {
   }) {
     const where: Prisma.EventWhereInput = {};
 
-    if (filters?.status) {
-      where.status = filters.status;
-    }
+    // ✅ Filtro where — maneja ambos casos
+if (filters?.status) {
+  where.status = Array.isArray(filters.status)
+    ? { in: filters.status }
+    : filters.status;
+}
 
     if (filters?.event_type) {
       where.event_type = filters.event_type as any;

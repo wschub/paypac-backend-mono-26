@@ -4,6 +4,8 @@ import { Prisma, EVENT_STATUS } from '@prisma/client';
 const eventRepo = new EventRepository();
 
 export class EventService {
+
+  
   /**
    * Crear un nuevo evento
    * Solo ORGANIZER y PAYPAC pueden crear eventos
@@ -33,34 +35,71 @@ export class EventService {
    * Filtra según el rol del usuario
    */
   async getEvents(
-    filters: {
-      status?: EVENT_STATUS;
-      event_type?: string;
-      category_id?: number;
-      country?: string;
-      city?: string;
-      search?: string;
-    },
-    userRole: string,
-    userId?: number
-  ) {
-    // Si es ORGANIZER, solo ve sus propios eventos
-    if (userRole === 'ORGANIZER' && userId) {
-      return eventRepo.findByOrganizer(userId);
-    }
+  filters: {
+    status?: EVENT_STATUS | EVENT_STATUS[];
+    event_type?: string;
+    category_id?: number;
+    country?: string;
+    city?: string;
+    search?: string;
+  },
+  userRole: string,
+  userId?: number
+) {
+  let events: any[];
 
-    // Si es CUSTOMER o PROMOTER, solo ve eventos ACTIVOS o SCHEDULED públicos
-    if (['CUSTOMER', 'PROMOTER'].includes(userRole)) {
-      const publicFilters = {
-        ...filters,
-        status: filters.status || EVENT_STATUS.ACTIVE,
-      };
-      return eventRepo.findAll(publicFilters);
-    }
+  // Si es ORGANIZER, solo ve sus propios eventos
+  if (userRole === 'ORGANIZER' && userId) {
+    events = await eventRepo.findByOrganizer(userId);
 
-    // PAYPAC y STAFF pueden ver todos los eventos
-    return eventRepo.findAll(filters);
+  // Si es CUSTOMER o PROMOTER, solo ve eventos ACTIVOS o APPROVED públicos
+  } else if (['CUSTOMER', 'PROMOTER'].includes(userRole)) {
+    const publicFilters = {
+      ...filters,
+      status: filters.status || [EVENT_STATUS.ACTIVE, EVENT_STATUS.APPROVED],
+    };
+    events = await eventRepo.findAll(publicFilters);
+
+  // PAYPAC y STAFF pueden ver todos los eventos
+  } else {
+    events = await eventRepo.findAll(filters);
   }
+
+  // Enriquecer cada evento con price_from
+  return events.map(event => ({
+    ...event,
+    price_from: this.getPriceFrom(event.localities ?? []),
+  }));
+}
+
+private getPriceFrom(localities: any[]) {
+  const now = new Date();
+  let cheapest: {
+    name_locality: string;
+    stage_name: string;
+    date_start: Date;
+    date_end: Date;
+    price_ticket: number;
+  } | null = null;
+
+  for (const locality of localities) {
+    for (const stage of locality.stages) {
+      const inRange = new Date(stage.date_start) <= now && now <= new Date(stage.date_end);
+      if (!inRange) continue;
+      if (!cheapest || stage.price_ticket < cheapest.price_ticket) {
+        cheapest = {
+          name_locality: locality.name_locality,
+          stage_name:    stage.stage_name,
+          date_start:    stage.date_start,
+          date_end:      stage.date_end,
+          price_ticket:  stage.price_ticket,
+        };
+      }
+    }
+  }
+
+  return cheapest;
+}
 
   /**
    * Obtener evento por ID
