@@ -12,7 +12,7 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
   //directUrl = env("DIRECT_URL")
-  //shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
+  shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
 }
 
 model GeneralSettingsVariables {
@@ -424,14 +424,13 @@ model EventFavorites {
   id           Int      @id @default(autoincrement())
   user_id      Int // Usuario que marca como favorito
   event_id     Int // Evento marcado como favorito
-  price_ticket Int // Precio del ticket del evento - 
-  locality_id  Int? // Relación opcional con EventLocalitie
+ 
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
   user     User             @relation(fields: [user_id], references: [id])
   event    Event            @relation(fields: [event_id], references: [id])
-  locality EventLocalities? @relation(fields: [locality_id], references: [id])
+
 }
 
 model EventDcto {
@@ -531,7 +530,7 @@ model EventLocalities {
 
   rewardRules EventRewardRules[] // ← relación inversa
   discounts   EventDcto[] // ← Inverso de EventDcto.locality
-  favoritedIn EventFavorites[] // ← Inverso de EventFavorites.locality
+  
 }
 
 model EventStages {

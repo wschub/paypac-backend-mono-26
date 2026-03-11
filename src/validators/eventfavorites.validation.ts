@@ -6,8 +6,6 @@ import { z } from 'zod';
 export const addFavoriteSchema = z.object({
   body: z.object({
     event_id: z.number().int().positive('El ID del evento es requerido'),
-    price_ticket: z.number().int().min(0, 'El precio del ticket debe ser mayor o igual a 0'),
-    locality_id: z.number().int().positive().optional().nullable(),
   }),
 });
 
@@ -18,10 +16,7 @@ export const updateFavoriteSchema = z.object({
   params: z.object({
     id: z.string().regex(/^\d+$/, 'El id debe ser numérico'),
   }),
-  body: z.object({
-    price_ticket: z.number().int().min(0).optional(),
-    locality_id: z.number().int().positive().optional().nullable(),
-  }),
+ 
 });
 
 /**

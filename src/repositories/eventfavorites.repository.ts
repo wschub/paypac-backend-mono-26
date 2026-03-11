@@ -7,30 +7,38 @@ export class EventFavoritesRepository {
       data,
       include: {
         event: true,
-        locality: true,
         user: true,
       },
     });
   }
 
   async findByUserId(userId: number) {
-    return prisma.eventFavorites.findMany({
-      where: { user_id: userId },
-      include: {
-        event: true,
-        locality: true,
-        user: true,
+  return prisma.eventFavorites.findMany({
+    where: { user_id: userId },
+    include: {
+      event: {
+        include: {
+          category: true,
+          subcategory: true,
+          subgenre: true,
+          localities: {
+            include: {
+              stages: true,
+            },
+          },
+        },
       },
-      orderBy: { createdAt: 'desc' },
-    });
-  }
+      user: true,
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+}
 
   async findById(id: number) {
     return prisma.eventFavorites.findUnique({
       where: { id },
       include: {
         event: true,
-        locality: true,
         user: true,
       },
     });
@@ -44,7 +52,6 @@ export class EventFavoritesRepository {
       },
       include: {
         event: true,
-        locality: true,
         user: true,
       },
     });
@@ -55,7 +62,6 @@ export class EventFavoritesRepository {
       where: { event_id: eventId },
       include: {
         user: true,
-        locality: true,
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -67,7 +73,6 @@ export class EventFavoritesRepository {
       data,
       include: {
         event: true,
-        locality: true,
         user: true,
       },
     });
@@ -130,7 +135,6 @@ export class EventFavoritesRepository {
       where: { user_id: userId },
       include: {
         event: true,
-        locality: true,
         user: true,
       },
       orderBy: { createdAt: 'desc' },

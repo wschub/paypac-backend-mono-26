@@ -1,11 +1,10 @@
 import { EventFavoritesRepository } from '../repositories/eventfavorites.repository';
 import { EventRepository } from '../repositories/event.repository';
-import { EventLocalitiesRepository } from '../repositories/eventlocalities.repository';
 import { Prisma } from '@prisma/client';
 
 const favoritesRepo = new EventFavoritesRepository();
 const eventRepo = new EventRepository();
-const localitiesRepo = new EventLocalitiesRepository();
+
 
 export class EventFavoritesService {
   /**
@@ -14,9 +13,7 @@ export class EventFavoritesService {
   async addFavorite(
     userId: number,
     data: {
-      event_id: number;
-      price_ticket: number;
-      locality_id?: number;
+      event_id: number
     }
   ) {
     // Verificar que el evento existe
@@ -31,25 +28,14 @@ export class EventFavoritesService {
       throw new Error('Este evento ya está en tus favoritos');
     }
 
-    // Si se especifica localidad, verificar que existe y pertenece al evento
-    if (data.locality_id) {
-      const locality = await localitiesRepo.findById(data.locality_id);
-      if (!locality || locality.event_id !== data.event_id) {
-        throw new Error('Localidad no encontrada o no pertenece a este evento');
-      }
-    }
+   
 
-    // Validar precio
-    if (data.price_ticket < 0) {
-      throw new Error('El precio del ticket debe ser mayor o igual a 0');
-    }
+   
 
     // Crear favorito
     const favoriteData: Prisma.EventFavoritesUncheckedCreateInput = {
       user_id: userId,
       event_id: data.event_id,
-      price_ticket: data.price_ticket,
-      locality_id: data.locality_id || null,
     };
 
     return favoritesRepo.create(favoriteData);
@@ -59,8 +45,45 @@ export class EventFavoritesService {
    * Obtener favoritos de un usuario
    */
   async getUserFavorites(userId: number) {
-    return favoritesRepo.findByUserId(userId);
+  const favorites = await favoritesRepo.findByUserId(userId);
+
+  return favorites.map(f => ({
+    ...f,
+    event: {
+      ...f.event,
+      price_from: this.getPriceFrom(f.event.localities ?? []),
+    },
+  }));
+}
+
+private getPriceFrom(localities: any[]) {
+  const now = new Date();
+  let cheapest: {
+    name_locality: string;
+    stage_name: string;
+    date_start: Date;
+    date_end: Date;
+    price_ticket: number;
+  } | null = null;
+
+  for (const locality of localities) {
+    for (const stage of locality.stages) {
+      const inRange = new Date(stage.date_start) <= now && now <= new Date(stage.date_end);
+      if (!inRange) continue;
+      if (!cheapest || stage.price_ticket < cheapest.price_ticket) {
+        cheapest = {
+          name_locality: locality.name_locality,
+          stage_name:    stage.stage_name,
+          date_start:    stage.date_start,
+          date_end:      stage.date_end,
+          price_ticket:  stage.price_ticket,
+        };
+      }
+    }
   }
+
+  return cheapest;
+}
 
   /**
    * Obtener favorito por ID
@@ -79,37 +102,7 @@ export class EventFavoritesService {
     return favorite;
   }
 
-  /**
-   * Actualizar favorito (cambiar localidad o precio de referencia)
-   */
-  async updateFavorite(
-    id: number,
-    userId: number,
-    data: {
-      price_ticket?: number;
-      locality_id?: number;
-    }
-  ) {
-    const favorite = await favoritesRepo.findById(id);
-    if (!favorite) {
-      throw new Error('Favorito no encontrado');
-    }
-
-    // Verificar que el favorito pertenece al usuario
-    if (favorite.user_id !== userId) {
-      throw new Error('No tienes permisos para actualizar este favorito');
-    }
-
-    // Si se actualiza localidad, verificar que existe
-    if (data.locality_id) {
-      const locality = await localitiesRepo.findById(data.locality_id);
-      if (!locality || locality.event_id !== favorite.event_id) {
-        throw new Error('Localidad no encontrada o no pertenece a este evento');
-      }
-    }
-
-    return favoritesRepo.update(id, data);
-  }
+  
 
   /**
    * Eliminar favorito
@@ -131,53 +124,29 @@ export class EventFavoritesService {
   /**
    * Eliminar favorito por evento (toggle)
    */
-  async toggleFavorite(userId: number, eventId: number) {
-    const existing = await favoritesRepo.findByUserAndEvent(userId, eventId);
+ async toggleFavorite(userId: number, eventId: number) {
+  const existing = await favoritesRepo.findByUserAndEvent(userId, eventId);
 
-    if (existing) {
-      // Si existe, eliminarlo
-      await favoritesRepo.delete(existing.id);
-      return {
-        action: 'removed',
-        message: 'Evento eliminado de favoritos',
-        is_favorite: false,
-      };
-    } else {
-      // Si no existe, agregarlo con valores por defecto
-      const event = await eventRepo.findById(eventId);
-      if (!event) {
-        throw new Error('Evento no encontrado');
-      }
+  if (existing) {
+    await favoritesRepo.delete(existing.id);
+    return {
+      action: 'removed',
+      message: 'Evento eliminado de favoritos',
+      is_favorite: false,
+    };
+  } else {
+    const event = await eventRepo.findById(eventId);
+    if (!event) throw new Error('Evento no encontrado');
 
-      // Obtener el precio más bajo de las localidades
-      const localities = await localitiesRepo.findByEventId(eventId);
-      let minPrice = 0;
-      
-     if (localities.length > 0) {
-  minPrice = 0;
-}
+    await this.addFavorite(userId, { event_id: eventId });
 
-      /*if (localities.length > 0 && localities[0].stages && localities[0].stages.length > 0) {
-       
-     
-      minPrice = Math.min(
-  ...localities[0].stages.map((s: { price_ticket: number }) => s.price_ticket)
-);
-
-    } */
-
-      await this.addFavorite(userId, {
-        event_id: eventId,
-        price_ticket: minPrice,
-      });
-
-      return {
-        action: 'added',
-        message: 'Evento agregado a favoritos',
-        is_favorite: true,
-      };
-    }
+    return {
+      action: 'added',
+      message: 'Evento agregado a favoritos',
+      is_favorite: true,
+    };
   }
+}
 
   /**
    * Verificar si un evento está en favoritos del usuario
@@ -259,7 +228,7 @@ export class EventFavoritesService {
         user_id: f.user.id,
         user_name: f.user.name,
         added_at: f.createdAt,
-        locality: f.locality?.name_locality || 'General',
+        
       })),
     };
   }

@@ -88,35 +88,7 @@ export const getFavoriteById = async (
  * PUT /api/favorites/:id
  * Actualizar favorito
  */
-export const updateFavorite = async (
-  req: Request,
-  res: Response
-): Promise<void> => {
-  try {
-    const user = req.user;
-    if (!user) {
-      res.status(401).json({ message: 'No autenticado' });
-      return;
-    }
 
-    const id = Number(req.params.id);
-    const data = req.body;
-
-    const updatedFavorite = await favoritesService.updateFavorite(
-      id,
-      user.id,
-      data
-    );
-
-    res.status(200).json({
-      message: 'Favorito actualizado exitosamente',
-      favorite: updatedFavorite,
-    });
-  } catch (err: any) {
-    console.error('❌ Error en updateFavorite:', err);
-    res.status(400).json({ error: err.message });
-  }
-};
 
 /**
  * DELETE /api/favorites/:id

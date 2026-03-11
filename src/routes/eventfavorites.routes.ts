@@ -3,7 +3,6 @@ import {
   addFavorite,
   getUserFavorites,
   getFavoriteById,
-  updateFavorite,
   removeFavorite,
   toggleFavorite,
   checkFavorite,
@@ -17,7 +16,6 @@ import { authorizeRoles } from '../middlewares/role.middleware';
 import { validateRequest } from '../middlewares/validate.middleware';
 import {
   addFavoriteSchema,
-  updateFavoriteSchema,
   getFavoriteByIdSchema,
   toggleFavoriteSchema,
   checkFavoriteSchema,
@@ -141,18 +139,7 @@ router.get(
   getFavoriteById
 );
 
-/**
- * PUT /api/favorites/:id
- * Actualizar favorito
- * Acceso: Todos los usuarios autenticados (solo su propio favorito)
- */
-router.put(
-  '/favorites/:id',
-  authenticate,
-  authorizeRoles('PAYPAC', 'ORGANIZER', 'STAFF', 'STAFF_PROMOTER', 'PROMOTER', 'CUSTOMER'),
-  validateRequest(updateFavoriteSchema),
-  updateFavorite
-);
+
 
 /**
  * DELETE /api/favorites/:id
