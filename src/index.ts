@@ -7,7 +7,8 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 
-
+import sectionRoutes from './routes/section.routes';
+import permissionRoutes from './routes/role_section_permission.routes';
 import authRoutes from './routes/auth.routes';
 import userRoutes from './routes/user.routes';
 import categoryRoutes from './routes/category.routes';
@@ -148,6 +149,8 @@ app.get("/health", (req, res) => {
 
 
 // routes
+app.use('/api/sections', sectionRoutes);
+app.use('/api/permissions', permissionRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/categories', categoryRoutes);
