@@ -12,7 +12,7 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
   //directUrl = env("DIRECT_URL")
-  shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
+  //shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
 }
 
 model GeneralSettingsVariables {
@@ -183,9 +183,11 @@ model Section {
   id           Int      @id @default(autoincrement())
   name_section String
   icon         String?
-  link         String?  @unique        // índice si se busca por URL
+  link         String?  @unique
+  order        Int      @default(0)
   level        Int      @default(0)
-  parent_id    Int?                    // null = raíz, sin default(0)
+  parent_id    Int?
+  is_active    Boolean  @default(true)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -194,26 +196,20 @@ model Section {
   rolePermissions RoleSectionPermission[]
 }
 
-model Permission {
-  id              Int      @id @default(autoincrement())
-  permission_name String   @unique
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  rolePermissions RoleSectionPermission[]
-}
-
 model RoleSectionPermission {
-  role          ROLES
-  section_id    Int
-  permission_id Int
+  role        ROLES
+  section_id  Int
+  can_view    Boolean @default(false)
+  can_create  Boolean @default(false)
+  can_edit    Boolean @default(false)
+  can_delete  Boolean @default(false)
+  can_export  Boolean @default(false)
 
-  section    Section    @relation(fields: [section_id], references: [id])
-  permission Permission @relation(fields: [permission_id], references: [id])
+  section Section @relation(fields: [section_id], references: [id])
 
-  @@id([role, section_id, permission_id])   // PK compuesta, sin id redundante
-  @@index([role])                            // queries por rol
-  @@index([role, section_id])               // queries por rol + sección (el más frecuente)
+  @@id([role, section_id])
+  @@index([role])
+  @@index([role, section_id])
 }
 
 
