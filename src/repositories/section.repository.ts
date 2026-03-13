@@ -10,11 +10,11 @@ export class SectionRepository {
   async findAll() {
     return prisma.section.findMany({
       where: { is_active: true },
-      orderBy: { order: 'asc' },
+      orderBy: { section_order: 'asc' },
       include: {
         children: {
           where: { is_active: true },
-          orderBy: { order: 'asc' },
+          orderBy: { section_order: 'asc' },
         },
       },
     });
@@ -26,7 +26,7 @@ export class SectionRepository {
       include: {
         children: {
           where: { is_active: true },
-          orderBy: { order: 'asc' },
+          orderBy: { section_order: 'asc' },
         },
         parent: true,
       },
@@ -46,7 +46,7 @@ export class SectionRepository {
           },
         },
       },
-      orderBy: { order: 'asc' },
+      orderBy: { section_order: 'asc' },
       include: {
         rolePermissions: {
           where: { role: role as any },
@@ -58,7 +58,7 @@ export class SectionRepository {
               some: { role: role as any, can_view: true },
             },
           },
-          orderBy: { order: 'asc' },
+          orderBy: { section_order: 'asc' },
           include: {
             rolePermissions: {
               where: { role: role as any },
@@ -89,7 +89,7 @@ export class SectionRepository {
       items.map(item =>
         prisma.section.update({
           where: { id: item.id },
-          data: { order: item.order },
+          data: { section_order: item.order },
         })
       )
     );

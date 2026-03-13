@@ -184,7 +184,7 @@ model Section {
   name_section String
   icon         String?
   link         String?  @unique
-  order        Int      @default(0)
+  section_order Int     @default(0)
   level        Int      @default(0)
   parent_id    Int?
   is_active    Boolean  @default(true)
