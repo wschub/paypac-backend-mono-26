@@ -32,7 +32,7 @@ export class SectionService {
       name_section: section.name_section,
       icon:         section.icon,
       link:         section.link,
-      order:        section.order,
+      order:        section.section_order,
       level:        section.level,
       ...flattenPermissions(section.rolePermissions[0]),
       children: section.children.map(child => ({
@@ -40,7 +40,7 @@ export class SectionService {
         name_section: child.name_section,
         icon:         child.icon,
         link:         child.link,
-        order:        child.order,
+        order:        child.section_order,
         level:        child.level,
         ...flattenPermissions(child.rolePermissions[0]),
       })),
