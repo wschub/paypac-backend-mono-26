@@ -40,11 +40,11 @@ export class RoleSectionPermissionRepository {
         section: {
           select: {
             id: true, name_section: true, link: true, icon: true,
-            order: true, level: true, parent_id: true, is_active: true,
+            section_order: true, level: true, parent_id: true, is_active: true,
           },
         },
       },
-      orderBy: { section: { order: 'asc' } },
+      orderBy: { section: { section_order: 'asc' } },
     });
   }
 
