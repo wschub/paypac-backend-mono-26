@@ -298,9 +298,9 @@ export class AnalyticsRepository {
     const eventIds = [...new Set(invoices.map(i => i.event_id))];
     const events   = await prisma.event.findMany({
       where: { id: { in: eventIds } },
-      include: { category: { select: { id: true, name: true } } },
+      include: { category: { select: { id: true, category_name: true } } },
     });
-    const catMap = Object.fromEntries(events.map(e => [e.id, e.category?.name ?? 'Sin categoría']));
+    const catMap = Object.fromEntries(events.map(e => [e.id, e.category?.category_name ?? 'Sin categoría']));
 
     const byCategory: Record<string, { gmv: number; count: number }> = {};
     for (const inv of invoices) {
