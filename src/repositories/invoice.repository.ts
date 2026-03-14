@@ -116,7 +116,9 @@ export class InvoiceRepository {
       total_invoices: invoices.length,
       by_status: {
         ISSUED: invoices.filter(i => i.status === InvoiceStatus.ISSUED).length,
-        PRECESSING: invoices.filter(i => i.status === InvoiceStatus.PRECESSING).length,
+          PROCESSING
+: invoices.filter(i => i.status === InvoiceStatus.  PROCESSING
+).length,
         PAID: invoices.filter(i => i.status === InvoiceStatus.PAID).length,
         PENDING: invoices.filter(i => i.status === InvoiceStatus.PENDING).length,
         REJECTED: invoices.filter(i => i.status === InvoiceStatus.REJECTED).length,
