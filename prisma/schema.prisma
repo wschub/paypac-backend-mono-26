@@ -12,7 +12,7 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
   //directUrl = env("DIRECT_URL")
-  //shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
+  shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
 }
 
 model GeneralSettingsVariables {
@@ -47,6 +47,8 @@ model User {
   verified_user            Int       @default(0)
   fcm_token    String?   // Token de Firebase Cloud Messaging
   fcm_updated  DateTime? // Última actualización del token
+  city       String?   // ciudad del comprador → Origen Geográfico
+  birth_date DateTime? // fecha de nacimiento → Perfil demográfico
   status                   Int       @default(0)
   createdAt                DateTime  @default(now())
   updatedAt                DateTime  @updatedAt
@@ -137,6 +139,7 @@ model Company {
   address              String?
   company_presentation String    @default("")
   rating               Float     @default(0)
+  nps_score            Int?
   createdAt            DateTime  @default(now())
   approved_at          DateTime?
   updatedAt            DateTime  @updatedAt
@@ -157,6 +160,7 @@ model Company {
   users        User[] @relation("UserCompany") 
     // ✅ Relación con seguidores
   followers CompanyFollwers[]
+  liquidations EventLiquidation[]
 }
 
 model CompanyFollwers{
@@ -370,6 +374,7 @@ model Event {
   numbered_place    EventPlaces?      @relation(fields: [numbered_place_id], references: [id])
   seatStatuses      EventSeatStatus[] // ← agregar relación inversa
   tickets           Ticket[]
+  liquidations EventLiquidation[]
 }
 
 
@@ -499,6 +504,36 @@ model EventBalancePromoters {
   event      Event             @relation(fields: [event_id], references: [id])
   promoter   User              @relation("UserPromoterBalances", fields: [promoter_id], references: [id])
   rewardRule EventRewardRules? @relation(fields: [reward_rule_id], references: [id])
+}
+
+model EventLiquidation {
+  id                   Int                    @id @default(autoincrement())
+  company_id           Int
+  event_id             Int
+  num_liquidation      String                 @unique // LIQ-XXXX
+  gross_amount         Float                  // ingresos brutos del evento
+  paypac_commission    Float
+  promoter_commission  Float                  @default(0)
+  refunds              Float                  @default(0) // total reembolsos procesados
+  net_amount           Float                // bruto - comision_paypac - comision_promotores - reembolsos
+  status               EventLiquidationStatus @default(PENDING)
+  liquidation_date     DateTime
+  paid_at              DateTime?
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
+
+  company Company @relation(fields: [company_id], references: [id])
+  event   Event   @relation(fields: [event_id], references: [id])
+
+  @@index([company_id])
+  @@index([event_id])
+  @@index([status])
+}
+
+enum EventLiquidationStatus {
+  PENDING
+  PAID
+  OVERDUE
 }
 
 //add user_id, company_id para recilar las localidades.
@@ -707,6 +742,8 @@ model Invoice {
   total_ticket_dcto    Int           @default(0) // Total del ticket después de aplicar el descuento
   total_ticket_regular Int // Total del ticket sin descuento
   total                Int //Total tckets pagado con o sin dcto
+  refunded_amount  Int?      // monto reembolsado (parcial o total)
+  refunded_at      DateTime? // fecha del reembolso
   status               InvoiceStatus
   createdAt            DateTime      @default(now())
   updatedAt            DateTime      @updatedAt
@@ -716,11 +753,12 @@ model Invoice {
 
 enum InvoiceStatus {
   ISSUED
-  PRECESSING
+  PROCESSING
   PAID
   PENDING
   REJECTED
   CANCELED
+  REFUNDED
 }
 
 model InvoiceTickets {
