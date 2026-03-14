@@ -1,3 +1,4 @@
+/*
 "use client"
 import * as React from "react"
 import {
@@ -51,16 +52,6 @@ export const navMenuPayItems = [
     url: "/dashboard/venues",
     icon: Frame,
   },
-  /*{
-    name: "Permisos",
-    url: "/roles",
-    icon: LockIcon,
-    submenu: [
-      { title: "Secciones", url: "/dashboard/permissions/sections" },
-      { title: "Permisos", url:  "/dashboard/permissions" },
-      { title: "Asignar Permisos", url: "/dashboard/permissions/assign-permissions" },
-    ],
-  }, */
   {
     name: "Usuarios",
     url: "/dashboard/users",
@@ -73,11 +64,11 @@ export const navMenuPayItems = [
   },
   
   
-  /*{
-    name: "Favoritos",
-    url: "/dashboard/events",
-    icon: IconClover,
-  }, */
+  //{
+    //name: "Favoritos",
+    //url: "/dashboard/events",
+    //icon: IconClover,
+  //}, 
   {
     name: "Mis Eventos",
     url: "/dashboard/events",
@@ -137,3 +128,5 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     </Sidebar>
   )
 }
+
+*/
