@@ -12,7 +12,7 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
   //directUrl = env("DIRECT_URL")
-  ///shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
+  shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
 }
 
 model GeneralSettingsVariables {
@@ -350,9 +350,7 @@ model Event {
   allow_external_promoters Boolean       @default(false) // Permite promotores externos
   allow_paypac_promotion   Boolean       @default(false) //
   sales_channel            String        @default("app") // Canal de ventas, por defecto "web","promoter","app"
-  commission_to_charge     Float         @default(0) // Comisión por cargo
-  commission_to_promoter   Float         @default(0) // Comisión al promotor
-
+  
   // Relación uno a uno con EventPlaces
   //numbered_place    EventPlaces? @relation(fields: [numbered_place_id], references: [id])
   numbered_place_id Int?
@@ -744,6 +742,9 @@ model Invoice {
   total                Int //Total tckets pagado con o sin dcto
   refunded_amount  Int?      // monto reembolsado (parcial o total)
   refunded_at      DateTime? // fecha del reembolso
+  paypac_commission_pct     Float?  @default(0) // snapshot % PayPac al momento de compra
+  paypac_commission_amount  Int?    @default(0) // monto en pesos comisión PayPac
+  promoter_commission_amount Int?   @default(0) // monto en pesos comisión promotor (ya calculado)
   status               InvoiceStatus
   createdAt            DateTime      @default(now())
   updatedAt            DateTime      @updatedAt
