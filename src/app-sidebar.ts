@@ -127,6 +127,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarRail />
     </Sidebar>
   )
-}
+};
 
 */
