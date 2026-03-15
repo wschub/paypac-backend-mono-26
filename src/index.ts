@@ -6,7 +6,9 @@ import { Server as SocketIOServer } from 'socket.io';
 import dotenv from 'dotenv';
 dotenv.config();
 
-
+import dashboardRoutes     from './routes/dashboard.routes';
+import reportsRoutes       from './routes/reports.routes';
+import liquidationRoutes   from './routes/event_liquidation.routes';
 import sectionRoutes from './routes/section.routes';
 import permissionRoutes from './routes/role_section_permission.routes';
 import authRoutes from './routes/auth.routes';
@@ -149,6 +151,9 @@ app.get("/health", (req, res) => {
 
 
 // routes
+app.use('/api/dashboard',    dashboardRoutes);
+app.use('/api/reports',      reportsRoutes);
+app.use('/api/liquidations', liquidationRoutes);
 app.use('/api/sections', sectionRoutes);
 app.use('/api/permissions', permissionRoutes);
 app.use('/api/auth', authRoutes);

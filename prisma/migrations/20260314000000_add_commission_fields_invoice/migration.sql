@@ -1,0 +1,3 @@
+ALTER TABLE "Invoice" ADD COLUMN IF NOT EXISTS "paypac_commission_pct" DOUBLE PRECISION DEFAULT 0;
+ALTER TABLE "Invoice" ADD COLUMN IF NOT EXISTS "paypac_commission_amount" INTEGER DEFAULT 0;
+ALTER TABLE "Invoice" ADD COLUMN IF NOT EXISTS "promoter_commission_amount" INTEGER DEFAULT 0;

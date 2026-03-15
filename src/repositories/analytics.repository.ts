@@ -75,31 +75,94 @@ export class AnalyticsRepository {
   }
 
   async getRevenueByMonth(from: Date, to: Date, organizer_id?: number) {
-    const events = organizer_id
-      ? (await prisma.event.findMany({ where: { organizer_id }, select: { id: true } })).map(e => e.id)
-      : undefined;
-
-    const invoices = await prisma.invoice.findMany({
-      where: {
-        status: 'PAID',
-        createdAt: { gte: from, lte: to },
-        ...(events && { event_id: { in: events } }),
-      },
-      select: { total: true, createdAt: true },
-    });
-
-    // Agrupar por mes en memoria
-    const byMonth: Record<string, { revenue: number; count: number }> = {};
-    for (const inv of invoices) {
-      const key = `${inv.createdAt.getFullYear()}-${String(inv.createdAt.getMonth() + 1).padStart(2, '0')}`;
-      if (!byMonth[key]) byMonth[key] = { revenue: 0, count: 0 };
-      byMonth[key].revenue += inv.total;
-      byMonth[key].count++;
-    }
-    return Object.entries(byMonth)
-      .map(([month, data]) => ({ month, ...data }))
-      .sort((a, b) => a.month.localeCompare(b.month));
+  const events = organizer_id
+    ? (await prisma.event.findMany({ where: { organizer_id }, select: { id: true } })).map(e => e.id)
+    : undefined;
+ 
+  const invoices = await prisma.invoice.findMany({
+    where: {
+      status: 'PAID',
+      createdAt: { gte: from, lte: to },
+      ...(events && { event_id: { in: events } }),
+    },
+    select: {
+      total:                      true,
+      createdAt:                  true,
+      paypac_commission_amount:   true,
+      promoter_commission_amount: true,
+    },
+  });
+ 
+  const byMonth: Record<string, {
+    revenue:     number;
+    commissions: number;
+    promoters:   number;
+    count:       number;
+  }> = {};
+ 
+  for (const inv of invoices) {
+    const key = `${inv.createdAt.getFullYear()}-${String(inv.createdAt.getMonth() + 1).padStart(2, '0')}`;
+    if (!byMonth[key]) byMonth[key] = { revenue: 0, commissions: 0, promoters: 0, count: 0 };
+    byMonth[key].revenue     += inv.total;
+    byMonth[key].commissions += inv.paypac_commission_amount   ?? 0;
+    byMonth[key].promoters   += inv.promoter_commission_amount ?? 0;
+    byMonth[key].count++;
   }
+ 
+  return Object.entries(byMonth)
+    .map(([month, data]) => ({ month, ...data }))
+    .sort((a, b) => a.month.localeCompare(b.month));
+}
+
+
+// ─── 2. AGREGAR getOrganizerCohorts() ────────────────────────────────────────
+ 
+async getOrganizerCohorts() {
+  const companies = await prisma.company.findMany({
+    where: { status: 1 },
+    select: { id: true, createdAt: true },
+  });
+ 
+  // Agrupar por quarter de creación
+  const byQuarter: Record<string, { total: number; ids: number[] }> = {};
+  for (const c of companies) {
+    const q = `Q${Math.floor(c.createdAt.getMonth() / 3) + 1} ${c.createdAt.getFullYear()}`;
+    if (!byQuarter[q]) byQuarter[q] = { total: 0, ids: [] };
+    byQuarter[q].total++;
+    byQuarter[q].ids.push(c.id);
+  }
+ 
+  // Activa = tuvo al menos 1 evento creado en los últimos 90 días
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - 90);
+ 
+  const results = await Promise.all(
+    Object.entries(byQuarter).map(async ([quarter, data]) => {
+      const activeOrgs = await prisma.event.groupBy({
+        by: ['organizer_id'],
+        where: {
+          organizer_id: { in: data.ids },
+          createdAt:    { gte: cutoff },
+        },
+      });
+ 
+      const activeIds = new Set(activeOrgs.map(e => e.organizer_id));
+      const active    = data.ids.filter(id => activeIds.has(id)).length;
+      const churned   = data.total - active;
+ 
+      return {
+        quarter,
+        total:     data.total,
+        active,
+        churned,
+        retention: data.total > 0 ? Math.round((active / data.total) * 100) : 0,
+      };
+    })
+  );
+ 
+  return results.sort((a, b) => a.quarter.localeCompare(b.quarter));
+}
+
 
   async getTicketStats(from: Date, to: Date, organizer_id?: number) {
     const events = organizer_id
