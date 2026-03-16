@@ -93,7 +93,7 @@ const io = new SocketIOServer(server, {
        "https://api.paypac.com.co",
         "https://app.paypac.com.co",
     ],
-    methods: ["GET", "POST","PUT", "DELETE", "OPTIONS"],
+    methods: ["GET", "POST","PUT","PATCH", "DELETE", "OPTIONS"],
     credentials: true
   }
 });
@@ -124,7 +124,7 @@ app.use(cors({
       return callback(new Error("Not allowed by CORS"));
     }
   },
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  methods: ["GET", "POST", "PUT","PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true
 }));
