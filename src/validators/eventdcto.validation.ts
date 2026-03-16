@@ -23,6 +23,14 @@ export const createDiscountSchema = z.object({
     min_qty_tickets: z.number().int().positive().optional().nullable(),
     max_qty_tickets: z.number().int().positive().optional().nullable(),
     locality_id: z.number().int().positive().optional().nullable(),
+    body: z.object({
+  // ...campos existentes...
+  code:      z.string().min(3).max(20)
+               .regex(/^[A-Z0-9\-_]+$/i)
+               .optional(),
+  is_active: z.boolean().optional(),
+  max_uses:  z.number().int().positive().optional().nullable(),
+})
   }).refine(
     (data) => {
       // Validar que el porcentaje no sea mayor a 100

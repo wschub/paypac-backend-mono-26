@@ -18,8 +18,6 @@ import subCategoryRoutes from './routes/subcategory.routes';
 import subgenreRoutes from './routes/subgenre.routes';
 import settingsRoutes from './routes/generalsettings.routes';
 import companyRoutes from './routes/company.routes';
-
-
 import eventRoutes from './routes/event.routes';
 import eventLocalitiesRoutes from './routes/eventlocalities.routes';
 import eventStagesRoutes from './routes/eventstages.routes';
@@ -40,15 +38,17 @@ import staffAssignmentRoutes from './routes/event_staff_assignment.routes';
 import transactionRoutes from './routes/transaction.routes';
 import paymentMethodsUIRoutes from './routes/paymentmethodsui.routes';
 import paymentCardRoutes from './routes/paymentmethodcard.routes';
-
 import emailQueueRoutes from './routes/notificationmessagequeue.routes';
-import { validateBrevoConfig } from './config/brevo';
-import { startEmailQueueProcessor, startEmailQueueCleaner } from './jobs/email-queue-processor';
 import smsRoutes from './routes/sms.routes';
 import countriesRoutes from './routes/countries.routes';
 import statesRoutes from './routes/states.routes';
 import citiesRoutes from './routes/cities.routes';
 import companyFollowersRoutes from './routes/company_followers.routes';
+
+
+import { validateBrevoConfig } from './config/brevo';
+import { startEmailQueueProcessor, startEmailQueueCleaner } from './jobs/email-queue-processor';
+import { startEventFinalizer } from './jobs/event-finalizer';
 
 
 
@@ -207,6 +207,7 @@ app.use("/api/upload", uploadRoutes);
 // Iniciar CRON jobs
 startEmailQueueProcessor(); // Procesa cola cada 5 minutos
 startEmailQueueCleaner();   // Limpia mensajes antiguos diariamente
+startEventFinalizer(); //Finalize eventos
 
 
 // ============================================

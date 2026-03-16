@@ -233,4 +233,26 @@ export const getApplicableDiscounts = async (
     console.error('❌ Error en getApplicableDiscounts:', err);
     res.status(400).json({ error: err.message });
   }
+
+
+  
+};
+
+
+export const toggleDiscount = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const result = await dctoService.toggleDiscount(
+      Number(req.params.id),
+      req.user!.id,
+      req.user!.role
+    );
+    res.status(200).json({
+      message: `Descuento ${result.is_active ? 'activado' : 'desactivado'} exitosamente`,
+      discount: result,
+    });
+  } catch (err: any) {
+    const status = err.message.includes('permisos') ? 403
+                 : err.message.includes('no encontrado') ? 404 : 400;
+    res.status(status).json({ message: err.message });
+  }
 };

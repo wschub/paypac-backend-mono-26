@@ -114,6 +114,16 @@ if (!stageLocality || stageLocality.event_id !== data.event_id) {
       const discount = await dctoRepo.findByName(data.event_id, data.discount_code);
       
       if (discount) {
+        // ✅ Validar que esté activo
+  if (!discount.is_active) {
+    throw new Error('Este código de descuento no está activo');
+  }
+
+  // ✅ Validar max_uses
+  if (discount.max_uses && discount.uses_count >= discount.max_uses) {
+    throw new Error('Este código de descuento ha alcanzado el límite de usos');
+  }
+
         // Validar que el descuento es aplicable
         if (discount.min_qty_tickets && totalTickets < discount.min_qty_tickets) {
           throw new Error(`El descuento requiere al menos ${discount.min_qty_tickets} tickets`);
@@ -207,6 +217,10 @@ if (data.promoter_code && event.allow_external_promoters) {
     }));
 
     await invoiceTicketsRepo.createMany(itemsWithInvoiceId);
+
+    if (discountApplied && data.discount_code) {
+  await dctoRepo.incrementUses(data.event_id, data.discount_code);
+}
 
     // Retornar factura con items
     const items = await invoiceTicketsRepo.findByInvoiceId(invoice.id);

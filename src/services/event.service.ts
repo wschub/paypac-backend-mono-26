@@ -1,7 +1,10 @@
 import { EventRepository } from '../repositories/event.repository';
 import { Prisma, EVENT_STATUS } from '@prisma/client';
+import { EventLiquidationService } from './event_liquidation.service';
+
 
 const eventRepo = new EventRepository();
+const liquidationService = new EventLiquidationService();
 
 export class EventService {
 
@@ -211,7 +214,18 @@ private getPriceFrom(localities: any[]) {
       );
     }
 
-    return eventRepo.updateStatus(id, status);
+    // ✅ AHORA
+const updatedEvent = await eventRepo.updateStatus(id, status);
+
+if (status === EVENT_STATUS.FINALIZED) {
+  try {
+    await liquidationService.autoCreateFromEvent(id);
+  } catch (liqError: any) {
+    console.error('⚠️ Error creando liquidación automática:', liqError.message);
+  }
+}
+
+return updatedEvent;
   }
 
   /**

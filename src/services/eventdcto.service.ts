@@ -214,6 +214,14 @@ export class EventDctoService {
       throw new Error('Código de descuento no válido');
     }
 
+    // ✅ Agregar estas dos validaciones
+if (!discount.is_active)
+  throw new Error('Este código de descuento no está activo');
+
+if (discount.max_uses && discount.uses_count >= discount.max_uses)
+  throw new Error('Este código de descuento ha alcanzado el límite de usos');
+
+
     // Verificar si aplica a la localidad
     if (discount.locality_id && localityId && discount.locality_id !== localityId) {
       throw new Error('Este descuento no es válido para la localidad seleccionada');
@@ -272,4 +280,25 @@ export class EventDctoService {
   ) {
     return dctoRepo.findApplicableDiscounts(eventId, quantity, localityId);
   }
+
+
+  /**
+ * Activar/desactivar código de descuento
+ * Solo el dueño del evento o PAYPAC
+ */
+async toggleDiscount(id: number, userId: number, userRole: string) {
+  const discount = await dctoRepo.findById(id);
+  if (!discount) throw new Error('Descuento no encontrado');
+
+  const event = await eventRepo.findById(discount.event_id);
+  if (!event) throw new Error('Evento asociado no encontrado');
+
+  const isOwner  = event.organizer_id === userId;
+  const isPaypac = userRole === 'PAYPAC';
+
+  if (!isOwner && !isPaypac)
+    throw new Error('No tienes permisos para modificar este descuento');
+
+  return dctoRepo.update(id, { is_active: !discount.is_active });
+}
 }

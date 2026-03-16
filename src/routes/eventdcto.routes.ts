@@ -8,6 +8,7 @@ import {
   validateDiscount,
   calculateDiscount,
   getApplicableDiscounts,
+  toggleDiscount
 } from '../controllers/eventdcto.controller';
 import { authenticate } from '../middlewares/auth.middleware';
 import { authorizeRoles } from '../middlewares/role.middleware';
@@ -129,6 +130,20 @@ router.put(
   validateRequest(updateDiscountSchema),
   updateDiscount
 );
+
+//NEW
+/**
+ * PATCH /api/events/:eventId/discounts/:id/toggle
+ * Activar/desactivar código de descuento
+ * Acceso: ORGANIZER dueño o PAYPAC
+ */
+router.patch(
+  '/:eventId/discounts/:id/toggle',
+  authenticate,
+  authorizeRoles('ORGANIZER', 'PAYPAC'),
+  toggleDiscount
+);
+
 
 /**
  * DELETE /api/discounts/:id

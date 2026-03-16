@@ -88,4 +88,65 @@ export class EventLiquidationService {
     if (!liq) throw new Error('Liquidación no encontrada');
     return liquidationRepo.delete(id);
   }
+
+  // ─── Auto-crear liquidación al finalizar evento ───────────────────────────────
+
+async autoCreateFromEvent(event_id: number): Promise<void> {
+  const { prisma } = await import('../config/db');
+
+  // Verificar que no exista ya una liquidación para este evento
+  const existing = await liquidationRepo.findAll({ event_id });
+  if (existing.length > 0) {
+    console.log(`⚠️ Ya existe liquidación para evento ${event_id} — omitiendo`);
+    return;
+  }
+
+  const event = await eventRepo.findById(event_id);
+  if (!event) throw new Error(`Evento ${event_id} no encontrado`);
+
+  // Obtener company_id desde el organizador
+  const organizer = await prisma.user.findUnique({
+    where: { id: event.organizer_id },
+    select: { company_id: true },
+  });
+  if (!organizer?.company_id) {
+    console.error(`⚠️ Organizador del evento ${event_id} no tiene empresa asignada`);
+    return;
+  }
+
+  // Calcular desde Invoice
+  const invoiceAgg = await prisma.invoice.aggregate({
+    where: { event_id, status: 'PAID' },
+    _sum: {
+      total:                      true,
+      paypac_commission_amount:   true,
+      promoter_commission_amount: true,
+      refunded_amount:            true,
+    },
+  });
+
+  const gross_amount        = invoiceAgg._sum.total                      ?? 0;
+  const paypac_commission   = invoiceAgg._sum.paypac_commission_amount   ?? 0;
+  const promoter_commission = invoiceAgg._sum.promoter_commission_amount ?? 0;
+  const refunds             = invoiceAgg._sum.refunded_amount            ?? 0;
+  const net_amount          = gross_amount - paypac_commission - promoter_commission - refunds;
+
+  const num_liquidation = await liquidationRepo.generateNumLiquidation();
+
+  await liquidationRepo.create({
+    company_id:          organizer.company_id,
+    event_id,
+    num_liquidation,
+    gross_amount,
+    paypac_commission,
+    promoter_commission,
+    refunds,
+    net_amount,
+    status:              'PENDING',
+    liquidation_date:    new Date(),
+  });
+
+  console.log(`✅ Liquidación ${num_liquidation} creada automáticamente para evento ${event_id}`);
+}
+
 }

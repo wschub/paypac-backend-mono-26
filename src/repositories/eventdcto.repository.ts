@@ -86,14 +86,30 @@ export class EventDctoRepository {
   /**
    * Buscar descuento por nombre en un evento
    */
-  async findByName(eventId: number, name: string): Promise<EventDcto | null> {
-    return prisma.eventDcto.findFirst({
-      where: {
-        event_id: eventId,
-        name_dcto: name,
-      },
-    });
-  }
+  async findByName(eventId: number, codeOrName: string): Promise<EventDcto | null> {
+  return prisma.eventDcto.findFirst({
+    where: {
+      event_id: eventId,
+      OR: [
+        { name_dcto: { equals: codeOrName, mode: 'insensitive' } },
+        { code:      { equals: codeOrName, mode: 'insensitive' } },
+      ],
+    },
+  });
+}
+
+async incrementUses(eventId: number, codeOrName: string): Promise<void> {
+  await prisma.eventDcto.updateMany({
+    where: {
+      event_id: eventId,
+      OR: [
+        { name_dcto: { equals: codeOrName, mode: 'insensitive' } },
+        { code:      { equals: codeOrName, mode: 'insensitive' } },
+      ],
+    },
+    data: { uses_count: { increment: 1 } },
+  });
+}
 
   /**
    * Obtener descuentos por localidad
@@ -224,4 +240,7 @@ export class EventDctoRepository {
       orderBy: { value_dcto: 'desc' }, // Mayor descuento primero
     });
   }
+
+
+
 }
