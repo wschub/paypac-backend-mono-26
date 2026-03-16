@@ -178,6 +178,49 @@ export class WebhookService {
 
         console.log('✅ TICKETS CREADOS EXITOSAMENTE\n');
 
+        // 📊 Registrar balance de promotor si hubo código
+try {
+  const invoiceWithCode = await prisma.invoice.findUnique({
+    where: { id: invoice.id },
+    select: {
+      promoter_code_id:           true,
+      promoter_commission_amount: true,
+      num_items:                  true,
+      promoterCode: {
+        select: { promoter_id: true },
+      },
+    },
+  });
+
+  if (invoiceWithCode?.promoter_code_id && invoiceWithCode.promoter_commission_amount) {
+    const rewardRule = await prisma.eventRewardRules.findFirst({
+      where: { event_id: invoice.event_id },
+    });
+
+    await prisma.eventBalancePromoters.create({
+      data: {
+        event_id:           invoice.event_id,
+        promoter_id:        invoiceWithCode.promoterCode!.promoter_id,
+        reward_rule_id:     rewardRule?.id ?? null,
+        reward_amount:      invoiceWithCode.promoter_commission_amount,
+        reward_description: `Comisión por ${invoiceWithCode.num_items} ticket(s) — Invoice ${reference}`,
+        invoice_id:         invoice.id,
+        tickets_sold:       invoiceWithCode.num_items,
+        status:             0,
+      },
+    });
+
+    await prisma.promoterCode.update({
+      where: { id: invoiceWithCode.promoter_code_id },
+      data: { uses_count: { increment: 1 } },
+    });
+
+    console.log('✅ Balance de promotor registrado');
+  }
+} catch (promoError: any) {
+  console.error('⚠️ Error registrando balance de promotor:', promoError.message);
+}
+
         // Socket.IO: tickets:created
         io.to(`user:${invoice.user_id}`).emit('tickets:created', {
           invoice_id: invoice.id,

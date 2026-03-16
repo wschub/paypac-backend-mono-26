@@ -7,6 +7,8 @@ import { EventDctoRepository } from '../repositories/eventdcto.repository';
 import { UserRepository } from '../repositories/user.repository';
 import { TicketService } from './ticket.service';
 import { Prisma, InvoiceStatus } from '@prisma/client';
+import { PromoterCodeService } from './promoter_code.service';
+
 
 const invoiceRepo = new InvoiceRepository();
 const invoiceTicketsRepo = new InvoiceTicketsRepository();
@@ -16,6 +18,7 @@ const localitiesRepo = new EventLocalitiesRepository();
 const dctoRepo = new EventDctoRepository();
 const userRepo = new UserRepository();
 const ticketService = new TicketService();
+const promoCodeService = new PromoterCodeService();
 
 export class InvoiceService {
   /**
@@ -31,6 +34,7 @@ export class InvoiceService {
         qty_tickets: number;
       }>;
       discount_code?: string;
+      promoter_code?: string; // ← agregar
     }
   ) {
     // Verificar que el evento existe
@@ -136,6 +140,29 @@ if (!stageLocality || stageLocality.event_id !== data.event_id) {
 
     const finalTotal = discountApplied ? totalWithDiscount : totalRegular;
 
+// ── Comisión PayPac ──────────────────────────────────────────────
+const paypac_commission_pct    = event.commission_percentage ?? 0;
+const paypac_commission_amount = Math.round(finalTotal * paypac_commission_pct / 100);
+
+// ── Comisión Promotor ────────────────────────────────────────────
+let promoter_code_id:           number | null = null;
+let promoter_commission_amount: number        = 0;
+
+if (data.promoter_code && event.allow_external_promoters) {
+  const promoData = await promoCodeService.applyCodeToInvoice(
+    data.promoter_code,
+    data.event_id
+  );
+  if (promoData) {
+    promoter_code_id           = promoData.promoter_code_id;
+    promoter_commission_amount = promoCodeService.calculatePromoterCommission(
+      finalTotal,
+      totalTickets,
+      promoData.reward_rule
+    );
+  }
+}
+
     // Generar número de factura
     const numInvoice = await invoiceRepo.generateInvoiceNumber();
 
@@ -157,6 +184,11 @@ if (!stageLocality || stageLocality.event_id !== data.event_id) {
       total_ticket_regular: totalRegular,
       total: finalTotal,
       status: InvoiceStatus.ISSUED, // Emitida, esperando pago
+       // ── Comisiones ──────────────────────────────────
+      paypac_commission_pct,
+      paypac_commission_amount,
+      promoter_commission_amount,
+      promoter_code_id,
     };
 
     const invoice = await invoiceRepo.create(invoiceData);

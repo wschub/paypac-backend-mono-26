@@ -31,6 +31,7 @@ import eventSeatStatusRoutes from './routes/event_seat_status.routes';
 import eventDctoRoutes from './routes/eventdcto.routes';
 import eventRewardRulesRoutes from './routes/eventrewardrules.routes';
 import eventBalancePromotersRoutes from './routes/eventbalancepromoters.routes';
+import promoterCodeRoutes from './routes/promoter_code.routes';
 import eventFavoritesRoutes from './routes/eventfavorites.routes';
 import  invoicesRoutes   from "./routes/invoice.routes";
 import ticketRoutes from './routes/ticket.routes';
@@ -178,6 +179,7 @@ app.use('/api/venues/seat-status', eventSeatStatusRoutes);
 app.use('/api', eventDctoRoutes);
 app.use('/api', eventRewardRulesRoutes);
 app.use('/api', eventBalancePromotersRoutes);
+app.use('/api/promoter-codes', promoterCodeRoutes);
 app.use('/api', eventFavoritesRoutes);
 app.use('/api', invoicesRoutes); // Rutas de facturas
 app.use('/api/tickets', ticketRoutes);
