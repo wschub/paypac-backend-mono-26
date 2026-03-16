@@ -7,7 +7,6 @@ import {
   getUpcomingTickets,
   cancelTicket,
   getEventTicketStats,
-   createTestTicket,
 } from '../controllers/ticket.controller';
 import { authenticate } from '../middlewares/auth.middleware';
 import { authorizeRoles } from '../middlewares/role.middleware';
