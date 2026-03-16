@@ -19,11 +19,52 @@ import {
   cancelTicketSchema,
   getEventStatsSchema,
 } from '../validators/ticket.validation';
+//admin
+import {
+  getAdminTickets,
+  updateTicketStatus,
+  adminTransferTicket,
+} from '../controllers/ticket.admin.controller';
+import {
+  getAdminTicketsSchema,
+  updateTicketStatusSchema,
+  adminTransferTicketSchema,
+} from '../validators/ticket.admin.validation';
 
 const router = Router();
 
 
+/*
+ADMIN
+*/
+// GET /api/tickets/admin
+router.get(
+  '/admin',
+  authenticate,
+  authorizeRoles('PAYPAC', 'ORGANIZER'),
+  validateRequest(getAdminTicketsSchema),
+  getAdminTickets
+);
 
+// PATCH /api/tickets/admin/:id/status
+router.patch(
+  '/admin/:id/status',
+  authenticate,
+  authorizeRoles('PAYPAC'),
+  validateRequest(updateTicketStatusSchema),
+  updateTicketStatus
+);
+
+// POST /api/tickets/admin/:id/transfer
+router.post(
+  '/admin/:id/transfer',
+  authenticate,
+  authorizeRoles('PAYPAC'),
+  validateRequest(adminTransferTicketSchema),
+  adminTransferTicket
+);
+
+/*=============== */
 
 
 
