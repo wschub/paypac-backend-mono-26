@@ -3,7 +3,7 @@ import { TicketRepository } from '../repositories/ticket.repository';
 import { Prisma } from '@prisma/client';
 import { TicketStatus } from '@prisma/client';
 import { NotificationMessageQueueService } from './notificationmessagequeue.service';
-
+import { io } from '../index';
 
 const transactionRepo = new TicketTransactionRepository();
 const ticketRepo = new TicketRepository();
@@ -15,6 +15,20 @@ export class TicketTransactionService {
    */
   async createTransaction(data: Prisma.TicketTransactionUncheckedCreateInput) {
      const transaction = await transactionRepo.create(data);
+
+     // 🔔 Socket.IO — notificar al receptor en tiempo real
+try {
+  io.to(`user:${data.to_customer_id}`).emit('ticket:received', {
+    transaction_id:   transaction.id,
+    from_user_id:     data.from_customer_id,
+    ticket_id:        data.ticket_id,
+    transaction_type: data.type_transaction,
+    message:          data.transaction_description,
+    timestamp:        new Date().toISOString(),
+  });
+} catch (socketError: any) {
+  console.error('⚠️ Error Socket.IO transfer:', socketError.message);
+}
  
   // 📧 Notificar al receptor
   try {
@@ -175,6 +189,18 @@ export class TicketTransactionService {
   }
 
     const completedTransaction = await transactionRepo.complete(transactionId);
+
+    // 🔔 Socket.IO — notificar al remitente
+try {
+  io.to(`user:${transaction.from_customer_id}`).emit('ticket:transfer:accepted', {
+    transaction_id: transactionId,
+    ticket_id:      transaction.ticket_id,
+    accepted_by_id: userId,
+    timestamp:      new Date().toISOString(),
+  });
+} catch (socketError: any) {
+  console.error('⚠️ Error Socket.IO accept:', socketError.message);
+}
  
   // 📧 Notificar al remitente
   try {
@@ -247,6 +273,19 @@ export class TicketTransactionService {
 await ticketRepo.updateStatus(transaction.ticket_id, TicketStatus.ACTIVE);
 
     const canceledTransaction = await transactionRepo.cancel(transactionId);
+
+    // 🔔 Socket.IO — notificar al remitente
+try {
+  io.to(`user:${transaction.from_customer_id}`).emit('ticket:transfer:rejected', {
+    transaction_id: transactionId,
+    ticket_id:      transaction.ticket_id,
+    rejected_by_id: userId,
+    timestamp:      new Date().toISOString(),
+  });
+} catch (socketError: any) {
+  console.error('⚠️ Error Socket.IO reject:', socketError.message);
+}
+
  
   // 📧 Notificar al remitente
   try {
