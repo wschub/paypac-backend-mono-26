@@ -12,7 +12,7 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
   //directUrl = env("DIRECT_URL")
-  //shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
+  shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
 }
 
 model GeneralSettingsVariables {
@@ -72,6 +72,7 @@ model User {
 
   staffAssignments EventStaffAssignment[] @relation("StaffAssignments")
   staffAssigned    EventStaffAssignment[] @relation("StaffAssigner")
+  promoterCodes PromoterCode[] @relation("PromoterCodes")
 
   // ... campos existentes
   notifications NotificationMessageQueue[]
@@ -443,6 +444,11 @@ model EventDcto {
   min_qty_tickets Int? // Cantidad mínima de tickets para aplicar el descuento
   max_qty_tickets Int? // Cantidad máxima de tickets para aplicar el descuento
   locality_id     Int? // Relación opcional con EventLocalities
+  //code dcto 
+  code        String?  @unique
+  is_active   Boolean  @default(true)
+  max_uses    Int?
+  uses_count  Int      @default(0)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -497,11 +503,29 @@ model EventBalancePromoters {
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
   expiration_date      DateTime?
+  invoice_id   Int?
+tickets_sold Int @default(0)
   status             Int       @default(0) // 0: Pendiente, 1: Pagado, 2: Cancelado
 
   event      Event             @relation(fields: [event_id], references: [id])
   promoter   User              @relation("UserPromoterBalances", fields: [promoter_id], references: [id])
   rewardRule EventRewardRules? @relation(fields: [reward_rule_id], references: [id])
+}
+
+model PromoterCode {
+  id          Int      @id @default(autoincrement())
+  promoter_id Int
+  code        String   @unique
+  is_active   Boolean  @default(true)
+  uses_count  Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  promoter User      @relation("PromoterCodes", fields: [promoter_id], references: [id])
+  invoices Invoice[]
+
+  @@index([promoter_id])
+  @@index([code])
 }
 
 model EventLiquidation {
@@ -745,11 +769,15 @@ model Invoice {
   paypac_commission_pct     Float?  @default(0) // snapshot % PayPac al momento de compra
   paypac_commission_amount  Int?    @default(0) // monto en pesos comisión PayPac
   promoter_commission_amount Int?   @default(0) // monto en pesos comisión promotor (ya calculado)
+  //code promoter
+  promoter_code_id Int?
+
   status               InvoiceStatus
   createdAt            DateTime      @default(now())
   updatedAt            DateTime      @updatedAt
 
   invoiceTickets InvoiceTickets[]
+  promoterCode     PromoterCode? @relation(fields: [promoter_code_id], references: [id])
 }
 
 enum InvoiceStatus {
