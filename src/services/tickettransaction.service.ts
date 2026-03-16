@@ -2,16 +2,119 @@ import { TicketTransactionRepository } from '../repositories/tickettransaction.r
 import { TicketRepository } from '../repositories/ticket.repository';
 import { Prisma } from '@prisma/client';
 import { TicketStatus } from '@prisma/client';
+import { NotificationMessageQueueService } from './notificationmessagequeue.service';
+
 
 const transactionRepo = new TicketTransactionRepository();
 const ticketRepo = new TicketRepository();
+const emailService = new NotificationMessageQueueService();
 
 export class TicketTransactionService {
   /**
    * Crear un registro de transacción (auditoría)
    */
   async createTransaction(data: Prisma.TicketTransactionUncheckedCreateInput) {
-    return transactionRepo.create(data);
+     const transaction = await transactionRepo.create(data);
+ 
+  // 📧 Notificar al receptor
+  try {
+    const { prisma } = await import('../config/db');
+ 
+    // Verificar si el receptor existe en el sistema
+    const recipient = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { email:        data.to_customer_uid   }, // to_customer_uid puede ser email
+          { phone_number: data.to_customer_UUID_phone },
+        ],
+      },
+      select: { id: true, name: true, last_name: true, email: true },
+    });
+ 
+    const sender = await prisma.user.findUnique({
+      where: { id: data.from_customer_id },
+      select: { name: true, last_name: true },
+    });
+ 
+    const senderName = sender ? `${sender.name} ${sender.last_name}` : 'Un usuario';
+ 
+    // Buscar datos del ticket para el evento
+    const ticket = await prisma.ticket.findUnique({
+      where: { id: data.ticket_id },
+      select: {
+        ev_name:         true,
+        ev_cover:        true,
+        ev_date_event:   true,
+        ev_place_address: true,
+        loc_name_locality: true,
+      },
+    });
+ 
+    if (recipient && recipient.email) {
+      // ✅ Receptor REGISTRADO
+      await emailService.queueEmail({
+        userId: recipient.id,
+        email:  recipient.email,
+        templateCode: 'TICKET_TRANSFER_RECEIVED',
+        variables: {
+          recipient_name:  `${recipient.name} ${recipient.last_name}`,
+          sender_name:     senderName,
+          sender_message:  (data as any).transaction_description ?? '',
+          event_name:      ticket?.ev_name          ?? 'tu evento',
+          event_image:     ticket?.ev_cover         ?? '',
+          event_date:      ticket?.ev_date_event
+            ? new Date(ticket.ev_date_event).toLocaleString('es-CO', { dateStyle: 'full', timeStyle: 'short' })
+            : '',
+          event_address:   ticket?.ev_place_address ?? '',
+          locality_name:   ticket?.loc_name_locality ?? '',
+          wallet_link:     'https://app.paypac.com.co/wallet',
+        },
+      });
+    } else {
+      // ❌ Receptor NO REGISTRADO — enviar a email/cel contacto
+      const contactEmail = data.to_customer_uid?.includes('@')
+        ? data.to_customer_uid
+        : null;
+ 
+      if (contactEmail) {
+        await emailService.queueEmail({
+          userId: data.from_customer_id, // se usa el remitente como referencia
+          email:  contactEmail,
+          templateCode: 'TICKET_TRANSFER_RECEIVED_UNREGISTERED',
+          variables: {
+            sender_name:    senderName,
+            event_name:     ticket?.ev_name ?? 'un evento',
+            appstore_link:  'https://apps.apple.com/app/paypac',
+            playstore_link: 'https://play.google.com/store/apps/paypac',
+          },
+        });
+      }
+ 
+      // Notificar al remitente que el receptor no está registrado
+      const senderUser = await prisma.user.findUnique({
+        where: { id: data.from_customer_id },
+        select: { id: true, email: true, name: true, last_name: true },
+      });
+      if (senderUser?.email) {
+        await emailService.queueEmail({
+          userId: senderUser.id,
+          email:  senderUser.email,
+          templateCode: 'TICKET_TRANSFER_STATUS',
+          variables: {
+            sender_name:    `${senderUser.name} ${senderUser.last_name}`,
+            recipient_name: data.to_customer_UUID_phone || data.to_customer_uid || 'el receptor',
+            event_name:     ticket?.ev_name ?? 'tu evento',
+            status:         'PENDING_REGISTRATION',
+            wallet_link:    'https://app.paypac.com.co/wallet',
+          },
+        });
+      }
+    }
+  } catch (emailError: any) {
+    console.error('⚠️ Error enviando notificación de transferencia:', emailError.message);
+  }
+ 
+  return transaction;
   }
 
   /**
@@ -71,12 +174,36 @@ export class TicketTransactionService {
     throw new Error('Debes completar el pago antes de aceptar esta transferencia');
   }
 
-  const completedTransaction = await transactionRepo.complete(transactionId);
-
-  return {
-    transaction: completedTransaction,
-    message: 'Transferencia aceptada exitosamente',
-  };
+    const completedTransaction = await transactionRepo.complete(transactionId);
+ 
+  // 📧 Notificar al remitente
+  try {
+    const { prisma } = await import('../config/db');
+    const [sender, recipient, ticket] = await Promise.all([
+      prisma.user.findUnique({ where: { id: transaction.from_customer_id }, select: { id: true, name: true, last_name: true, email: true } }),
+      prisma.user.findUnique({ where: { id: userId }, select: { name: true, last_name: true } }),
+      prisma.ticket.findUnique({ where: { id: transaction.ticket_id }, select: { ev_name: true } }),
+    ]);
+ 
+    if (sender?.email) {
+      await emailService.queueEmail({
+        userId: sender.id,
+        email:  sender.email,
+        templateCode: 'TICKET_TRANSFER_STATUS',
+        variables: {
+          sender_name:    `${sender.name} ${sender.last_name}`,
+          recipient_name: recipient ? `${recipient.name} ${recipient.last_name}` : 'el receptor',
+          event_name:     ticket?.ev_name ?? 'tu evento',
+          status:         'ACCEPTED',
+          wallet_link:    'https://app.paypac.com.co/wallet',
+        },
+      });
+    }
+  } catch (emailError: any) {
+    console.error('⚠️ Error enviando notificación de aceptación:', emailError.message);
+  }
+ 
+  return { transaction: completedTransaction, message: 'Transferencia aceptada exitosamente' };
 }
 
   /**
@@ -119,13 +246,37 @@ export class TicketTransactionService {
 // ← agregar aquí
 await ticketRepo.updateStatus(transaction.ticket_id, TicketStatus.ACTIVE);
 
-    // Cancelar la transacción
     const canceledTransaction = await transactionRepo.cancel(transactionId);
-
-    return {
-      transaction: canceledTransaction,
-      message: 'Transferencia rechazada. El ticket ha sido devuelto al remitente.',
-    };
+ 
+  // 📧 Notificar al remitente
+  try {
+    const { prisma } = await import('../config/db');
+    const [sender, recipient, ticket] = await Promise.all([
+      prisma.user.findUnique({ where: { id: transaction.from_customer_id }, select: { id: true, name: true, last_name: true, email: true } }),
+      prisma.user.findUnique({ where: { id: userId }, select: { name: true, last_name: true } }),
+      prisma.ticket.findUnique({ where: { id: transaction.ticket_id }, select: { ev_name: true } }),
+    ]);
+ 
+    if (sender?.email) {
+      await emailService.queueEmail({
+        userId: sender.id,
+        email:  sender.email,
+        templateCode: 'TICKET_TRANSFER_STATUS',
+        variables: {
+          sender_name:    `${sender.name} ${sender.last_name}`,
+          recipient_name: recipient ? `${recipient.name} ${recipient.last_name}` : 'el receptor',
+          event_name:     ticket?.ev_name ?? 'tu evento',
+          status:         'REJECTED',
+          wallet_link:    'https://app.paypac.com.co/wallet',
+        },
+      });
+    }
+  } catch (emailError: any) {
+    console.error('⚠️ Error enviando notificación de rechazo:', emailError.message);
+  }
+ 
+  return { transaction: canceledTransaction, message: 'Transferencia rechazada. El ticket ha sido devuelto al remitente.' };
+ 
   }
 
   /**
