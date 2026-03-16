@@ -2,7 +2,6 @@ import { Request, Response } from 'express';
 import { TicketAdminService } from '../services/ticket.admin.service';
 
 const ticketAdminService = new TicketAdminService();
-
 /**
  * GET /api/tickets/admin
  * Listar tickets con filtros
