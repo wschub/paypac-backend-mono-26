@@ -235,3 +235,28 @@ export const countPendingTransactions = async (req: Request, res: Response): Pro
     });
   }
 };
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 3. tickettransaction.controller.ts — agregar 2 métodos nuevos
+// ═══════════════════════════════════════════════════════════════════════════
+ 
+export const sendTransfer = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const result = await transactionService.sendTransfer(req.user!.id, req.body);
+    res.status(201).json({ success: true, ...result });
+  } catch (err: any) {
+    const httpStatus = err.message.includes('no te pertenece') ? 403
+                     : err.message.includes('no encontrado')   ? 404 : 400;
+    res.status(httpStatus).json({ success: false, message: err.message });
+  }
+};
+ 
+export const acceptByContact = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { contact } = req.body;
+    const result = await transactionService.acceptByContact(req.user!.id, contact);
+    res.status(200).json({ success: true, ...result });
+  } catch (err: any) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+};

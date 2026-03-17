@@ -10,6 +10,8 @@ import {
   rejectTransfer,
   cancelTransfer,
   countPendingTransactions,
+   sendTransfer,
+  acceptByContact,
 } from '../controllers/tickettransaction.controller';
 import { authenticate } from '../middlewares/auth.middleware';
 import { authorizeRoles } from '../middlewares/role.middleware';
@@ -20,6 +22,8 @@ import {
   rejectTransferSchema,
   cancelTransferSchema,
   getTicketHistorySchema,
+  sendTransferSchema, 
+  acceptByContactSchema
 } from '../validators/tickettransaction.validation';
 
 const router = Router();
@@ -98,6 +102,27 @@ router.get(
   validateRequest(getTicketHistorySchema),
   getTicketHistory
 );
+
+
+//transfer
+// POST /api/ticket-transactions — enviar transferencia
+router.post(
+  '/',
+  authenticate,
+  authorizeRoles('PAYPAC', 'ORGANIZER', 'STAFF', 'STAFF_PROMOTER', 'PROMOTER', 'CUSTOMER'),
+  validateRequest(sendTransferSchema),
+  sendTransfer
+);
+ 
+// POST /api/ticket-transactions/accept-by-contact — al registrarse busca pendientes
+router.post(
+  '/accept-by-contact',
+  authenticate,
+  authorizeRoles('PAYPAC', 'ORGANIZER', 'STAFF', 'STAFF_PROMOTER', 'PROMOTER', 'CUSTOMER'),
+  validateRequest(acceptByContactSchema),
+  acceptByContact
+);
+
 
 /**
  * GET /api/ticket-transactions/:id

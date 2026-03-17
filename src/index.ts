@@ -49,7 +49,7 @@ import companyFollowersRoutes from './routes/company_followers.routes';
 import { validateBrevoConfig } from './config/brevo';
 import { startEmailQueueProcessor, startEmailQueueCleaner } from './jobs/email-queue-processor';
 import { startEventFinalizer } from './jobs/event-finalizer';
-
+import { startTicketTransferExpiry } from './jobs/ticket-transfer-expiry';
 
 
 //webkook routes
@@ -208,7 +208,7 @@ app.use("/api/upload", uploadRoutes);
 startEmailQueueProcessor(); // Procesa cola cada 5 minutos
 startEmailQueueCleaner();   // Limpia mensajes antiguos diariamente
 startEventFinalizer(); //Finalize eventos
-
+startTicketTransferExpiry(); //Ticket expira en 48 horas si no es aceptado
 
 // ============================================
 // 🔌 WebSocket - Socket.IO

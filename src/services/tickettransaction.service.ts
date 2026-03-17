@@ -442,4 +442,219 @@ await ticketRepo.updateStatus(transaction.ticket_id, TicketStatus.ACTIVE);
       message: 'Pago procesado exitosamente',
     };
   }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+// 1. tickettransaction.service.ts — agregar método sendTransfer()
+// ═══════════════════════════════════════════════════════════════════════════
+ 
+async sendTransfer(
+  senderId: number,
+  data: {
+    ticket_id:             number;
+    contact:               string; // email o celular del destinatario
+    type_transaction:      'transfer' | 'sale' | 'gift';
+    transaction_description?: string;
+  }
+) {
+  const { prisma } = await import('../config/db');
+ 
+  // 1. Verificar que el ticket existe y pertenece al remitente
+  const ticket = await ticketRepo.findById(data.ticket_id);
+  if (!ticket) throw new Error('Ticket no encontrado');
+  if (ticket.customer_id !== senderId)
+    throw new Error('Este ticket no te pertenece');
+  if (!['ACTIVE', 'PAID'].includes(ticket.status_ticket))
+    throw new Error(`No puedes transferir un ticket con estado: ${ticket.status_ticket}`);
+ 
+  // 2. Obtener datos del remitente
+  const sender = await prisma.user.findUnique({
+    where: { id: senderId },
+    select: { id: true, name: true, last_name: true, email: true,
+              firebase_uid: true, phone_number: true },
+  });
+  if (!sender) throw new Error('Remitente no encontrado');
+ 
+  // 3. Buscar destinatario por email o celular
+  const recipient = await prisma.user.findFirst({
+    where: {
+      OR: [
+        { email:        { equals: data.contact, mode: 'insensitive' } },
+        { phone_number: data.contact },
+      ],
+    },
+    select: { id: true, name: true, last_name: true,
+              email: true, firebase_uid: true, phone_number: true },
+  });
+ 
+  const isRegistered = !!recipient;
+ 
+  // 4. Congelar el ticket
+  await ticketRepo.updateStatus(data.ticket_id, 'FROZEN' as any);
+ 
+  // 5. Crear la transacción
+  const crypto = await import('crypto');
+  const newToken = crypto.randomBytes(32).toString('hex');
+ 
+  const transaction = await transactionRepo.create({
+    ticket_id:               data.ticket_id,
+    from_customer_id:        senderId,
+    from_customer_token:     ticket.token_ticket,
+    from_customer_uid:       sender.firebase_uid ?? '',
+    from_customer_UUID_phone: sender.phone_number ?? '',
+    reference_ticket:        ticket.reference_ticket,
+    booking_ticket:          ticket.booking_ticket,
+    to_customer_id:          isRegistered ? recipient!.id : senderId, // placeholder si no registrado
+    to_customer_token:       newToken,
+    to_customer_uid:         isRegistered ? (recipient!.firebase_uid ?? '') : data.contact,
+    to_customer_UUID_phone:  isRegistered ? (recipient!.phone_number ?? '') : data.contact,
+    type_transaction:        data.type_transaction,
+    ev_name:                 ticket.ev_name,
+    transaction_description: data.transaction_description ?? '',
+  });
+ 
+  // 6. Socket.IO — solo si está registrado
+  try {
+    const { io } = await import('../index');
+    if (isRegistered) {
+      io.to(`user:${recipient!.id}`).emit('ticket:received', {
+        transaction_id:   transaction.id,
+        from_user_id:     senderId,
+        ticket_id:        data.ticket_id,
+        transaction_type: data.type_transaction,
+        message:          data.transaction_description ?? '',
+        timestamp:        new Date().toISOString(),
+      });
+    }
+  } catch (socketError: any) {
+    console.error('⚠️ Socket.IO transfer error:', socketError.message);
+  }
+ 
+  // 7. Email — según si está registrado o no
+  try {
+    const eventDate = ticket.ev_date_event
+      ? new Date(ticket.ev_date_event).toLocaleString('es-CO', { dateStyle: 'full', timeStyle: 'short' })
+      : '';
+    const senderName = `${sender.name} ${sender.last_name}`;
+ 
+    if (isRegistered && recipient!.email) {
+      await emailService.queueEmail({
+        userId: recipient!.id,
+        email:  recipient!.email,
+        templateCode: 'TICKET_TRANSFER_RECEIVED',
+        variables: {
+          recipient_name:  `${recipient!.name} ${recipient!.last_name}`,
+          sender_name:     senderName,
+          sender_message:  data.transaction_description ?? '',
+          event_name:      ticket.ev_name,
+          event_image:     ticket.ev_cover,
+          event_date:      eventDate,
+          event_address:   ticket.ev_place_address,
+          locality_name:   ticket.loc_name_locality,
+          wallet_link:     'https://app.paypac.com.co/wallet',
+        },
+      });
+    } else if (data.contact.includes('@')) {
+      // No registrado — enviar a su email
+      await emailService.queueEmail({
+        userId: senderId,
+        email:  data.contact,
+        templateCode: 'TICKET_TRANSFER_RECEIVED_UNREGISTERED',
+        variables: {
+          sender_name:    senderName,
+          event_name:     ticket.ev_name,
+          appstore_link:  'https://apps.apple.com/app/paypac',
+          playstore_link: 'https://play.google.com/store/apps/paypac',
+        },
+      });
+ 
+      // Notificar al remitente que el destinatario no está registrado
+      if (sender.email) {
+        await emailService.queueEmail({
+          userId: senderId,
+          email:  sender.email,
+          templateCode: 'TICKET_TRANSFER_STATUS',
+          variables: {
+            sender_name:    senderName,
+            recipient_name: data.contact,
+            event_name:     ticket.ev_name,
+            status:         'PENDING_REGISTRATION',
+            wallet_link:    'https://app.paypac.com.co/wallet',
+          },
+        });
+      }
+    }
+  } catch (emailError: any) {
+    console.error('⚠️ Email transfer error:', emailError.message);
+  }
+ 
+  return {
+    transaction,
+    is_registered: isRegistered,
+    message: isRegistered
+      ? 'Ticket enviado. El destinatario tiene 30 minutos para aceptarlo.'
+      : 'El destinatario no está registrado en PayPac. Le enviamos un mensaje para que descargue la app. El ticket estará reservado 48 horas.',
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 2. tickettransaction.service.ts — agregar método acceptByContact()
+//    Se llama al registrarse un nuevo usuario — busca transferencias pendientes
+// ═══════════════════════════════════════════════════════════════════════════
+ 
+async acceptByContact(userId: number, contact: string) {
+  const { prisma } = await import('../config/db');
+ 
+  // Buscar transacciones pendientes donde el contacto coincide
+  const pendingTransactions = await prisma.ticketTransaction.findMany({
+    where: {
+      status_ticket: 'PENDING',
+      OR: [
+        { to_customer_uid:       { equals: contact, mode: 'insensitive' } },
+        { to_customer_UUID_phone: contact },
+      ],
+    },
+  });
+ 
+  if (pendingTransactions.length === 0) return { updated: 0, transactions: [] };
+ 
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { firebase_uid: true, phone_number: true },
+  });
+ 
+  const results = [];
+  for (const tx of pendingTransactions) {
+    try {
+      // Actualizar to_customer_id con el usuario real
+      await prisma.ticketTransaction.update({
+        where: { id: tx.id },
+        data: {
+          to_customer_id:          userId,
+          to_customer_uid:         user?.firebase_uid ?? '',
+          to_customer_UUID_phone:  user?.phone_number ?? '',
+        },
+      });
+ 
+      // Socket.IO — ahora sí tiene room
+      try {
+        const { io } = await import('../index');
+        io.to(`user:${userId}`).emit('ticket:received', {
+          transaction_id:   tx.id,
+          from_user_id:     tx.from_customer_id,
+          ticket_id:        tx.ticket_id,
+          transaction_type: tx.type_transaction,
+          message:          tx.transaction_description,
+          timestamp:        new Date().toISOString(),
+        });
+      } catch {}
+ 
+      results.push(tx.id);
+    } catch (err: any) {
+      console.error(`⚠️ Error actualizando tx ${tx.id}:`, err.message);
+    }
+  }
+ 
+  return { updated: results.length, transaction_ids: results };
+}
+
 }

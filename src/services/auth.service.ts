@@ -158,11 +158,30 @@ if (!createdBy) {
 
 
       console.log('📧 ============================================');
-
+     
       // TODO: Aquí irá la integración con el servicio de email
       // await emailService.sendWelcomeEmail(user.email, user.name);
+      
+      // 8. 🎫 Buscar transferencias pendientes (solo CUSTOMER auto-registrado)
+if (!createdBy && data.role === ROLES.CUSTOMER) {
+  try {
+    const { TicketTransactionService } = await import('./tickettransaction.service');
+    const ticketTxService = new TicketTransactionService();
 
-      // 8. ✅ Retornar datos del usuario
+    // Buscar por email y por celular
+    const byEmail = await ticketTxService.acceptByContact(user.id, user.email);
+    const byPhone = await ticketTxService.acceptByContact(user.id, user.phone_number);
+
+    const totalUpdated = (byEmail.updated ?? 0) + (byPhone.updated ?? 0);
+    if (totalUpdated > 0) {
+      console.log(`🎫 ${totalUpdated} transferencia(s) pendiente(s) asignadas al nuevo usuario ${user.id}`);
+    }
+  } catch (transferError: any) {
+    console.error('⚠️ Error buscando transferencias pendientes:', transferError.message);
+  }
+}
+
+      // 9. ✅ Retornar datos del usuario
       return {
         id: user.id,
         name: user.name,
