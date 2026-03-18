@@ -349,4 +349,59 @@ async sendTicketTransferRejectedNotification(
     return { success: false, error: error.message };
   }
 }
+
+/**
+ * Enviar notificación de transferencia expirada
+ */
+async sendTicketTransferExpiredNotification(
+  fcmToken: string,
+  data: {
+    eventName: string;
+    transactionId: number;
+    ticketId: number;
+  }
+) {
+  try {
+    console.log('📱 Enviando push notification de transferencia expirada...');
+
+    const message: admin.messaging.Message = {
+      token: fcmToken,
+      notification: {
+        title: '⏰ Transferencia expirada',
+        body: `Tu ticket para ${data.eventName} ha sido devuelto a tu wallet`,
+      },
+      data: {
+        type: 'ticket_transfer_expired',
+        transaction_id: data.transactionId.toString(),
+        ticket_id: data.ticketId.toString(),
+        route: '/wallet',
+      },
+      android: {
+        priority: 'high',
+        notification: {
+          channelId: 'tickets',
+          sound: 'default',
+          color: '#FFA500',
+        },
+      },
+      apns: {
+        payload: {
+          aps: {
+            sound: 'default',
+          },
+        },
+      },
+    };
+
+    const response = await admin.messaging().send(message);
+    console.log('✅ Push notification de expiración enviada');
+
+    return { success: true, messageId: response };
+  } catch (error: any) {
+    console.error('❌ Error enviando push notification:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+
 }

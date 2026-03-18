@@ -1,17 +1,20 @@
 import { prisma } from '../config/db';
 import { TicketRepository } from '../repositories/ticket.repository';
- 
+import { PushNotificationService } from '../services/push-notification.service'; // ✅ AGREGAR
+
 const ticketRepo = new TicketRepository();
- 
+const pushService = new PushNotificationService(); // ✅ AGREGAR
+
 export async function startTicketTransferExpiry(): Promise<void> {
   console.log('⏰ [CRON] Ticket Transfer Expiry iniciado — revisión cada hora');
- 
+
   setInterval(async () => {
     console.log('🔄 [CRON] Buscando transferencias expiradas...');
     try {
       const cutoff = new Date();
-      cutoff.setHours(cutoff.getHours() - 48); // 48 horas atrás
- 
+      //cutoff.setHours(cutoff.getHours() - 48); // 48 horas atrás
+      cutoff.setMinutes(cutoff.getMinutes() - 5) // 5 minutos
+
       // Buscar transacciones PENDING donde el destinatario sigue siendo placeholder
       // (to_customer_id === from_customer_id indica que no se ha asignado receptor real)
       const expired = await prisma.ticketTransaction.findMany({
@@ -22,14 +25,14 @@ export async function startTicketTransferExpiry(): Promise<void> {
           // O directamente llevan más de 48h pendientes
         },
       });
- 
+
       if (expired.length === 0) {
         console.log('✅ [CRON] No hay transferencias expiradas');
         return;
       }
- 
+
       console.log(`📋 [CRON] ${expired.length} transferencia(s) expirada(s)`);
- 
+
       for (const tx of expired) {
         try {
           // Devolver ticket al remitente
@@ -41,16 +44,16 @@ export async function startTicketTransferExpiry(): Promise<void> {
             tx.from_customer_token,
           );
           await ticketRepo.updateStatus(tx.ticket_id, 'ACTIVE' as any);
- 
+
           // Cancelar la transacción
           await prisma.ticketTransaction.update({
             where: { id: tx.id },
             data:  { status_ticket: 'CANCELLED' },
           });
- 
+
           console.log(`✅ [CRON] Transacción ${tx.id} expirada — ticket ${tx.ticket_id} devuelto`);
- 
-          // Notificar al remitente
+
+          // ✅ Notificar al remitente vía Socket.IO
           try {
             const { io } = await import('../index');
             io.to(`user:${tx.from_customer_id}`).emit('ticket:transfer:expired', {
@@ -60,14 +63,40 @@ export async function startTicketTransferExpiry(): Promise<void> {
               timestamp:      new Date().toISOString(),
             });
           } catch (socketError: any) {
-  console.error('⚠️ Error Socket.IO expired:', socketError.message);
-}
- 
+            console.error('⚠️ Error Socket.IO expired:', socketError.message);
+          }
+
+          // ✅ AGREGAR: Notificar al remitente vía FCM push notification
+          try {
+            const sender = await prisma.user.findUnique({
+              where: { id: tx.from_customer_id },
+              select: { fcm_token: true },
+            });
+
+            if (sender?.fcm_token) {
+              const ticket = await prisma.ticket.findUnique({
+                where: { id: tx.ticket_id },
+                select: { ev_name: true },
+              });
+
+              await pushService.sendTicketTransferExpiredNotification(
+                sender.fcm_token,
+                {
+                  eventName: ticket?.ev_name ?? 'tu evento',
+                  transactionId: tx.id,
+                  ticketId: tx.ticket_id,
+                }
+              );
+            }
+          } catch (fcmError: any) {
+            console.error('⚠️ Error FCM expired:', fcmError.message);
+          }
+
         } catch (txError: any) {
           console.error(`❌ [CRON] Error procesando tx ${tx.id}:`, txError.message);
         }
       }
- 
+
     } catch (err: any) {
       console.error('❌ [CRON] Error en Ticket Transfer Expiry:', err.message);
     }
