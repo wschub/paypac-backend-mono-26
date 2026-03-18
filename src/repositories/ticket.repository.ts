@@ -53,12 +53,15 @@ export class TicketRepository {
   /**
    * Buscar todos los tickets de un usuario (Wallet)
    */
-  async findByCustomer(customerId: number): Promise<Ticket[]> {
-    return prisma.ticket.findMany({
-      where: { customer_id: customerId },
-      orderBy: { ev_date_event: 'asc' },
-    });
-  }
+  async findByCustomer(customerId: number, status?: TicketStatus): Promise<Ticket[]> {
+  return prisma.ticket.findMany({
+    where: {
+      customer_id: customerId,
+      ...(status && { status_ticket: status }),
+    },
+    orderBy: { ev_date_event: 'asc' },
+  });
+}
 
   /**
    * Buscar tickets por evento

@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { TicketService } from '../services/ticket.service';
 import { TicketTransactionService } from '../services/tickettransaction.service';
 import { paramToInt } from '../utils/utils';
+import { TicketStatus } from '@prisma/client';
 const ticketService = new TicketService();
 const ticketTransactionService = new TicketTransactionService();
 
@@ -14,8 +15,9 @@ const ticketTransactionService = new TicketTransactionService();
 export const getMyTickets = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = req.user!.id;
+    const status = req.query.status as TicketStatus | undefined;
 
-    const tickets = await ticketService.getMyTickets(userId);
+    const tickets = await ticketService.getMyTickets(userId, status);
 
     res.status(200).json({
       success: true,
@@ -23,10 +25,7 @@ export const getMyTickets = async (req: Request, res: Response): Promise<void> =
       tickets,
     });
   } catch (err: any) {
-    res.status(400).json({
-      success: false,
-      message: err.message,
-    });
+    res.status(400).json({ success: false, message: err.message });
   }
 };
 

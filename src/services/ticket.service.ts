@@ -1,7 +1,7 @@
 import { TicketRepository } from '../repositories/ticket.repository';
 import { EventStaffAssignmentRepository } from '../repositories/event_staff_assignment.repository';
 import { EventRepository } from '../repositories/event.repository';
-import { Prisma } from '@prisma/client';
+import { Prisma, TicketStatus } from '@prisma/client';
 import {
   generateTicketData,
   regenerateTokenOnTransfer,
@@ -158,9 +158,9 @@ export class TicketService {
   /**
    * Obtener mis tickets (Wallet)
    */
-  async getMyTickets(userId: number) {
-    return ticketRepo.findByCustomer(userId);
- }
+  async getMyTickets(userId: number, status?: TicketStatus) {
+  return ticketRepo.findByCustomer(userId, status);
+}
 
   /**
    * Obtener ticket por ID
