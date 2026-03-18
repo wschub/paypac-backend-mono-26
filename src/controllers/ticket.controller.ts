@@ -15,7 +15,12 @@ const ticketTransactionService = new TicketTransactionService();
 export const getMyTickets = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = req.user!.id;
-    const status = req.query.status as TicketStatus | undefined;
+    const rawStatus = req.query.status as string | undefined;
+    const status = rawStatus
+      ? rawStatus.includes(',')
+        ? (rawStatus.split(',') as TicketStatus[])
+        : (rawStatus as TicketStatus)
+      : undefined;
 
     const tickets = await ticketService.getMyTickets(userId, status);
 

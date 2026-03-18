@@ -158,7 +158,7 @@ export class TicketService {
   /**
    * Obtener mis tickets (Wallet)
    */
-  async getMyTickets(userId: number, status?: TicketStatus) {
+  async getMyTickets(userId: number, status?: TicketStatus | TicketStatus[]) {
   return ticketRepo.findByCustomer(userId, status);
 }
 
