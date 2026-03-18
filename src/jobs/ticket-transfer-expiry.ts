@@ -59,7 +59,9 @@ export async function startTicketTransferExpiry(): Promise<void> {
               message:        'La transferencia expiró. Tu ticket está de vuelta en tu Wallet.',
               timestamp:      new Date().toISOString(),
             });
-          } catch {}
+          } catch (socketError: any) {
+  console.error('⚠️ Error Socket.IO expired:', socketError.message);
+}
  
         } catch (txError: any) {
           console.error(`❌ [CRON] Error procesando tx ${tx.id}:`, txError.message);

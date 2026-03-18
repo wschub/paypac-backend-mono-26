@@ -4,10 +4,14 @@ import { Prisma } from '@prisma/client';
 import { TicketStatus } from '@prisma/client';
 import { NotificationMessageQueueService } from './notificationmessagequeue.service';
 import { io } from '../index';
+import { PushNotificationService } from './push-notification.service';
+import { prisma } from '../config/db'; 
+
 
 const transactionRepo = new TicketTransactionRepository();
 const ticketRepo = new TicketRepository();
 const emailService = new NotificationMessageQueueService();
+const pushService = new PushNotificationService();
 
 export class TicketTransactionService {
   /**
@@ -198,6 +202,29 @@ try {
     accepted_by_id: userId,
     timestamp:      new Date().toISOString(),
   });
+   
+  // ✅ AGREGAR: FCM push notification
+  const senderFcmToken = await prisma.user.findUnique({
+    where: { id: transaction.from_customer_id },
+    select: { fcm_token: true },
+  });
+  
+  if (senderFcmToken?.fcm_token) {
+    const [recipient, ticket] = await Promise.all([
+      prisma.user.findUnique({ where: { id: userId }, select: { name: true, last_name: true } }),
+      prisma.ticket.findUnique({ where: { id: transaction.ticket_id }, select: { ev_name: true } }),
+    ]);
+    
+    await pushService.sendTicketTransferAcceptedNotification(
+      senderFcmToken.fcm_token,
+      {
+        recipientName: recipient ? `${recipient.name} ${recipient.last_name}` : 'El receptor',
+        eventName: ticket?.ev_name ?? 'tu evento',
+        transactionId,
+        ticketId: transaction.ticket_id,
+      }
+    );
+  }
 } catch (socketError: any) {
   console.error('⚠️ Error Socket.IO accept:', socketError.message);
 }
@@ -282,6 +309,29 @@ try {
     rejected_by_id: userId,
     timestamp:      new Date().toISOString(),
   });
+
+  // ✅ AGREGAR: FCM push notification
+  const senderFcmToken = await prisma.user.findUnique({
+    where: { id: transaction.from_customer_id },
+    select: { fcm_token: true },
+  });
+  
+  if (senderFcmToken?.fcm_token) {
+    const [recipient, ticket] = await Promise.all([
+      prisma.user.findUnique({ where: { id: userId }, select: { name: true, last_name: true } }),
+      prisma.ticket.findUnique({ where: { id: transaction.ticket_id }, select: { ev_name: true } }),
+    ]);
+    
+    await pushService.sendTicketTransferRejectedNotification(
+      senderFcmToken.fcm_token,
+      {
+        recipientName: recipient ? `${recipient.name} ${recipient.last_name}` : 'El receptor',
+        eventName: ticket?.ev_name ?? 'tu evento',
+        transactionId,
+        ticketId: transaction.ticket_id,
+      }
+    );
+  }
 } catch (socketError: any) {
   console.error('⚠️ Error Socket.IO reject:', socketError.message);
 }
@@ -456,7 +506,7 @@ async sendTransfer(
     transaction_description?: string;
   }
 ) {
-  const { prisma } = await import('../config/db');
+  //const { prisma } = await import('../config/db');
  
   // 1. Verificar que el ticket existe y pertenece al remitente
   const ticket = await ticketRepo.findById(data.ticket_id);
@@ -515,6 +565,8 @@ async sendTransfer(
   // 6. Socket.IO — solo si está registrado
   try {
     const { io } = await import('../index');
+    const senderName = `${sender.name} ${sender.last_name}`;
+
     if (isRegistered) {
       io.to(`user:${recipient!.id}`).emit('ticket:received', {
         transaction_id:   transaction.id,
@@ -524,6 +576,25 @@ async sendTransfer(
         message:          data.transaction_description ?? '',
         timestamp:        new Date().toISOString(),
       });
+
+      // ✅ AGREGAR: FCM push notification para receptor registrado
+    const recipientFcmToken = await prisma.user.findUnique({
+      where: { id: recipient!.id },
+      select: { fcm_token: true },
+    });
+    
+    if (recipientFcmToken?.fcm_token) {
+      await pushService.sendTicketTransferReceivedNotification(
+        recipientFcmToken.fcm_token,
+        {
+          fromUserName: senderName,
+          eventName: ticket.ev_name,
+          transactionId: transaction.id,
+          ticketId: data.ticket_id,
+        }
+      );
+    }
+
     }
   } catch (socketError: any) {
     console.error('⚠️ Socket.IO transfer error:', socketError.message);
@@ -534,7 +605,7 @@ async sendTransfer(
     const eventDate = ticket.ev_date_event
       ? new Date(ticket.ev_date_event).toLocaleString('es-CO', { dateStyle: 'full', timeStyle: 'short' })
       : '';
-    const senderName = `${sender.name} ${sender.last_name}`;
+    const senderName = `${sender.name} ${sender.last_name}`; 
  
     if (isRegistered && recipient!.email) {
       await emailService.queueEmail({

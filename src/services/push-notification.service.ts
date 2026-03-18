@@ -198,4 +198,155 @@ export class PushNotificationService {
       };
     }
   }
+
+  /**
+ * Enviar notificación de ticket recibido
+ */
+async sendTicketTransferReceivedNotification(
+  fcmToken: string,
+  data: {
+    fromUserName: string;
+    eventName: string;
+    transactionId: number;
+    ticketId: number;
+  }
+) {
+  try {
+    console.log('📱 Enviando push notification de ticket recibido...');
+
+    const message: admin.messaging.Message = {
+      token: fcmToken,
+      notification: {
+        title: '🎫 Nuevo ticket recibido',
+        body: `${data.fromUserName} te envió un ticket para ${data.eventName}`,
+      },
+      data: {
+        type: 'ticket_transfer',
+        transaction_id: data.transactionId.toString(),
+        ticket_id: data.ticketId.toString(),
+        click_action: 'FLUTTER_NOTIFICATION_CLICK',
+        route: '/wallet',
+      },
+      android: {
+        priority: 'high',
+        notification: {
+          channelId: 'tickets',
+          sound: 'default',
+          color: '#0031FB',
+          icon: 'ic_notification',
+        },
+      },
+      apns: {
+        payload: {
+          aps: {
+            sound: 'default',
+            badge: 1,
+          },
+        },
+      },
+    };
+
+    const response = await admin.messaging().send(message);
+    console.log('✅ Push notification de ticket recibido enviada');
+
+    return { success: true, messageId: response };
+  } catch (error: any) {
+    console.error('❌ Error enviando push notification:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Enviar notificación de transferencia aceptada
+ */
+async sendTicketTransferAcceptedNotification(
+  fcmToken: string,
+  data: {
+    recipientName: string;
+    eventName: string;
+    transactionId: number;
+    ticketId: number;
+  }
+) {
+  try {
+    console.log('📱 Enviando push notification de transferencia aceptada...');
+
+    const message: admin.messaging.Message = {
+      token: fcmToken,
+      notification: {
+        title: '✅ Transferencia aceptada',
+        body: `${data.recipientName} aceptó tu ticket para ${data.eventName}`,
+      },
+      data: {
+        type: 'ticket_transfer_accepted',
+        transaction_id: data.transactionId.toString(),
+        ticket_id: data.ticketId.toString(),
+        route: '/wallet',
+      },
+      android: {
+        priority: 'high',
+        notification: {
+          channelId: 'tickets',
+          sound: 'default',
+          color: '#00FF00',
+        },
+      },
+    };
+
+    const response = await admin.messaging().send(message);
+    console.log('✅ Push notification de aceptación enviada');
+
+    return { success: true, messageId: response };
+  } catch (error: any) {
+    console.error('❌ Error enviando push notification:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Enviar notificación de transferencia rechazada
+ */
+async sendTicketTransferRejectedNotification(
+  fcmToken: string,
+  data: {
+    recipientName: string;
+    eventName: string;
+    transactionId: number;
+    ticketId: number;
+  }
+) {
+  try {
+    console.log('📱 Enviando push notification de transferencia rechazada...');
+
+    const message: admin.messaging.Message = {
+      token: fcmToken,
+      notification: {
+        title: '❌ Transferencia rechazada',
+        body: `${data.recipientName} rechazó tu ticket para ${data.eventName}`,
+      },
+      data: {
+        type: 'ticket_transfer_rejected',
+        transaction_id: data.transactionId.toString(),
+        ticket_id: data.ticketId.toString(),
+        route: '/wallet',
+      },
+      android: {
+        priority: 'high',
+        notification: {
+          channelId: 'tickets',
+          sound: 'default',
+          color: '#FF0000',
+        },
+      },
+    };
+
+    const response = await admin.messaging().send(message);
+    console.log('✅ Push notification de rechazo enviada');
+
+    return { success: true, messageId: response };
+  } catch (error: any) {
+    console.error('❌ Error enviando push notification:', error);
+    return { success: false, error: error.message };
+  }
+}
 }
