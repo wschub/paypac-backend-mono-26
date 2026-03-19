@@ -85,6 +85,16 @@ export const getMyAssignedEvents = async (req: Request, res: Response): Promise<
   }
 };
 
+//next event to start check-in 
+export const getMyNextEvent = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const result = await staffAssignmentService.getMyNextEvent(req.user!.id);
+    res.status(200).json({ success: true, ...result });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 /**
  * DELETE /api/events/:eventId/staff/:staffUserId
  * Remover un STAFF de un evento

@@ -118,9 +118,37 @@ try {
   /**
    * Obtener eventos asignados a un STAFF
    */
-  async getMyAssignedEvents(userId: number) {
-    return staffAssignmentRepo.findByUser(userId);
+   async getMyAssignedEvents(userId: number) {
+  return staffAssignmentRepo.findByUser(userId);
+}
+ 
+async getMyNextEvent(userId: number) {
+  const assignment = await staffAssignmentRepo.findNextEvent(userId);
+ 
+  if (!assignment) {
+    return { total: 0 };
   }
+ 
+  return {
+    total:        1,
+    assignment_id: assignment.id,
+    checked_in:   assignment.checked_in,
+    door_identifier: assignment.door_identifier,
+    event: {
+      id:                assignment.event.id,
+      name:              assignment.event.name,
+      image:             assignment.event.image,
+      cover:             assignment.event.cover,
+      date_event:        assignment.event.date_event,
+      date_end_event:    assignment.event.date_end_event,
+      date_checkin_open: assignment.event.date_checkin_open,
+      date_checkin_close: assignment.event.date_checkin_close,
+      place_address:     assignment.event.place_address,
+      city:              assignment.event.city,
+      status:            assignment.event.status,
+    },
+  };
+}
 
   /**
    * Remover STAFF de un evento

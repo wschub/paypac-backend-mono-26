@@ -92,25 +92,91 @@ export class EventStaffAssignmentRepository {
   }
 
   /**
-   * Obtener todos los eventos asignados a un STAFF
-   */
-  async findByUser(userId: number): Promise<EventStaffAssignment[]> {
-    return prisma.eventStaffAssignment.findMany({
-      where: { user_id: userId },
-      include: {
-        event: {
-          select: {
-            id: true,
-            name: true,
-            date_event: true,
-            place_address: true,
-            status: true,
-          },
+ * Obtener eventos asignados al STAFF — excluye el evento activo de check-in
+ * Opción A: todos los vigentes excepto el que está en ventana de check-in ahora
+ */
+async findByUser(userId: number) {
+  const now = new Date();
+ 
+  return prisma.eventStaffAssignment.findMany({
+    where: {
+      user_id: userId,
+      event: {
+        status: { in: ['APPROVED', 'ACTIVE'] },
+        // Evento no ha terminado
+        OR: [
+          { date_end_event: null },
+          { date_end_event: { gte: now } },
+        ],
+        // Excluir el evento que tiene check-in abierto ahora mismo
+        NOT: {
+          AND: [
+            { date_checkin_open:  { lte: now } },
+            { date_checkin_close: { gte: now } },
+          ],
         },
       },
-      orderBy: { assigned_at: 'desc' },
-    });
-  }
+    },
+    include: {
+      event: {
+        select: {
+          id:                true,
+          name:              true,
+          image:             true,
+          cover:             true,
+          date_event:        true,
+          date_end_event:    true,
+          date_checkin_open: true,
+          date_checkin_close: true,
+          place_address:     true,
+          city:              true,
+          status:            true,
+        },
+      },
+    },
+    orderBy: { event: { date_event: 'asc' } },
+  });
+}
+ 
+/**
+ * Obtener el próximo evento con check-in abierto ahora mismo — LIMIT 1
+ */
+async findNextEvent(userId: number) {
+  const now = new Date();
+ 
+  return prisma.eventStaffAssignment.findFirst({
+    where: {
+      user_id: userId,
+      event: {
+        status: { in: ['APPROVED', 'ACTIVE'] },
+        date_checkin_open:  { lte: now }, // check-in ya abrió
+        date_checkin_close: { gte: now }, // check-in no ha cerrado
+        OR: [
+          { date_end_event: null },
+          { date_end_event: { gte: now } },
+        ],
+      },
+    },
+    include: {
+      event: {
+        select: {
+          id:                true,
+          name:              true,
+          image:             true,
+          cover:             true,
+          date_event:        true,
+          date_end_event:    true,
+          date_checkin_open: true,
+          date_checkin_close: true,
+          place_address:     true,
+          city:              true,
+          status:            true,
+        },
+      },
+    },
+    orderBy: { event: { date_event: 'asc' } }, // el más próximo
+  });
+}
 
   /**
    * Actualizar asignación (para check-in, geolocalización, etc.)

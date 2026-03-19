@@ -8,6 +8,7 @@ import {
   checkOutStaff,
   getEventStaffStats,
   inviteStaffToEvent,
+  getMyNextEvent,
 } from '../controllers/event_staff_assignment.controller';
 import { authenticate } from '../middlewares/auth.middleware';
 import { authorizeRoles } from '../middlewares/role.middleware';
@@ -23,6 +24,21 @@ import {
 } from '../validators/event_staff_assignment.validation';
 
 const router = Router();
+
+/**
+ * GET /api/staff/my-next-event
+ * Obtener el próximo evento asignado y habilitado a partir de fecha chec-in
+ *  al STAFF autenticado
+ * Requiere: STAFF, STAFF_PROMOTER
+ * 
+ * NOTA: Esta ruta debe registrarse ANTES que las rutas de /api/events
+ */
+router.get(
+  '/my-next-event',
+  authenticate,
+  authorizeRoles('STAFF', 'STAFF_PROMOTER', 'PAYPAC'),
+  getMyNextEvent
+);
 
 /**
  * GET /api/staff/my-events
