@@ -206,15 +206,18 @@ async getMyNextEvent(userId: number) {
     if (!event) {
       throw new Error('Evento no encontrado');
     }
+    
 
     const now = new Date();
-    const eventDate = new Date(event.date_event);
-    const hoursBeforeEvent = 4; // Permitir check-in 4 horas antes
-    const minCheckInTime = new Date(eventDate.getTime() - hoursBeforeEvent * 60 * 60 * 1000);
 
-    if (now < minCheckInTime) {
-      throw new Error('Aún no puedes hacer check-in. El evento no ha iniciado.');
-    }
+if (event.date_checkin_open && now < new Date(event.date_checkin_open)) {
+  throw new Error(`El check-in abre el ${new Date(event.date_checkin_open).toLocaleString('es-CO', { timeZone: 'America/Bogota' })}`);
+}
+
+if (event.date_checkin_close && now > new Date(event.date_checkin_close)) {
+  throw new Error('La ventana de check-in ha cerrado');
+}
+    
 
     // TODO FASE 2: Validar geolocalización
     // Verificar que el STAFF esté cerca del lugar del evento
