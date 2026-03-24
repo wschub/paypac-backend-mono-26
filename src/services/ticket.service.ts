@@ -103,7 +103,7 @@ export class TicketService {
         ev_name: eventSnapshot.name,
         ev_short_description: eventSnapshot.short_description,
         ev_cover: eventSnapshot.cover,
-        ev_date_event: eventSnapshot.date_event,
+        ev_date_event: new Date(eventSnapshot.date_event),
         ev_place_address: eventSnapshot.place_address,
         ev_event_type: eventSnapshot.event_type as any,
         ev_type_venue: eventSnapshot.type_venue as any,
@@ -293,14 +293,21 @@ export class TicketService {
 
     // Verificar que el evento ya haya iniciado
     const now = new Date();
-    const eventDate = new Date(ticket.ev_date_event);
-    const hoursBeforeEvent = 2;
-    const minValidTime = new Date(eventDate.getTime() - hoursBeforeEvent * 60 * 60 * 1000);
 
-    if (now < minValidTime) {
-      console.log(`Intento de validación antes del tiempo permitido. Ahora: ${now}, Evento: ${eventDate}, Mínimo permitido: ${minValidTime}`);
-      throw new Error('El evento aún no ha iniciado. No se puede validar el ticket.');
-    }
+// Buscar fechas de check-in desde el evento real en BD
+const event = await eventRepo.findById(ticket.event_id);
+if (!event) throw new Error('Evento no encontrado');
+
+if (event.date_checkin_open && now < new Date(event.date_checkin_open)) {
+  throw new Error(
+    `El check-in abre el ${new Date(event.date_checkin_open).toLocaleString('es-CO', { timeZone: 'America/Bogota' })}`
+  );
+}
+
+if (event.date_checkin_close && now > new Date(event.date_checkin_close)) {
+  throw new Error('La ventana de check-in ha cerrado');
+}
+    
     
 
     // Verificar que no esté ya usado
