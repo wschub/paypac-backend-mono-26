@@ -11,7 +11,7 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-  //directUrl = env("DIRECT_URL")
+  directUrl = env("DIRECT_URL")
   //shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
 }
 
@@ -752,6 +752,7 @@ model Invoice {
   user_id              Int
   user_uid             String
   num_invoice          String
+  customer_UUID_phone  String?
   user_name            String
   user_lastname        String
   user_num_doc         String
@@ -824,6 +825,9 @@ model Ticket {
   reference_ticket         String //Reference token ticket (random unique alfanuemrico) 
   booking_ticket           String //INVOICE que empiece por PYC +  num aleatorio (4) +  ultmos 2 digitos timestamp
   token_ticket             String //SECRET TOKEN para validar el ticket en la entrada al evento 
+  device_uuid              String?
+  totp_secret              String? //TOTP (QR dinámico)    
+  nfc_id                   String? //NFC
   ticket_first_time        Int          @default(1)
   status_ticket            TicketStatus @default(PENDING) //AGREGA ENUM STATUS PARA EL TICKET (pendiente, congelado, pagado, aceptado, cancelado, recibido, completado)
   ev_name                  String
@@ -848,8 +852,19 @@ model Ticket {
   read_by_user             Int?  //id customer
   first_name_user          String? //informativo
   last_name_user           String? //informativo
+  user_num_doc             String?
+  user_type_doc            DocType?
   event    Event @relation(fields: [event_id], references: [id])
   customer User  @relation(fields: [customer_id], references: [id])
+}
+
+enum DocType {
+  CC      // Cédula de Ciudadanía
+  CE      // Cédula de Extranjería
+  PA      // Pasaporte
+  TI      // Tarjeta de Identidad
+  NIT     // NIT (empresas)
+  SSN     // SOCIAL SECURITY NUMBER USA
 }
 
 enum TicketStatus {
