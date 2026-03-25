@@ -36,7 +36,7 @@ model User {
   phone_number             String
   phone_number_verified_at DateTime?
   num_doc                  String? // Número de documento
-  type_doc                 Int? // Tipo de documento (1: Cédula,
+  type_doc                 DocType  @default(CC)
   role                     ROLES    @default(CUSTOMER)
   role_default             String    @default("CUSTOMER")
   company_id               Int?

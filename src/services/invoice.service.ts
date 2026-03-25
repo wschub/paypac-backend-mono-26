@@ -35,7 +35,9 @@ export class InvoiceService {
       }>;
       discount_code?: string;
       promoter_code?: string; 
-      device_uuid?: string;
+      device_uuid?:   string;  
+      user_num_doc?:  string;   // ← agregar
+      user_type_doc?: string;  
     }
   ) {
     // Verificar que el evento existe
@@ -174,6 +176,25 @@ if (data.promoter_code && event.allow_external_promoters) {
   }
 }
 
+// ── Documento del usuario ────────────────────────────────────────
+let finalNumDoc  = user.num_doc  || '';
+let finalTypeDoc = (user.type_doc as any) || 'CC';
+
+if (!user.num_doc && data.user_num_doc) {
+  // Primera compra — guardar en BD para futuras compras
+  finalNumDoc  = data.user_num_doc;
+  finalTypeDoc = data.user_type_doc ?? 'CC';
+
+  await userRepo.update(userId, {
+    num_doc:  data.user_num_doc,
+    type_doc: data.user_type_doc as any ?? 'CC',
+  });
+}
+
+if (!finalNumDoc) {
+  throw new Error('Se requiere número de documento para completar la compra');
+}
+
     // Generar número de factura
     const numInvoice = await invoiceRepo.generateInvoiceNumber();
 
@@ -184,8 +205,9 @@ if (data.promoter_code && event.allow_external_promoters) {
       num_invoice: numInvoice,
       user_name: user.name,
       user_lastname: user.last_name,
-      user_num_doc: user.num_doc || '',
-      user_type_doc: (user.type_doc as any) ?? 'CC',
+      user_num_doc:         finalNumDoc,           // ← actualizado
+      user_type_doc:        finalTypeDoc,          // ← actualizado
+      customer_UUID_phone:  data.device_uuid ?? null, // ← agregar
       num_items: totalTickets,
       event_id: data.event_id,
       apply_discount: discountApplied,
@@ -376,7 +398,7 @@ async updateInvoiceStatus(
         user_id: invoice.user_id,
         user_uid: invoice.user_uid,
         event_id: invoice.event_id,
-        device_uuid: invoice.customer_UUID_phone ?? '', 
+        device_uuid: invoice.customer_UUID_phone ?? undefined, // ← propagar
         items: itemsForTickets as any,
       },
       {
