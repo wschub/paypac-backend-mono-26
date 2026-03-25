@@ -77,7 +77,7 @@ export class TransactionService {
             user_name: user.name,
             user_lastname: user.last_name,
             user_num_doc: data.user_num_doc,
-            user_type_doc: parseInt(data.user_type_doc),
+            user_type_doc: data.user_type_doc as any,
             num_items: data.shoppingCart.length,
             event_id: data.event_id,
             apply_discount: data.apply_discount,
