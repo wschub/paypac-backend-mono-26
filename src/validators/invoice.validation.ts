@@ -18,6 +18,7 @@ export const createInvoiceSchema = z.object({
     message: 'Debe agregar al menos un item',
   }),
     discount_code: z.string().optional(),
+    promoter_code:  z.string().optional(),
   }),
 });
 
@@ -54,6 +55,7 @@ export const updateInvoiceStatusSchema = z.object({
       'PENDING',
       'REJECTED',
       'CANCELED',
+      'REFUNDED',
     ]),
   }),
 });

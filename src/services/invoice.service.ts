@@ -184,7 +184,7 @@ if (data.promoter_code && event.allow_external_promoters) {
       user_name: user.name,
       user_lastname: user.last_name,
       user_num_doc: user.num_doc || '',
-      user_type_doc: user.type_doc || 0,
+      user_type_doc: (user.type_doc as any) ?? 'CC',
       num_items: totalTickets,
       event_id: data.event_id,
       apply_discount: discountApplied,
