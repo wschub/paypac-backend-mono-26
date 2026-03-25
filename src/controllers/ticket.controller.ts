@@ -7,6 +7,37 @@ const ticketService = new TicketService();
 const ticketTransactionService = new TicketTransactionService();
 
 
+/*
+otp
+*/
+export const registerPublicKey = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const id     = Number(req.params.id);
+    const userId = req.user!.id;
+    const { device_public_key } = req.body;
+
+    const ticket = await ticketService.registerPublicKey(id, userId, device_public_key);
+    res.status(200).json({ message: 'Public key registrada', ticket });
+  } catch (err: any) {
+    const status = err.message.includes('autorizado') ? 403
+                 : err.message.includes('encontrado')  ? 404 : 400;
+    res.status(status).json({ message: err.message });
+  }
+};
+
+export const getTotpSecret = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const id     = Number(req.params.id);
+    const userId = req.user!.id;
+
+    const result = await ticketService.getTotpSecret(id, userId);
+    res.status(200).json(result);
+  } catch (err: any) {
+    const status = err.message.includes('autorizado') ? 403
+                 : err.message.includes('encontrado') || err.message.includes('configurado') ? 404 : 400;
+    res.status(status).json({ message: err.message });
+  }
+};
 
 /**
  * GET /api/tickets/my-tickets

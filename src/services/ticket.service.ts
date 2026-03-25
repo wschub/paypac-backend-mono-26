@@ -21,6 +21,22 @@ const eventRepo = new EventRepository();
 const nfcChallenges = new Map<string, { value: string; expiresAt: number }>();
 
 export class TicketService {
+
+  async registerPublicKey(id: number, userId: number, devicePublicKey: string) {
+  const ticket = await ticketRepo.findById(id);
+  if (!ticket) throw new Error('Ticket no encontrado');
+  if (ticket.customer_id !== userId) throw new Error('No autorizado');
+  return ticketRepo.update(id, { device_public_key: devicePublicKey });
+}
+
+async getTotpSecret(id: number, userId: number) {
+  const ticket = await ticketRepo.findById(id);
+  if (!ticket) throw new Error('Ticket no encontrado');
+  if (ticket.customer_id !== userId) throw new Error('No autorizado');
+  if (!ticket.totp_secret) throw new Error('TOTP no configurado para este ticket');
+  return { totp_secret: ticket.totp_secret };
+}
+
   /**
    * Crear tickets después de una compra exitosa
    * Se llama desde el webhook de pago o después de confirmar la transacción

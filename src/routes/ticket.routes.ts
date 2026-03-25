@@ -7,6 +7,7 @@ import {
   getUpcomingTickets,
   cancelTicket,
   getEventTicketStats,
+  registerPublicKey, getTotpSecret,
 } from '../controllers/ticket.controller';
 import { authenticate } from '../middlewares/auth.middleware';
 import { authorizeRoles } from '../middlewares/role.middleware';
@@ -18,6 +19,7 @@ import {
   getUpcomingTicketsSchema,
   cancelTicketSchema,
   getEventStatsSchema,
+  registerPublicKeySchema,
 } from '../validators/ticket.validation';
 //admin
 import {
@@ -107,6 +109,22 @@ router.get(
   validateRequest(getEventStatsSchema),
   getEventTicketStats
 );
+
+router.patch(
+  '/:id/public-key',
+  authenticate,
+  authorizeRoles('CUSTOMER', 'PAYPAC'),
+  validateRequest(registerPublicKeySchema),
+  registerPublicKey
+);
+
+router.get(
+  '/:id/totp-secret',
+  authenticate,
+  authorizeRoles('CUSTOMER', 'PAYPAC'),
+  getTotpSecret
+);
+
 
 /**
  * GET /api/tickets/:id

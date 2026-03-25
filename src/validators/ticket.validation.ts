@@ -69,3 +69,12 @@ export const getEventStatsSchema = z.object({
     eventId: z.string().regex(/^\d+$/, 'El eventId debe ser numérico'),
   }),
 });
+
+export const registerPublicKeySchema = z.object({
+  params: z.object({
+    id: z.string().regex(/^\d+$/, { message: 'id debe ser numérico' }),
+  }),
+  body: z.object({
+    device_public_key: z.string().min(10, { message: 'Public key inválida' }),
+  }),
+});
