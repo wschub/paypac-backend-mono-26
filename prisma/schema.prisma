@@ -756,7 +756,7 @@ model Invoice {
   user_name            String
   user_lastname        String
   user_num_doc         String
-  user_type_doc        Int
+  user_type_doc        DocType  @default(CC)
   num_items            Int
   event_id             Int
   apply_discount       Int           @default(0) // 0: No aplica descuento, 1: Aplica descuento
