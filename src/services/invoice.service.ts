@@ -34,7 +34,8 @@ export class InvoiceService {
         qty_tickets: number;
       }>;
       discount_code?: string;
-      promoter_code?: string; // ← agregar
+      promoter_code?: string; 
+      device_uuid?: string;
     }
   ) {
     // Verificar que el evento existe
@@ -375,6 +376,7 @@ async updateInvoiceStatus(
         user_id: invoice.user_id,
         user_uid: invoice.user_uid,
         event_id: invoice.event_id,
+        device_uuid: invoice.customer_UUID_phone ?? '', 
         items: itemsForTickets as any,
       },
       {

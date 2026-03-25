@@ -81,6 +81,7 @@ export const setupTicketSocketHandlers = (io: SocketIOServer) => {
     socket.on('ticket:validate', async (data: {
       qr_token: string;
       event_id: number;
+      device_uuid?: string;
       latitude?: string;
       longitude?: string;
     }) => {
@@ -95,7 +96,8 @@ export const setupTicketSocketHandlers = (io: SocketIOServer) => {
           data.qr_token,
           socket.userId!,
           socket.userRole!,
-          data.event_id
+          data.event_id,
+          data.device_uuid
         );
 
         // Emitir confirmación al scanner

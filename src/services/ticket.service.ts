@@ -23,6 +23,7 @@ export class TicketService {
     user_id: number;
     user_uid: string;
     event_id: number;
+    device_uuid?: string;
     items: Array<{
       stage_id: number;
       stage_name: string;
@@ -245,7 +246,8 @@ export class TicketService {
     qrToken: string,
     scannerUserId: number,
     scannerRole: string,
-    eventId: number
+    eventId: number,
+    deviceUuid?: string
   ) {
     // Buscar ticket por token
     const ticket = await ticketRepo.findByToken(qrToken);
@@ -269,6 +271,13 @@ export class TicketService {
     if (!isValid) {
       throw new Error('Token de ticket inválido');
     }
+
+    // Validar device_uuid si el ticket lo tiene registrado
+if (ticket.device_uuid && deviceUuid) {
+  if (ticket.device_uuid !== deviceUuid) {
+    throw new Error('El QR no proviene del dispositivo registrado. Posible fraude.');
+  }
+}
 
     // Verificar permisos del scanner
     if (['STAFF', 'STAFF_PROMOTER'].includes(scannerRole)) {

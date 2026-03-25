@@ -19,6 +19,7 @@ export const createInvoiceSchema = z.object({
   }),
     discount_code: z.string().optional(),
     promoter_code:  z.string().optional(),
+    device_uuid:    z.string().min(1).optional(),
   }),
 });
 
