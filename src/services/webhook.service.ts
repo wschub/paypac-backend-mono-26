@@ -220,16 +220,27 @@ try {
 } catch (promoError: any) {
   console.error('⚠️ Error registrando balance de promotor:', promoError.message);
 }
-
+        
+        // ✅ AHORA — incluir totp_secret por ticket
+          const createdTickets = await prisma.ticket.findMany({
+            where: { transaction_id: transactionRecord.id },
+            select: {
+              id:           true,
+              totp_secret:  true,
+              token_ticket: true,
+              reference_ticket: true,
+            },
+          });
         // Socket.IO: tickets:created
         io.to(`user:${invoice.user_id}`).emit('tickets:created', {
-          invoice_id: invoice.id,
-          num_invoice: invoice.num_invoice,
+          invoice_id:     invoice.id,
+          num_invoice:    invoice.num_invoice,
           transaction_id: transactionRecord.id,
-          event_id: invoice.event_id,
-          ticket_count: invoice.num_items,
-          message: '¡Tus tickets han sido generados exitosamente!',
-          timestamp: new Date().toISOString(),
+          event_id:       invoice.event_id,
+          ticket_count:   invoice.num_items,
+          tickets:        createdTickets, // ← incluye totp_secret por ticket
+          message:        '¡Tus tickets han sido generados exitosamente!',
+          timestamp:      new Date().toISOString(),
         });
         console.log('✅ Socket.IO: tickets:created emitido\n');
 
