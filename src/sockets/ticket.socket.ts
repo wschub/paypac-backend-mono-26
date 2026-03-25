@@ -82,6 +82,8 @@ export const setupTicketSocketHandlers = (io: SocketIOServer) => {
       qr_token: string;
       event_id: number;
       device_uuid?: string;
+      totp_code?:    string;    // ← agregar
+  totp_ticket_id?: number;  // ← agregar
       latitude?: string;
       longitude?: string;
     }) => {
@@ -97,7 +99,9 @@ export const setupTicketSocketHandlers = (io: SocketIOServer) => {
           socket.userId!,
           socket.userRole!,
           data.event_id,
-          data.device_uuid
+          data.device_uuid,
+          data.totp_code,       // ← agregar
+    data.totp_ticket_id,  // ← agregar
         );
 
         // Emitir confirmación al scanner
@@ -248,6 +252,58 @@ export const setupTicketSocketHandlers = (io: SocketIOServer) => {
 
       console.log(`🔔 Notificación enviada a usuario ${data.to_user_id}`);
     });
+
+
+
+    // Generar challenge NFC
+socket.on('nfc:challenge:request', async (data: { event_id: number }) => {
+  try {
+    const result = await ticketService.generateNFCChallenge(
+      socket.userId!,
+      data.event_id
+    );
+    socket.emit('nfc:challenge:ready', result);
+  } catch (error: any) {
+    socket.emit('nfc:error', { message: error.message });
+  }
+});
+
+// Validar ticket NFC
+socket.on('nfc:validate', async (data: {
+  ticket_id:    number;
+  challenge_id: string;
+  signature:    string;
+  event_id:     number;
+}) => {
+  try {
+    const result = await ticketService.validateNFCTicket(
+      data.ticket_id,
+      data.challenge_id,
+      data.signature,
+      socket.userId!,
+      socket.userRole!,
+      data.event_id
+    );
+
+    socket.emit('ticket:validated', {
+      success: true,
+      ticket:  result.ticket,
+      method:  'NFC',
+      message: result.message,
+    });
+
+    io.to(`event:${data.event_id}`).emit('ticket:entry', {
+      ticket_id:   result.ticket.id,
+      locality:    result.ticket.loc_name_locality,
+      scanned_by:  socket.userId,
+      method:      'NFC',
+      scanned_at:  new Date(),
+    });
+
+  } catch (error: any) {
+    socket.emit('nfc:error', { message: error.message });
+  }
+});
 
     // ============================================
     // ❌ DESCONEXIÓN

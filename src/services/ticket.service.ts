@@ -6,11 +6,19 @@ import {
   generateTicketData,
   regenerateTokenOnTransfer,
   validateTicketToken,
+  validateTOTPCode,
+   verifyRSASignature,   // ← agregar
+  generateNFCChallenge, // ← agregar
+  generateTotpSecret,
 } from '../utils/ticket.utils';
 
 const ticketRepo = new TicketRepository();
 const staffAssignmentRepo = new EventStaffAssignmentRepository();
 const eventRepo = new EventRepository();
+
+// Mapa en memoria para challenges activos — TTL 15s
+// En producción futura usar Redis
+const nfcChallenges = new Map<string, { value: string; expiresAt: number }>();
 
 export class TicketService {
   /**
@@ -97,6 +105,8 @@ export class TicketService {
         reference_ticket: ticketData.reference_ticket,
         booking_ticket: ticketData.booking_ticket,
         token_ticket: ticketData.token_ticket,
+        totp_secret:   ticketData.totp_secret, 
+        device_uuid:   invoiceData.device_uuid ?? null,
         ticket_first_time: 1,
         status_ticket: 'PAID',
         
@@ -233,6 +243,13 @@ export class TicketService {
       newToken
     );
 
+    // ✅ AGREGAR — limpiar credenciales del dueño anterior
+await ticketRepo.update(ticketId, {
+  device_public_key: null,
+  device_uuid:       null,  // también limpiar uuid anterior
+  totp_secret:       generateTotpSecret(), // nuevo secreto para el nuevo dueño
+});
+
     return {
       ticket: updatedTicket,
       message: 'Ticket transferido exitosamente',
@@ -247,37 +264,51 @@ export class TicketService {
     scannerUserId: number,
     scannerRole: string,
     eventId: number,
-    deviceUuid?: string
+    deviceUuid?: string,
+    totpCode?: string,    // ← agregar
+    totpTicketId?: number // ← agregar
   ) {
-    // Buscar ticket por token
-    const ticket = await ticketRepo.findByToken(qrToken);
+      let ticket: any;
 
-    if (!ticket) {
-      throw new Error('Ticket no encontrado o token inválido');
+  // ── Detectar método de validación ──────────────────────────────
+  if (totpCode && totpTicketId) {
+    // Método 3 — TOTP
+    ticket = await ticketRepo.findById(totpTicketId);
+    if (!ticket) throw new Error('Ticket no encontrado');
+
+    if (!ticket.totp_secret) {
+      throw new Error('Este ticket no tiene TOTP configurado');
     }
+
+    if (!validateTOTPCode(totpCode, ticket.totp_secret)) {
+      throw new Error('Código TOTP inválido o expirado');
+    }
+
+  } else {
+    // Método 1 y 2 — token básico o con device_uuid
+    ticket = await ticketRepo.findByToken(qrToken);
+    if (!ticket) throw new Error('Ticket no encontrado o token inválido');
+
+    const isValid = validateTicketToken(qrToken, {
+      reference_ticket:  ticket.reference_ticket,
+      booking_ticket:    ticket.booking_ticket,
+      customer_ID_phone: ticket.customer_ID_phone,
+    });
+    if (!isValid) throw new Error('Token de ticket inválido');
+
+    if (ticket.device_uuid && deviceUuid) {
+      if (ticket.device_uuid !== deviceUuid) {
+        throw new Error('El QR no proviene del dispositivo registrado. Posible fraude.');
+      }
+    }
+  }
 
     // Validar que el ticket pertenece al evento correcto
     if (ticket.event_id !== eventId) {
       throw new Error('Este ticket no pertenece a este evento');
     }
 
-    // Validar que el token coincida
-    const isValid = validateTicketToken(qrToken, {
-      reference_ticket: ticket.reference_ticket,
-      booking_ticket: ticket.booking_ticket,
-      customer_ID_phone: ticket.customer_ID_phone,
-    });
-
-    if (!isValid) {
-      throw new Error('Token de ticket inválido');
-    }
-
-    // Validar device_uuid si el ticket lo tiene registrado
-if (ticket.device_uuid && deviceUuid) {
-  if (ticket.device_uuid !== deviceUuid) {
-    throw new Error('El QR no proviene del dispositivo registrado. Posible fraude.');
-  }
-}
+    
 
     // Verificar permisos del scanner
     if (['STAFF', 'STAFF_PROMOTER'].includes(scannerRole)) {
@@ -393,4 +424,97 @@ if (event.date_checkin_close && now > new Date(event.date_checkin_close)) {
 
     return stats;
   }
+
+//NFC 
+// ── Nuevo método: generar challenge NFC ──────────────────────────
+async generateNFCChallenge(staffUserId: number, eventId: number) {
+  // Verificar que el staff está asignado al evento
+  const assignment = await staffAssignmentRepo.findByUserAndEvent(staffUserId, eventId);
+  if (!assignment) throw new Error('No estás asignado a este evento');
+  if (!assignment.checked_in) throw new Error('Debes hacer check-in antes de validar');
+
+  const challengeId = crypto.randomUUID();
+  const challengeValue = generateNFCChallenge();
+  const expiresAt = Date.now() + 15000; // 15 segundos
+
+  nfcChallenges.set(challengeId, { value: challengeValue, expiresAt });
+
+  // Limpiar el challenge después de 15s automáticamente
+  setTimeout(() => nfcChallenges.delete(challengeId), 15000);
+
+  return { challenge_id: challengeId, challenge_value: challengeValue, expires_at: expiresAt };
+}
+
+// ── Nuevo método: validar ticket por NFC ─────────────────────────
+async validateNFCTicket(
+  ticketId:    number,
+  challengeId: string,
+  signature:   string,
+  scannerUserId: number,
+  scannerRole:   string,
+  eventId:       number
+) {
+  // 1. Verificar challenge existe y no expiró
+  const challenge = nfcChallenges.get(challengeId);
+  if (!challenge) throw new Error('Challenge NFC no encontrado o expirado');
+  if (Date.now() > challenge.expiresAt) {
+    nfcChallenges.delete(challengeId);
+    throw new Error('Challenge NFC expirado. Inicia el proceso nuevamente.');
+  }
+
+  // 2. Buscar ticket
+  const ticket = await ticketRepo.findById(ticketId);
+  if (!ticket) throw new Error('Ticket no encontrado');
+  if (!ticket.device_public_key) throw new Error('Este ticket no tiene clave pública registrada');
+
+  // 3. Verificar firma RSA
+  const isValid = verifyRSASignature(challenge.value, signature, ticket.device_public_key);
+  if (!isValid) throw new Error('Firma NFC inválida. Posible fraude.');
+
+  // 4. Eliminar challenge usado (anti-replay)
+  nfcChallenges.delete(challengeId);
+
+  // 5. Verificar que pertenece al evento
+  if (ticket.event_id !== eventId) throw new Error('Este ticket no pertenece a este evento');
+
+  // 6. Verificar permisos del scanner
+  if (['STAFF', 'STAFF_PROMOTER'].includes(scannerRole)) {
+    const assignment = await staffAssignmentRepo.findByUserAndEvent(scannerUserId, eventId);
+    if (!assignment)       throw new Error('No estás asignado a este evento');
+    if (!assignment.checked_in) throw new Error('Debes hacer check-in antes de validar');
+  } else if (scannerRole === 'ORGANIZER') {
+    const event = await eventRepo.findById(eventId);
+    if (!event || event.organizer_id !== scannerUserId)
+      throw new Error('Solo el organizador puede validar tickets');
+  } else if (scannerRole !== 'PAYPAC') {
+    throw new Error('No tienes permisos para validar tickets');
+  }
+
+  // 7. Verificar ventana de check-in
+  const now   = new Date();
+  const event = await eventRepo.findById(eventId);
+  if (!event) throw new Error('Evento no encontrado');
+  if (event.date_checkin_open  && now < new Date(event.date_checkin_open))
+    throw new Error(`El check-in abre el ${new Date(event.date_checkin_open).toLocaleString('es-CO', { timeZone: 'America/Bogota' })}`);
+  if (event.date_checkin_close && now > new Date(event.date_checkin_close))
+    throw new Error('La ventana de check-in ha cerrado');
+
+  // 8. Verificar que no esté ya usado
+  if (ticket.ticket_first_time === 0) throw new Error('Este ticket ya fue usado');
+  if (!['PAID', 'ACTIVE', 'TRANSFERRED'].includes(ticket.status_ticket))
+    throw new Error(`Este ticket no es válido. Status: ${ticket.status_ticket}`);
+
+  // 9. Marcar como usado
+  const validatedTicket = await ticketRepo.markAsUsed(ticket.id);
+
+  return {
+    valid:        true,
+    ticket:       validatedTicket,
+    scanner_id:   scannerUserId,
+    scanner_role: scannerRole,
+    method:       'NFC',
+    message:      '¡Ticket NFC validado exitosamente! Bienvenido al evento.',
+  };
+}
+
 }

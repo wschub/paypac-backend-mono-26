@@ -826,6 +826,7 @@ model Ticket {
   booking_ticket           String //INVOICE que empiece por PYC +  num aleatorio (4) +  ultmos 2 digitos timestamp
   token_ticket             String //SECRET TOKEN para validar el ticket en la entrada al evento 
   device_uuid              String?
+  device_public_key  String?  // Clave pública RSA del dispositivo tenedor
   totp_secret              String? //TOTP (QR dinámico)    
   nfc_id                   String? //NFC
   ticket_first_time        Int          @default(1)

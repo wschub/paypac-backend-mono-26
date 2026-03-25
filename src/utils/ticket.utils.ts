@@ -1,4 +1,6 @@
 import crypto from 'crypto';
+import { generateKeyPairSync, createSign, createVerify } from 'crypto';
+
 
 /**
  * Generar reference_ticket único (token alfanumérico)
@@ -82,11 +84,13 @@ export function generateTicketData(customerIdPhone: string) {
     bookingTicket,
     customerIdPhone
   );
-  
+  const totpSecret = generateTotpSecret(); 
+
   return {
     reference_ticket: referenceTicket,
     booking_ticket: bookingTicket,
     token_ticket: tokenTicket,
+    totp_secret:      totpSecret,
   };
 }
 
@@ -126,4 +130,91 @@ export function decryptQRData(encryptedData: string, secret: string): string {
   let decrypted = decipher.update(encryptedData, 'hex', 'utf8');
   decrypted += decipher.final('utf8');
   return decrypted;
+}
+
+/**
+ * Generar secreto TOTP único por ticket
+ * Base32 de 16 caracteres — compatible con Google Authenticator
+ */
+export function generateTotpSecret(): string {
+  const base32Chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+  const bytes = crypto.randomBytes(16);
+  let secret = '';
+  for (const byte of bytes) {
+    secret += base32Chars[byte % 32];
+  }
+  return secret;
+}
+
+
+/**
+ * Generar código TOTP de 6 dígitos
+ * Compatible con ventana de 30 segundos
+ */
+export function generateTOTPCode(secret: string, timeWindow?: number): string {
+  const window = timeWindow ?? Math.floor(Date.now() / 30000);
+  const hmac = crypto.createHmac('sha1', secret);
+  hmac.update(window.toString());
+  const hash = hmac.digest();
+  const offset = hash[hash.length - 1] & 0x0f;
+  const code =
+    ((hash[offset] & 0x7f) << 24) |
+    ((hash[offset + 1] & 0xff) << 16) |
+    ((hash[offset + 2] & 0xff) << 8) |
+    (hash[offset + 3] & 0xff);
+  return (code % 1000000).toString().padStart(6, '0');
+}
+
+/**
+ * Validar código TOTP con tolerancia ±1 ventana (90s total)
+ * Para compensar desfase de reloj entre customer y backend
+ */
+export function validateTOTPCode(code: string, secret: string): boolean {
+  const currentWindow = Math.floor(Date.now() / 30000);
+  for (let i = -1; i <= 1; i++) {
+    if (generateTOTPCode(secret, currentWindow + i) === code) {
+      return true;
+    }
+  }
+  return false;
+}
+
+//NFC
+/**
+ * Generar par de claves RSA para NFC challenge-response
+ * Se llama desde la app al registrarse o al recibir un ticket
+ */
+export function generateRSAKeyPair(): { publicKey: string; privateKey: string } {
+  const { publicKey, privateKey } = generateKeyPairSync('rsa', {
+    modulusLength: 2048,
+    publicKeyEncoding:  { type: 'spki',  format: 'pem' },
+    privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
+  });
+  return { publicKey, privateKey };
+}
+
+/**
+ * Verificar firma RSA del challenge
+ * Backend verifica que el customer firmó con su private key
+ */
+export function verifyRSASignature(
+  challenge:  string,
+  signature:  string,
+  publicKey:  string
+): boolean {
+  try {
+    const verify = createVerify('SHA256');
+    verify.update(challenge);
+    verify.end();
+    return verify.verify(publicKey, signature, 'base64');
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Generar challenge NFC — random 32 bytes
+ */
+export function generateNFCChallenge(): string {
+  return crypto.randomBytes(32).toString('hex');
 }
