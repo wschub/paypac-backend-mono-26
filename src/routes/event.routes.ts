@@ -42,11 +42,18 @@ router.post(
  * 
  * Query params opcionales:
  * - status: CREATED | APPROVED | SCHEDULED | ACTIVE | CANCELED | RE_SCHEDULED | FINALIZED
+ *           Soporta múltiples separados por coma: status=ACTIVE,APPROVED
  * - event_type: PUBLICO | PRIVADO
  * - category_id: number
+ * - subcategory_id: number
+ * - subgenre_id: number
  * - country: string
  * - city: string
  * - search: string (busca en name, description, short_description)
+ * - date_from: ISO datetime — eventos desde esta fecha (ej: 2026-03-01T00:00:00.000Z)
+ * - date_to: ISO datetime — eventos hasta esta fecha (ej: 2026-12-31T23:59:59.000Z)
+ * - latitude: string — latitud del usuario (para futura búsqueda por proximidad)
+ * - longitude: string — longitud del usuario (para futura búsqueda por proximidad)
  */
 router.get(
   '/',
