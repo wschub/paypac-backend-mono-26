@@ -120,8 +120,14 @@ export const getEventsQuerySchema = z.object({
       ),
     event_type: z.enum(['PUBLICO', 'PRIVADO']).optional(),
     category_id: z.string().regex(/^\d+$/).optional(),
+    subcategory_id: z.string().regex(/^\d+$/).optional(), // ← agregar
+    subgenre_id:    z.string().regex(/^\d+$/).optional(), // ← agregar
     country: z.string().optional(),
     city: z.string().optional(),
     search: z.string().optional(),
+    date_from:      z.string().datetime().optional(),     // ← agregar
+    date_to:        z.string().datetime().optional(),     // ← agregar
+    latitude:       z.string().optional(),                // ← agregar
+    longitude:      z.string().optional(),                // ← agregar
   }).optional(),
 });

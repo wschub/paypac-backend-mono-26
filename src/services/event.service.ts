@@ -42,9 +42,15 @@ export class EventService {
     status?: EVENT_STATUS | EVENT_STATUS[];
     event_type?: string;
     category_id?: number;
+    subcategory_id?: number;  // ← agregar
+    subgenre_id?:   number;   // ← agregar
     country?: string;
     city?: string;
     search?: string;
+      date_from?:     string;   // ← agregar
+    date_to?:       string;   // ← agregar
+    latitude?:      string;   // ← agregar
+    longitude?:     string;   // ← agregar
   },
   userRole: string,
   userId?: number

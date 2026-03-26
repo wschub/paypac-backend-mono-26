@@ -24,9 +24,15 @@ export class EventRepository {
     event_type?: string;
     organizer_id?: number;
     category_id?: number;
+    subcategory_id?: number;  // ← agregar
+  subgenre_id?:   number;   // ← agregar
     country?: string;
     city?: string;
     search?: string;
+    date_from?:     string;   // ← agregar
+  date_to?:       string;   // ← agregar
+  latitude?:      string;   // ← agregar (para futuro cálculo de distancia)
+  longitude?:     string;   // ← agregar
   }) {
     const where: Prisma.EventWhereInput = {};
 
@@ -57,6 +63,23 @@ if (filters?.status) {
     if (filters?.category_id) {
       where.category_id = filters.category_id;
     }
+
+    if (filters?.subcategory_id) {
+  where.subcategory_id = filters.subcategory_id;
+}
+
+if (filters?.subgenre_id) {
+  where.subgenre_id = filters.subgenre_id;
+}
+
+if (filters?.date_from || filters?.date_to) {
+  where.date_event = {
+    ...(filters.date_from && { gte: new Date(filters.date_from) }),
+    ...(filters.date_to   && { lte: new Date(filters.date_to)   }),
+  };
+}
+
+    
 
     if (filters?.search) {
       where.OR = [

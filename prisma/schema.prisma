@@ -20,6 +20,7 @@ model GeneralSettingsVariables {
   name        String   @unique
   value       String
   description String?
+  type_visibility Int @default(1) //1 PRIVATE, 0 PUBLIC
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   // @@schema("identity")
