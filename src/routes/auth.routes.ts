@@ -25,8 +25,8 @@ PAYPAC, ORGANIZER
 */
 router.post(
   '/new-user',
-  //authenticate,                          // ← Usuario debe estar autenticado
-  //authorizeRoles('PAYPAC','ORGANIZER'),               // ← Solo admins
+  authenticate,                          // ← Usuario debe estar autenticado
+  authorizeRoles('PAYPAC','ORGANIZER'),               // ← Solo admins
   validateRequest(registerUserSchema),
   register
 );
