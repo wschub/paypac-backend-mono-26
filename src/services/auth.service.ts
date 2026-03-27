@@ -38,14 +38,12 @@ export class AuthService {
       }
 
       // 2. ✅ Validar reglas de negocio según quien crea el usuario
-      /* 
-      if (createdBy) {
+       if (createdBy) {
         // Usuario creado por admin (PAYPAC/ORGANIZER)
         console.log(`👤 Usuario creado por: ${createdBy.userRole} (ID: ${createdBy.userId})`);
 
         // PAYPAC puede crear cualquier rol
-        // ORGANIZER solo puede crear STAFF, STAFF_PROMOTER, PROMOTER
-        
+        // ORGANIZER solo puede crear STAFF, STAFF_PROMOTER, PROMOTER 
         if (createdBy.userRole === 'ORGANIZER') {
           const allowedRoles: ROLES[] = [ROLES.STAFF, ROLES.STAFF_PROMOTER, ROLES.PROMOTER, ROLES.CUSTOMER];
           if (!allowedRoles.includes(data.role)) {
@@ -59,7 +57,7 @@ export class AuthService {
         }
         console.log('👤 Auto-registro de CUSTOMER');
       }
-        */
+        
 
       const fullphoneNumber = `+57${data.phone_number}`;
 
