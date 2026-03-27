@@ -138,4 +138,26 @@ export class SmsService {
       throw new Error('Credenciales de Onurix no configuradas');
     }
   }
+
+  /**
+ * Verificar si un número de teléfono ya está registrado
+ * Normaliza el número agregando +57 si no tiene código de país
+ */
+async checkPhoneExists(phone: string): Promise<{
+  exists: boolean;
+  phone: string;
+}> {
+  // Normalizar — agregar +57 si no tiene código de país
+  const normalizedPhone = phone.startsWith('+') ? phone : `+57${phone}`;
+
+  const existingUser = await prisma.user.findFirst({
+    where: { phone_number: normalizedPhone },
+    select: { id: true },
+  });
+
+  return {
+    exists:  !!existingUser,
+    phone:   normalizedPhone,
+  };
+}
 }

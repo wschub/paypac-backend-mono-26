@@ -84,6 +84,40 @@ export const verificationCode2FA = async (req: Request, res: Response): Promise<
   }
 };
 
+/**
+ * POST /api/sms/check-phone
+ * Verificar si un teléfono ya está registrado
+ * Acceso: Público
+ */
+export const checkPhoneExists = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { phone } = req.body;
+    const result = await smsService.checkPhoneExists(phone);
+
+    if (result.exists) {
+      // Ya registrado → redirigir al login
+      res.status(200).json({
+        success: true,
+        exists:  true,
+        redirect: 'login',
+        message: 'Este número ya tiene una cuenta. Inicia sesión.',
+        phone:   result.phone,
+      });
+    } else {
+      res.status(200).json({
+        success: true,
+        exists:  false,
+        redirect: 'register',
+        message: 'Número disponible para registro.',
+        phone:   result.phone,
+      });
+    }
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: 'Error interno', error: error.message });
+  }
+};
+
+
 
 //FAKE 
 export const verificationFake = async (req: Request, res: Response): Promise<void> => {

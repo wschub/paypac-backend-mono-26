@@ -26,3 +26,11 @@ export const verifyCode2FASchema = z.object({
       .regex(/^[0-9]{6}$/, 'El código debe contener solo números'),
   }),
 });
+
+export const checkPhoneSchema = z.object({
+  body: z.object({
+    phone: z.string()
+      .min(10, { message: 'Número de teléfono inválido' })
+      .max(15),
+  }),
+});

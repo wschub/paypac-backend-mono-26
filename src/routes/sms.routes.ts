@@ -1,7 +1,7 @@
 import { Router } from 'express';
-import { registerCode2FA, verificationCode2FA, verificationFake } from '../controllers/sms.controller';
+import { registerCode2FA, verificationCode2FA, checkPhoneExists, verificationFake } from '../controllers/sms.controller';
 import { validateRequest } from '../middlewares/validate.middleware';
-import { sendCode2FASchema, verifyCode2FASchema } from '../validators/sms.validation';
+import { sendCode2FASchema, verifyCode2FASchema, checkPhoneSchema } from '../validators/sms.validation';
 
 const router = Router();
 
@@ -45,6 +45,18 @@ router.post(
   verificationCode2FA
 );
 
+/**
+ * POST /api/sms/check-phone
+ * Verificar si un número ya está registrado
+ * Acceso: Público
+ * Body: { phone: string }
+ * Respuesta: { exists: boolean, redirect: 'login' | 'register' }
+ */
+router.post(
+  '/check-phone',
+  validateRequest(checkPhoneSchema),
+  checkPhoneExists
+);
 
 
 router.post(
