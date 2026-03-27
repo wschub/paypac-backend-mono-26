@@ -58,12 +58,14 @@ export class AuthService {
         console.log('👤 Auto-registro de CUSTOMER');
       }
 
+      const fullphoneNumber = `+57${data.phone_number}`;
+
       // 3. ✅ Crear usuario en Firebase Auth
       const firebaseUser = await firebaseAuth.createUser({
         email: data.email,
         password: data.password,
         displayName: `${data.name} ${data.last_name}`,
-        phoneNumber: data.phone_number,
+        phoneNumber: fullphoneNumber,
         emailVerified: false,
       });
 
@@ -76,7 +78,7 @@ export class AuthService {
         last_name: data.last_name,
         email: data.email,
         password: 'firebase_managed',
-        phone_number: data.phone_number,
+        phone_number: fullphoneNumber,
         role: data.role,
         company_id: data.company_id || null,
         firebase_uid: firebaseUid,
