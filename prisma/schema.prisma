@@ -43,7 +43,7 @@ model User {
   company_id               Int?
   auth_method              String?
   provider_id              String?
-  firebase_uid             String?
+  firebase_uid             String?   @unique
   lang_user                String?
   verified_user            Int       @default(0)
   fcm_token    String?   // Token de Firebase Cloud Messaging
