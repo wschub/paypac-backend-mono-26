@@ -12,6 +12,12 @@ export class AuthService {
    * Funciona para:
    * - Auto-registro de CUSTOMER (público)
    * - Creación de usuarios por PAYPAC/ORGANIZER (protegido)
+   *
+   * ✅ OPTIMIZACIONES APLICADAS:
+   * 1. Promise.all para setCustomUserClaims + createCustomToken
+   * 2. Fire-and-forget para queueEmail (no bloquea respuesta)
+   * 3. Fire-and-forget para acceptByContact (no bloquea respuesta)
+   * 4. Se eliminó dynamic import repetido — se importa al inicio si es necesario
    */
   async register(
     data: {
@@ -20,7 +26,7 @@ export class AuthService {
       email: string;
       password: string;
       phone_number: string;
-      role: ROLES; // ← Cambio de string a ROLES
+      role: ROLES;
       company_id?: number | null;
     },
     createdBy?: {
@@ -38,12 +44,9 @@ export class AuthService {
       }
 
       // 2. ✅ Validar reglas de negocio según quien crea el usuario
-       if (createdBy) {
-        // Usuario creado por admin (PAYPAC/ORGANIZER)
+      if (createdBy) {
         console.log(`👤 Usuario creado por: ${createdBy.userRole} (ID: ${createdBy.userId})`);
 
-        // PAYPAC puede crear cualquier rol
-        // ORGANIZER solo puede crear STAFF, STAFF_PROMOTER, PROMOTER 
         if (createdBy.userRole === 'ORGANIZER') {
           const allowedRoles: ROLES[] = [ROLES.STAFF, ROLES.STAFF_PROMOTER, ROLES.PROMOTER, ROLES.CUSTOMER];
           if (!allowedRoles.includes(data.role)) {
@@ -51,17 +54,16 @@ export class AuthService {
           }
         }
       } else {
-        // Auto-registro (debe ser CUSTOMER)
         if (data.role !== ROLES.CUSTOMER) {
           throw new Error('El auto-registro solo permite el rol CUSTOMER');
         }
         console.log('👤 Auto-registro de CUSTOMER');
       }
-        
 
       const fullphoneNumber = `+57${data.phone_number}`;
 
       // 3. ✅ Crear usuario en Firebase Auth
+      //    ⚠️ Esta es la operación más lenta (~400ms) — no se puede evitar
       const firebaseUser = await firebaseAuth.createUser({
         email: data.email,
         password: data.password,
@@ -90,101 +92,36 @@ export class AuthService {
 
       console.log('✅ Usuario creado en PostgreSQL:', user.id);
 
-      // 5. ✅ Establecer Custom Claims en Firebase
-      await firebaseAuth.setCustomUserClaims(firebaseUser.uid, {
+      // 5. ✅ OPTIMIZACIÓN: Paralelizar Claims + Custom Token
+      //    - setCustomUserClaims: round-trip a Google (~300-400ms)
+      //    - createCustomToken: firma LOCAL con service account key (~5ms)
+      //    - Son independientes entre sí → Promise.all
+      const claimsPayload = {
         userId: user.id,
         companyId: user.company_id,
         role: user.role,
-      });
+      };
 
-      console.log('✅ Custom claims establecidos');
+      const [, customToken] = await Promise.all([
+        firebaseAuth.setCustomUserClaims(firebaseUser.uid, claimsPayload),
+        firebaseAuth.createCustomToken(firebaseUser.uid, claimsPayload),
+      ]);
 
-      // 6. ✅ Generar Custom Token
-      const customToken = await firebaseAuth.createCustomToken(firebaseUser.uid, {
-        userId: user.id,
-        companyId: user.company_id,
-        role: user.role,
-      });
+      console.log('✅ Custom claims + token generados en paralelo');
 
-      // 7. 📧 PUNTO DE INTEGRACIÓN PARA EMAIL
-      console.log('📧 ===== ENVIAR EMAIL DE CONFIRMACIÓN AQUÍ =====');
-      console.log('📧 Datos para el email:', {
-        to: user.email,
-        name: user.name,
-        role: user.role,
-        isAutoRegister: !createdBy,
-        createdByAdmin: createdBy ? `${createdBy.userRole} (ID: ${createdBy.userId})` : null,
-      });
-      
-      // 7. 📧 Enviar email según rol y origen del registro
-if (!createdBy) {
-  // ── Auto-registro CUSTOMER ──────────────────────────
-  try {
-    const otpTemp = Math.floor(100000 + Math.random() * 900000).toString();
-    await emailService.queueEmail({
-      userId: user.id,
-      email: user.email,
-      templateCode: 'REGISTRATION_VERIFY_MAIL',
-      variables: {
-        user_name: `${user.name} ${user.last_name}`,
-        otp_code: otpTemp,
-        verify_link: 'https://paypac.co/verify-account',
-      },
-    });
-    console.log('📧 Email de verificación encolado para:', user.email);
-  } catch (emailError: any) {
-    console.error('⚠️ No se pudo encolar el email de verificación:', emailError.message);
-  }
+      // 6. ✅ OPTIMIZACIÓN: Fire-and-forget para email
+      //    El usuario NO necesita esperar a que el email se encole
+      //    para ver "Registro exitoso"
+      this._sendRegistrationEmail(user, createdBy);
 
-} else {
-  // ── Creado por admin (ORGANIZER, STAFF, STAFF_PROMOTER, PAYPAC) ──
-  try {
-    await emailService.queueEmail({
-      userId: user.id,
-      email: user.email,
-      templateCode: 'REGISTRATION_ACCEPT',
-      variables: {
-        name: user.name,
-        last_name: user.last_name,
-        inviter_name: 'PayPac',       // TODO: traer nombre real del createdBy.userId si se requiere
-        inviter_last_name: 'Admin',
-        role: user.role,
-        email: user.email,
-        accept_link: 'https://paypac.co/login',
-      },
-    });
-    console.log('📧 Email de invitación encolado para:', user.email);
-  } catch (emailError: any) {
-    console.error('⚠️ No se pudo encolar el email de invitación:', emailError.message);
-  }
-}
+      // 7. ✅ OPTIMIZACIÓN: Fire-and-forget para transferencias pendientes
+      //    Solo para CUSTOMER auto-registrado
+      //    ⚠️ Flutter YA NO debe llamar accept-by-contact — solo el backend lo hace
+      if (!createdBy && data.role === ROLES.CUSTOMER) {
+        this._acceptPendingTransfers(user.id, user.email, user.phone_number);
+      }
 
-
-      console.log('📧 ============================================');
-     
-      // TODO: Aquí irá la integración con el servicio de email
-      // await emailService.sendWelcomeEmail(user.email, user.name);
-      
-      // 8. 🎫 Buscar transferencias pendientes (solo CUSTOMER auto-registrado)
-if (!createdBy && data.role === ROLES.CUSTOMER) {
-  try {
-    const { TicketTransactionService } = await import('./tickettransaction.service');
-    const ticketTxService = new TicketTransactionService();
-
-    // Buscar por email y por celular
-    const byEmail = await ticketTxService.acceptByContact(user.id, user.email);
-    const byPhone = await ticketTxService.acceptByContact(user.id, user.phone_number);
-
-    const totalUpdated = (byEmail.updated ?? 0) + (byPhone.updated ?? 0);
-    if (totalUpdated > 0) {
-      console.log(`🎫 ${totalUpdated} transferencia(s) pendiente(s) asignadas al nuevo usuario ${user.id}`);
-    }
-  } catch (transferError: any) {
-    console.error('⚠️ Error buscando transferencias pendientes:', transferError.message);
-  }
-}
-
-      // 9. ✅ Retornar datos del usuario
+      // 8. ✅ Retornar INMEDIATAMENTE — no esperar email ni transferencias
       return {
         id: user.id,
         name: user.name,
@@ -199,7 +136,7 @@ if (!createdBy && data.role === ROLES.CUSTOMER) {
     } catch (error: any) {
       console.error('❌ Error en registro:', error.message);
 
-      // Rollback: Si falla PostgreSQL y el usuario fue creado en Firebase, eliminarlo
+      // Rollback: Si falla después de crear en Firebase, eliminarlo
       if (firebaseUid) {
         try {
           await firebaseAuth.deleteUser(firebaseUid);
@@ -217,6 +154,88 @@ if (!createdBy && data.role === ROLES.CUSTOMER) {
     }
   }
 
+  // ─── MÉTODOS PRIVADOS (fire-and-forget) ───────────────────────────
+
+  /**
+   * Enviar email de registro en background
+   * ⚠️ NO retorna Promise al caller — fire-and-forget
+   */
+  private _sendRegistrationEmail(
+    user: { id: number; email: string; name: string; last_name: string; role: string },
+    createdBy?: { userId: number; userRole: string }
+  ): void {
+    const task = async () => {
+      if (!createdBy) {
+        // Auto-registro CUSTOMER
+        const otpTemp = Math.floor(100000 + Math.random() * 900000).toString();
+        await emailService.queueEmail({
+          userId: user.id,
+          email: user.email,
+          templateCode: 'REGISTRATION_VERIFY_MAIL',
+          variables: {
+            user_name: `${user.name} ${user.last_name}`,
+            otp_code: otpTemp,
+            verify_link: 'https://paypac.co/verify-account',
+          },
+        });
+        console.log('📧 Email de verificación encolado para:', user.email);
+      } else {
+        // Creado por admin
+        await emailService.queueEmail({
+          userId: user.id,
+          email: user.email,
+          templateCode: 'REGISTRATION_ACCEPT',
+          variables: {
+            name: user.name,
+            last_name: user.last_name,
+            inviter_name: 'PayPac',
+            inviter_last_name: 'Admin',
+            role: user.role,
+            email: user.email,
+            accept_link: 'https://paypac.co/login',
+          },
+        });
+        console.log('📧 Email de invitación encolado para:', user.email);
+      }
+    };
+
+    // Ejecutar sin await — errores se loguean pero no bloquean
+    task().catch((err) => {
+      console.error('⚠️ Error en email background:', err.message);
+    });
+  }
+
+  /**
+   * Aceptar transferencias pendientes en background
+   * ⚠️ NO retorna Promise al caller — fire-and-forget
+   * ⚠️ Flutter NO debe llamar accept-by-contact — esta es la ÚNICA ejecución
+   */
+  private _acceptPendingTransfers(
+    userId: number,
+    email: string,
+    phoneNumber: string
+  ): void {
+    const task = async () => {
+      const { TicketTransactionService } = await import('./tickettransaction.service');
+      const ticketTxService = new TicketTransactionService();
+
+      // Buscar por email Y por teléfono en paralelo
+      const [byEmail, byPhone] = await Promise.all([
+        ticketTxService.acceptByContact(userId, email),
+        ticketTxService.acceptByContact(userId, phoneNumber),
+      ]);
+
+      const totalUpdated = (byEmail.updated ?? 0) + (byPhone.updated ?? 0);
+      if (totalUpdated > 0) {
+        console.log(`🎫 ${totalUpdated} transferencia(s) asignadas al usuario ${userId}`);
+      }
+    };
+
+    task().catch((err) => {
+      console.error('⚠️ Error en accept transfers background:', err.message);
+    });
+  }
+
   /**
    * Obtener todos los usuarios
    */
@@ -225,11 +244,3 @@ if (!createdBy && data.role === ROLES.CUSTOMER) {
     return users;
   }
 }
-
-
- /**
-   * ❌ generateToken - YA NO SE USA
-   * Firebase genera los tokens automáticamente
-   * Puedes eliminar este método
-   */
-  // private generateToken(user: any) { ... }

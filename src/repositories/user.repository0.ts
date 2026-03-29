@@ -18,11 +18,9 @@ export class UserRepository {
 
   /**
    * Buscar usuario por firebase_uid
-   * ✅ OPTIMIZACIÓN: findUnique en lugar de findFirst
-   *    Requiere @unique en firebase_uid del schema.prisma
    */
   async findByFirebaseUid(firebaseUid: string): Promise<User | null> {
-    return prisma.user.findUnique({ where: { firebase_uid: firebaseUid } });
+    return prisma.user.findFirst({ where: { firebase_uid: firebaseUid } });
   }
 
   /**
@@ -31,16 +29,15 @@ export class UserRepository {
   async findById(id: number): Promise<User | null> {
     return prisma.user.findUnique({ where: { id } });
   }
-
-  /**
-   * Buscar usuario por ID y retorna con company
+/**
+   * Buscar usuario por ID y retorna com company
    */
   async findByIdWithCompany(id: number) {
-    return prisma.user.findUnique({
-      where: { id },
-      include: { company: true },
-    });
-  }
+  return prisma.user.findUnique({
+    where: { id },
+    include: { company: true },
+  });
+}
 
   /**
    * Obtener todos los usuarios
@@ -108,15 +105,16 @@ export class UserRepository {
 
   /**
    * Obtener usuario con relaciones completas
+   * ✅ Solo incluye relaciones que existen en el schema de User
    */
   async findByIdWithRelations(id: number) {
     return prisma.user.findUnique({
       where: { id },
       include: {
-        paymentMethods: true,
-        company: true,
-        favorites: true,
-        promoterBalances: true,
+        paymentMethods: true,    // PaymentMethodCard[]
+        company: true,           // Company (many-to-one)
+        favorites: true,         // EventFavorites[]
+        promoterBalances: true,  // EventBalancePromoters[]
         staffAssignments: {
           include: {
             event: {
@@ -132,27 +130,27 @@ export class UserRepository {
    * Buscar si existe un usuario para asignarlo como STAFF
    */
   async search(q: string, roles?: $Enums.ROLES[]) {
-    return prisma.user.findMany({
-      where: {
-        AND: [
-          {
-            OR: [
-              { email: { contains: q, mode: 'insensitive' } },
-              { phone_number: { contains: q, mode: 'insensitive' } },
-            ],
-          },
-          ...(roles && roles.length > 0 ? [{ role: { in: roles } }] : []),
-        ],
-      },
-      select: {
-        id: true,
-        name: true,
-        last_name: true,
-        email: true,
-        phone_number: true,
-        role: true,
-      },
-      orderBy: { createdAt: 'desc' },
-    });
-  }
+  return prisma.user.findMany({
+    where: {
+      AND: [
+        {
+          OR: [
+            { email:        { contains: q, mode: 'insensitive' } },
+            { phone_number: { contains: q, mode: 'insensitive' } },
+          ],
+        },
+        ...(roles && roles.length > 0 ? [{ role: { in: roles } }] : []),
+      ],
+    },
+    select: {
+      id:           true,
+      name:         true,
+      last_name:    true,
+      email:        true,
+      phone_number: true,
+      role:         true,
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+}
 }
