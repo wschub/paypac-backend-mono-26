@@ -360,4 +360,38 @@ if (event.date_checkin_close && now > new Date(event.date_checkin_close)) {
   };
 }
 
+//app 
+async getEventCheckinStats(eventId: number, staffUserId: number) {
+  const { prisma } = await import('../config/db');
+ 
+  const [totalTickets, usedTickets] = await Promise.all([
+    // Total tickets del evento (excluye cancelados/expirados)
+    prisma.ticket.count({
+      where: {
+        event_id:      eventId,
+        status_ticket: { notIn: ['CANCELED', 'EXPIRED'] },
+      },
+    }),
+    // Tickets ya usados (check-ins completados)
+    prisma.ticket.count({
+      where: {
+        event_id:      eventId,
+        status_ticket: 'USED',
+      },
+    }),
+  ]);
+ 
+  const pct = totalTickets > 0
+    ? Math.round((usedTickets / totalTickets) * 100)
+    : 0;
+ 
+  return {
+    event_id:      eventId,
+    total_tickets: totalTickets,
+    used_tickets:  usedTickets,
+    pct,
+  };
+}
+ 
+
 }

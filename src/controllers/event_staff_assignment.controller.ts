@@ -238,3 +238,16 @@ export const inviteStaffToEvent = async (req: Request, res: Response): Promise<v
     res.status(400).json({ success: false, message: err.message });
   }
 };
+
+
+export const getEventCheckinStats = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const eventId = paramToInt(req.params.eventId);
+    const userId  = req.user!.id;
+ 
+    const stats = await staffAssignmentService.getEventCheckinStats(eventId, userId);
+    res.status(200).json({ success: true, ...stats });
+  } catch (err: any) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+};

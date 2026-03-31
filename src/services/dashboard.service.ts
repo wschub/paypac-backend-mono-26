@@ -81,4 +81,23 @@ export class DashboardService {
       revenue_by_month: revenueByMonth,
     };
   }
+
+//agregar getOrganizerAppDashboard()
+async getOrganizerAppDashboard(organizer_id: number) {
+  // Próximo evento con stats
+  const nextEvent = await analyticsRepo.getOrganizerNextEvent(organizer_id);
+ 
+  // Todos los demás eventos vigentes (excluyendo el próximo)
+  const upcomingEvents = await analyticsRepo.getOrganizerNextEvents(
+    organizer_id,
+    nextEvent?.event.id
+  );
+ 
+  return {
+    next_event:      nextEvent,
+    upcoming_events: upcomingEvents,
+  };
+}
+ 
+
 }

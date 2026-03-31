@@ -9,6 +9,7 @@ import {
   getEventStaffStats,
   inviteStaffToEvent,
   getMyNextEvent,
+  getEventCheckinStats,
 } from '../controllers/event_staff_assignment.controller';
 import { authenticate } from '../middlewares/auth.middleware';
 import { authorizeRoles } from '../middlewares/role.middleware';
@@ -38,6 +39,14 @@ router.get(
   authenticate,
   authorizeRoles('STAFF', 'STAFF_PROMOTER', 'PAYPAC'),
   getMyNextEvent
+);
+
+/* Muestra progreso tickets check-ins*/
+router.get(
+  '/:eventId/checkin-stats',
+  authenticate,
+  authorizeRoles('STAFF', 'STAFF_PROMOTER', 'ORGANIZER', 'PAYPAC'),
+  getEventCheckinStats
 );
 
 /**

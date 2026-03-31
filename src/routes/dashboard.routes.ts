@@ -1,9 +1,17 @@
 import { Router } from 'express';
-import { getPaypacDashboard, getOrganizerDashboard } from '../controllers/dashboard.controller';
+import { getPaypacDashboard, getOrganizerDashboard, getOrganizerAppDashboard } from '../controllers/dashboard.controller';
 import { authenticate } from '../middlewares/auth.middleware';
 import { authorizeRoles } from '../middlewares/role.middleware';
 
 const router = Router();
+
+
+router.get(
+  '/organizer/app',
+  authenticate,
+  authorizeRoles('ORGANIZER'),
+  getOrganizerAppDashboard
+);
 
 /**
  * GET /api/dashboard/paypac

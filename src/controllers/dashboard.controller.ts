@@ -27,3 +27,15 @@ export const getOrganizerDashboard = async (req: Request, res: Response): Promis
     res.status(500).json({ message: err.message });
   }
 };
+
+//organizer app dashboard
+export const getOrganizerAppDashboard = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const user = req.user!;
+    const data = await dashboardService.getOrganizerAppDashboard(user.id);
+    res.status(200).json(data);
+  } catch (err: any) {
+    console.error('❌ Error en getOrganizerAppDashboard:', err);
+    res.status(500).json({ message: err.message });
+  }
+};

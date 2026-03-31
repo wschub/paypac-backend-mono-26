@@ -576,4 +576,145 @@ async getOrganizerCohorts() {
       pct: total > 0 ? Math.round((count / total) * 100) : 0,
     }));
   }
+
+ 
+//ORGANIZER APP 
+async getOrganizerNextEvent(organizer_id: number) {
+  const now = new Date();
+ 
+  // Próximo evento más cercano (APPROVED o ACTIVE), excluyendo finalizados/cancelados
+  const event = await prisma.event.findFirst({
+    where: {
+      organizer_id,
+      status: { in: ['APPROVED', 'ACTIVE', 'SCHEDULED'] },
+      date_event: { gte: now },
+    },
+    include: {
+      localities: {
+        include: { stages: true },
+      },
+    },
+    orderBy: { date_event: 'asc' },
+  });
+ 
+  if (!event) return null;
+ 
+  // ── Calcular total de tickets vendidos del evento ─────────────────────
+  const totalSoldAgg = await prisma.ticket.count({
+    where: {
+      event_id: event.id,
+      status_ticket: { notIn: ['CANCELED', 'EXPIRED'] },
+    },
+  });
+ 
+  const totalCapacity = event.num_max_tickets ?? 0;
+  const totalPct = totalCapacity > 0
+    ? Math.round((totalSoldAgg / totalCapacity) * 100)
+    : 0;
+ 
+  // ── Tickets por localidad ─────────────────────────────────────────────
+  const localitiesWithStats = await Promise.all(
+    event.localities.map(async (locality) => {
+      // Tickets vendidos de esta localidad
+      const soldInLocality = await prisma.ticket.count({
+        where: {
+          event_id:        event.id,
+          loc_id_locality: locality.id,
+          status_ticket:   { notIn: ['CANCELED', 'EXPIRED'] },
+        },
+      });
+ 
+      let capacity: number;
+      let sold: number;
+ 
+      if (locality.require_num_tickets) {
+        // require_num_tickets = true → usar num_max_tickets vs num_tickets_sold de la localidad
+        capacity = locality.num_max_tickets ?? 0;
+        sold     = locality.num_tickets_sold ?? 0;
+      } else {
+        // require_num_tickets = false → usar num_max_tickets del evento - tickets vendidos de esa localidad
+        capacity = event.num_max_tickets ?? 0;
+        sold     = soldInLocality;
+      }
+ 
+      const pct = capacity > 0 ? Math.round((sold / capacity) * 100) : 0;
+ 
+      return {
+        id:                  locality.id,
+        name:                locality.name_locality,
+        bkg_color:           locality.bkg_color,
+        title_color:         locality.title_color,
+        require_num_tickets: locality.require_num_tickets,
+        capacity,
+        sold,
+        pct,
+      };
+    })
+  );
+ 
+  return {
+    event: {
+      id:            event.id,
+      name:          event.name,
+      image:         event.image,
+      cover:         event.cover,
+      date_event:    event.date_event,
+      date_end_event: event.date_end_event,
+      place_address: event.place_address,
+      city:          event.city,
+      status:        event.status,
+    },
+    tickets: {
+      total_sold:    totalSoldAgg,
+      total_capacity: totalCapacity,
+      pct:           totalPct,
+    },
+    localities: localitiesWithStats,
+  };
+}
+ 
+// ── getOrganizerNextEvents() — todos los eventos vigentes excepto el próximo ─
+async getOrganizerNextEvents(organizer_id: number, excludeEventId?: number) {
+  const now = new Date();
+ 
+  const events = await prisma.event.findMany({
+    where: {
+      organizer_id,
+      status:     { in: ['APPROVED', 'ACTIVE', 'SCHEDULED'] },
+      date_event: { gte: now },
+      ...(excludeEventId && { id: { not: excludeEventId } }),
+    },
+    include: {
+      localities: {
+        select: {
+          id:              true,
+          name_locality:   true,
+          num_max_tickets: true,
+          num_tickets_sold: true,
+        },
+      },
+    },
+    orderBy: { date_event: 'asc' },
+  });
+ 
+  return events.map(event => {
+    const capacity = event.localities.reduce((a, l) => a + (l.num_max_tickets ?? 0), 0);
+    const sold     = event.localities.reduce((a, l) => a + (l.num_tickets_sold ?? 0), 0);
+    return {
+      id:            event.id,
+      name:          event.name,
+      image:         event.image,
+      cover:         event.cover,
+      date_event:    event.date_event,
+      date_end_event: event.date_end_event,
+      place_address: event.place_address,
+      city:          event.city,
+      status:        event.status,
+      tickets_sold:  sold,
+      capacity,
+      pct: capacity > 0 ? Math.round((sold / capacity) * 100) : 0,
+    };
+  });
+}  
+
 }
