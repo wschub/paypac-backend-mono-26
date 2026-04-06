@@ -128,6 +128,7 @@ export const getEventsQuerySchema = z.object({
     date_from:      z.string().datetime().optional(),     // ← agregar
     date_to:        z.string().datetime().optional(),     // ← agregar
     latitude:       z.string().optional(),                // ← agregar
-    longitude:      z.string().optional(),                // ← agregar
+    longitude:      z.string().optional(),    
+    allow_external_promoters: z.enum(['true', 'false']).optional(),            // ← agregar
   }).optional(),
 });

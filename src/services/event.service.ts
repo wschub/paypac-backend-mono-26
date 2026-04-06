@@ -51,6 +51,7 @@ export class EventService {
     date_to?:       string;   // ← agregar
     latitude?:      string;   // ← agregar
     longitude?:     string;   // ← agregar
+    allow_external_promoters?: boolean;
   },
   userRole: string,
   userId?: number
@@ -255,4 +256,17 @@ return updatedEvent;
 
     return stats;
   }
+
+  /**
+ * Obtener eventos disponibles para promotores externos
+ * con resumen de ventas del promotor autenticado
+ */
+async getAvailableEventsForPromoter(promoter_id: number) {
+  const events = await eventRepo.findAvailableForPromoters(promoter_id);
+
+  return events.map(event => ({
+    ...event,
+    price_from: this.getPriceFrom(event.localities ?? []),
+  }));
+}
 }

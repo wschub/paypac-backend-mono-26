@@ -8,6 +8,7 @@ import {
   deleteEvent,
   updateEventStatus,
   getOrganizerStats,
+   getAvailableEventsForPromoter,
 } from '../controllers/event.controller';
 import { authenticate } from '../middlewares/auth.middleware';
 import { authorizeRoles } from '../middlewares/role.middleware';
@@ -87,6 +88,21 @@ router.get(
   authenticate,
   authorizeRoles('ORGANIZER'),
   getOrganizerStats
+);
+
+
+/**
+ * GET /api/events/promoter-available
+ * Eventos con allow_external_promoters=true + resumen de ventas del promotor
+ * Requiere: PROMOTER o STAFF_PROMOTER
+ *
+ * NOTA: Debe ir ANTES de /:id para evitar conflicto de rutas
+ */
+router.get(
+  '/promoter-available',
+  authenticate,
+  authorizeRoles('PROMOTER', 'STAFF_PROMOTER'),
+  getAvailableEventsForPromoter
 );
 
 /**

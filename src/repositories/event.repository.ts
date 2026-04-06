@@ -33,6 +33,7 @@ export class EventRepository {
   date_to?:       string;   // ← agregar
   latitude?:      string;   // ← agregar (para futuro cálculo de distancia)
   longitude?:     string;   // ← agregar
+    allow_external_promoters?: boolean;
   }) {
     const where: Prisma.EventWhereInput = {};
 
@@ -70,6 +71,10 @@ if (filters?.status) {
 
 if (filters?.subgenre_id) {
   where.subgenre_id = filters.subgenre_id;
+}
+
+if (filters?.allow_external_promoters !== undefined) {
+  where.allow_external_promoters = filters.allow_external_promoters;
 }
 
 if (filters?.date_from || filters?.date_to) {
@@ -203,4 +208,52 @@ if (filters?.date_from || filters?.date_to) {
   async countByOrganizer(organizerId: number): Promise<number> {
     return prisma.event.count({ where: { organizer_id: organizerId } });
   }
+
+  /**
+ * Obtener eventos disponibles para promotores externos
+ * Incluye resumen de ventas del promotor en cada evento
+ */
+async findAvailableForPromoters(promoter_id: number) {
+  const events = await prisma.event.findMany({
+    where: {
+      allow_external_promoters: true,
+      status: { in: ['APPROVED', 'SCHEDULED', 'ACTIVE'] },
+    },
+    include: {
+      category: true,
+      subcategory: true,
+      subgenre: true,
+      localities: {
+        include: { stages: true },
+      },
+      promoterBalances: {
+        where: { promoter_id },
+        select: {
+          tickets_sold: true,
+          reward_amount: true,
+          status: true,
+        },
+      },
+    },
+    orderBy: { date_event: 'asc' },
+  });
+
+  return events.map(({ promoterBalances, ...event }) => {
+    const tickets_sold    = promoterBalances.reduce((acc, b) => acc + b.tickets_sold, 0);
+    const total_earned    = promoterBalances.reduce((acc, b) => acc + (b.reward_amount ?? 0), 0);
+    const pending_amount  = promoterBalances
+      .filter(b => b.status === 0)
+      .reduce((acc, b) => acc + (b.reward_amount ?? 0), 0);
+
+    return {
+      ...event,
+      promoter_summary: {
+        has_sales:      tickets_sold > 0,
+        tickets_sold,
+        total_earned,
+        pending_amount,
+      },
+    };
+  });
+}
 }

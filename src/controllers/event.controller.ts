@@ -63,6 +63,9 @@ const filters = {
   country: req.query.country as string | undefined,
   city: req.query.city as string | undefined,
   search: req.query.search as string | undefined,
+  allow_external_promoters: req.query.allow_external_promoters !== undefined  // ← agregar
+    ? req.query.allow_external_promoters === 'true'
+    : undefined,
 };
 
     const events = await eventService.getEvents(
@@ -244,6 +247,34 @@ export const getOrganizerStats = async (
     res.status(200).json(stats);
   } catch (err: any) {
     console.error('❌ Error en getOrganizerStats:', err);
+    res.status(500).json({ error: err.message });
+  }
+};
+
+/**
+ * GET /api/events/promoter-available
+ * Eventos disponibles para promotores externos
+ * con resumen de ventas del promotor autenticado
+ */
+export const getAvailableEventsForPromoter = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const user = req.user;
+    if (!user) {
+      res.status(401).json({ message: 'No autenticado' });
+      return;
+    }
+
+    const events = await eventService.getAvailableEventsForPromoter(user.id);
+
+    res.status(200).json({
+      total: events.length,
+      events,
+    });
+  } catch (err: any) {
+    console.error('❌ Error en getAvailableEventsForPromoter:', err);
     res.status(500).json({ error: err.message });
   }
 };
