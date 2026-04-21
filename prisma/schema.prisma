@@ -321,6 +321,7 @@ model EventRewardRules {
   min_qty_tickets         Int?
   min_amount_tickets      Int?
   locality_id             Int?
+  description             String?
   createdAt               DateTime                @default(now())
   updatedAt               DateTime                @updatedAt
   apply_customer_discount Boolean                 @default(false)
