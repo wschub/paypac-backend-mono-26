@@ -8,53 +8,31 @@ export const createDiscountSchema = z.object({
     eventId: z.string().regex(/^\d+$/, 'El eventId debe ser numérico'),
   }),
   body: z.object({
-    name_dcto: z.string().min(3, 'El nombre del descuento debe tener al menos 3 caracteres'),
-    description: z.string().optional(),
-    type_dcto: z.number()
-      .int()
-      .min(1, 'Tipo de descuento inválido')
-      .max(2, 'Tipo de descuento inválido')
-      .refine(val => [1, 2].includes(val), {
-        message: 'El tipo de descuento debe ser 1 (Porcentaje) o 2 (Monto fijo)',
-      }),
-    value_dcto: z.number()
-      .int()
-      .positive('El valor del descuento debe ser mayor a 0'),
+    name_dcto:       z.string().min(3, 'El nombre debe tener al menos 3 caracteres'),
+    description:     z.string().optional(),
+    type_dcto:       z.number().int().min(1).max(2),
+    value_dcto:      z.number().int().positive('El valor debe ser mayor a 0'),
     min_qty_tickets: z.number().int().positive().optional().nullable(),
     max_qty_tickets: z.number().int().positive().optional().nullable(),
-    locality_id: z.number().int().positive().optional().nullable(),
-    body: z.object({
-  // ...campos existentes...
-  code:      z.string().min(3).max(20)
-               .regex(/^[A-Z0-9\-_]+$/i)
-               .optional(),
-  is_active: z.boolean().optional(),
-  max_uses:  z.number().int().positive().optional().nullable(),
-})
-  }).refine(
+    locality_id:     z.number().int().positive().optional().nullable(),
+    code:            z.string().min(3).max(20)
+                       .regex(/^[A-Z0-9\-_]+$/i)
+                       .optional(),
+    is_active:       z.boolean().optional(),
+    max_uses:        z.number().int().positive().optional().nullable(),
+  })
+  .refine(
+    (data) => !(data.type_dcto === 1 && data.value_dcto > 100),
+    { message: 'El porcentaje no puede ser mayor a 100%', path: ['value_dcto'] }
+  )
+  .refine(
     (data) => {
-      // Validar que el porcentaje no sea mayor a 100
-      if (data.type_dcto === 1 && data.value_dcto > 100) {
-        return false;
-      }
-      return true;
-    },
-    {
-      message: 'El descuento por porcentaje no puede ser mayor a 100%',
-      path: ['value_dcto'],
-    }
-  ).refine(
-    (data) => {
-      // Validar que min no sea mayor que max
       if (data.min_qty_tickets && data.max_qty_tickets) {
         return data.min_qty_tickets <= data.max_qty_tickets;
       }
       return true;
     },
-    {
-      message: 'La cantidad mínima no puede ser mayor a la cantidad máxima',
-      path: ['max_qty_tickets'],
-    }
+    { message: 'La cantidad mínima no puede ser mayor a la máxima', path: ['max_qty_tickets'] }
   ),
 });
 
