@@ -151,13 +151,8 @@ if (!stageLocality || stageLocality.event_id !== data.event_id) {
       }
     }
 
-    const finalTotal = discountApplied ? totalWithDiscount : totalRegular;
-
-// ── Comisión PayPac ──────────────────────────────────────────────
-const paypac_commission_pct    = event.commission_percentage ?? 0;
-const paypac_commission_amount = Math.round(finalTotal * paypac_commission_pct / 100);
-
-// ── Comisión Promotor ────────────────────────────────────────────
+    
+// ── Comisión Promotor + dcto opcional al cliente ──────────────────────
 let promoter_code_id:           number | null = null;
 let promoter_commission_amount: number        = 0;
 
@@ -166,15 +161,57 @@ if (data.promoter_code && event.allow_external_promoters) {
     data.promoter_code,
     data.event_id
   );
+
   if (promoData) {
-    promoter_code_id           = promoData.promoter_code_id;
+    promoter_code_id = promoData.promoter_code_id;
+    const rule       = promoData.reward_rule;
+
+    if (rule?.apply_customer_discount &&
+        rule.customer_discount_type &&
+        rule.customer_discount_value) {
+
+      discountApplied = 1;
+      discountType    = rule.customer_discount_type;
+      discountValue   = rule.customer_discount_value;
+
+      if (rule.customer_discount_type === 1) {
+        totalWithDiscount = totalRegular -
+          Math.round((totalRegular * rule.customer_discount_value) / 100);
+      } else {
+        totalWithDiscount = Math.max(0, totalRegular - rule.customer_discount_value);
+      }
+    }
+
+    const commissionBase = rule?.commission_base === 'ON_ORIGINAL'
+      ? totalRegular
+      : (discountApplied ? totalWithDiscount : totalRegular);
+
     promoter_commission_amount = promoCodeService.calculatePromoterCommission(
-      finalTotal,
+      commissionBase,
       totalTickets,
-      promoData.reward_rule
+      rule
     );
   }
 }
+
+
+// ── finalTotal único — después de ambos descuentos ───────────────
+const finalTotal = discountApplied ? totalWithDiscount : totalRegular;
+
+
+/*
+ 1. Descuento organizador (discount_code)
+2. Descuento/comisión promotor (promoter_code)
+3. finalTotal — declarado UNA sola vez
+4. Comisión PayPac — sobre el finalTotal correcto
+*/
+// ── Comisión PayPac — sobre el finalTotal real ───────────────────
+const paypac_commission_pct    = event.commission_percentage ?? 0;
+//const paypac_commission_amount = Math.round(finalTotal * paypac_commission_pct / 100);
+const paypac_commission_amount = Math.round(totalRegular * paypac_commission_pct / 100);
+
+
+
 
 // ── Documento del usuario ────────────────────────────────────────
 let finalNumDoc  = user.num_doc  || '';

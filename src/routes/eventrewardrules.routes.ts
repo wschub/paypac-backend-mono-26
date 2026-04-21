@@ -6,6 +6,7 @@ import {
   updateRewardRule,
   deleteRewardRule,
   calculateReward,
+  validateCode,
 } from '../controllers/eventrewardrules.controller';
 import { authenticate } from '../middlewares/auth.middleware';
 import { authorizeRoles } from '../middlewares/role.middleware';
@@ -16,6 +17,7 @@ import {
   getRewardRuleByIdSchema,
   getRewardRulesByEventIdSchema,
   calculateRewardSchema,
+  validateCodeSchema,
 } from '../validators/eventrewardrules.validation';
 
 const router = Router();
@@ -64,6 +66,21 @@ router.post(
   validateRequest(calculateRewardSchema),
   calculateReward
 );
+
+/**
+ * GET /api/discounts/validate/:code?event_id=123
+ * Valida si un código es descuento u promotor y retorna sus reglas
+ * Acceso: CUSTOMER + todos los roles autenticados
+ * ⚠️ Antes de /:id
+ */
+router.get(
+  '/discounts/validate/:code',
+  authenticate,
+  authorizeRoles('PAYPAC', 'ORGANIZER', 'STAFF', 'STAFF_PROMOTER', 'PROMOTER', 'CUSTOMER'),
+  validateRequest(validateCodeSchema),
+  validateCode,
+);
+
 
 /**
  * GET /api/reward-rules/:id

@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -11,8 +5,6 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-  //directUrl = env("DIRECT_URL")
-  //shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
 }
 
 model GeneralSettingsVariables {
@@ -20,15 +12,13 @@ model GeneralSettingsVariables {
   name        String   @unique
   value       String
   description String?
-  type_visibility Int @default(1) //1 PRIVATE, 0 PUBLIC
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  // @@schema("identity")
 }
 
 model User {
-  id                       Int       @id @default(autoincrement())
-  email                    String    @unique
+  id                       Int                        @id @default(autoincrement())
+  email                    String                     @unique
   name                     String
   last_name                String
   email_verified_at        DateTime?
@@ -36,629 +26,440 @@ model User {
   remember_token           String?
   phone_number             String
   phone_number_verified_at DateTime?
-  num_doc                  String? // Número de documento
-  type_doc                 DocType  @default(CC)
-  role                     ROLES    @default(CUSTOMER)
-  role_default             String    @default("CUSTOMER")
+  num_doc                  String?
+  type_doc                 DocType?
+  role_default             String                     @default("CUSTOMER")
   company_id               Int?
   auth_method              String?
   provider_id              String?
-  firebase_uid             String?   @unique
+  firebase_uid             String?                    @unique
   lang_user                String?
-  verified_user            Int       @default(0)
-  fcm_token    String?   // Token de Firebase Cloud Messaging
-  fcm_updated  DateTime? // Última actualización del token
-  city       String?   // ciudad del comprador → Origen Geográfico
-  birth_date DateTime? // fecha de nacimiento → Perfil demográfico
-  status                   Int       @default(0)
-  createdAt                DateTime  @default(now())
-  updatedAt                DateTime  @updatedAt
-
-  
-
-  // Relación: un usuario puede tener varias tarjetas
-  paymentMethods PaymentMethodCard[]
-
-  //userCompanyRoles    UserCompanyRole[]
-  //approvalsReceived   CompanyUserApproval[]   @relation("UserApproved")
-  //approvalsMade       CompanyUserApproval[]   @relation("UserApprover")
-  companiesRegistered Company[]               @relation("CompanyRegisteredBy")
-  promoterBalances    EventBalancePromoters[] @relation("UserPromoterBalances") // inverso de promoter
-  eventDiscounts      EventDcto[]             @relation("UserEventDiscounts") // ← Inverso de EventDcto.user
-  favorites           EventFavorites[] // ← Inverso de EventFavorites.user
-  paymentMethodsUsers PaymentMethodsUsers[]
-
-  // Nueva relación (opcional)
-  company Company? @relation("UserCompany", fields: [company_id], references: [id])
-
-  staffAssignments EventStaffAssignment[] @relation("StaffAssignments")
-  staffAssigned    EventStaffAssignment[] @relation("StaffAssigner")
-  promoterCodes PromoterCode[] @relation("PromoterCodes")
-
-  // ... campos existentes
-  notifications NotificationMessageQueue[]
-  tickets       Ticket[]
-  transactions  Transactions[]
-  followedCompanies CompanyFollwers[]
-
+  verified_user            Int                        @default(0)
+  status                   Int                        @default(0)
+  createdAt                DateTime                   @default(now())
+  updatedAt                DateTime                   @updatedAt
+  role                     ROLES                      @default(CUSTOMER)
+  fcm_token                String?
+  fcm_updated              DateTime?
+  birth_date               DateTime?
+  city                     String?
+  companiesRegistered      Company[]                  @relation("CompanyRegisteredBy")
+  followedCompanies        CompanyFollwers[]
+  promoterBalances         EventBalancePromoters[]    @relation("UserPromoterBalances")
+  eventDiscounts           EventDcto[]                @relation("UserEventDiscounts")
+  favorites                EventFavorites[]
+  staffAssigned            EventStaffAssignment[]     @relation("StaffAssigner")
+  staffAssignments         EventStaffAssignment[]     @relation("StaffAssignments")
+  notifications            NotificationMessageQueue[]
+  paymentMethods           PaymentMethodCard[]
+  paymentMethodsUsers      PaymentMethodsUsers[]
+  promoterCodes            PromoterCode[]             @relation("PromoterCodes")
+  tickets                  Ticket[]
+  transactions             Transactions[]
+  company                  Company?                   @relation("UserCompany", fields: [company_id], references: [id])
 }
-
-/*
-model Roles {
-  id          Int      @id @default(autoincrement())
-  name        String   @unique
-  description String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  userCompanyRoles UserCompanyRole[] // 1:N relación
-  rolePermissions  RoleSectionPermission[] // nuevo
-  // @@schema("identity")
-}
-
-model UserCompanyRole {
-  id         Int  @id @default(autoincrement())
-  user_id    Int
-  role_id    Int
-  company_id Int?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  user    User     @relation(fields: [user_id], references: [id])
-  //role    Roles    @relation(fields: [role_id], references: [id])
-  company Company? @relation(fields: [company_id], references: [id])
-
-  // @@schema("identity")
-}
-
-model CompanyUserApproval {
-  id          Int      @id @default(autoincrement())
-  company_id  Int
-  user_id     Int // Usuario que fue aprobado
-  approved_by Int // Usuario que lo aprobó (admin)
-  approved_at DateTime @default(now())
-
-  company    Company @relation(fields: [company_id], references: [id])
-  user       User    @relation("UserApproved", fields: [user_id], references: [id])
-  approvedBy User    @relation("UserApprover", fields: [approved_by], references: [id])
-}
-*/
-
 
 model Company {
-  id                   Int       @id @default(autoincrement())
+  id                   Int                @id @default(autoincrement())
   user_id_register     Int?
-  company_name         String    @unique
-  company_description  String?
-  company_logo         String?
-  company_cover        String?
-  company_phone_number String?
-  company_email        String?   @unique
   type_identification  String?
   num_identification   String?
   website              String?
   address              String?
-  company_presentation String    @default("")
-  rating               Float     @default(0)
-  nps_score            Int?
-  createdAt            DateTime  @default(now())
+  country_id           Int?
+  state_id             Int?
+  city_id              Int?
+  createdAt            DateTime           @default(now())
   approved_at          DateTime?
-  updatedAt            DateTime  @updatedAt
-  status               Int       @default(0)
-
-  // ✅ FKs a ubicación
-  country_id Int?
-  state_id   Int?
-  city_id    Int?
-
-  // ✅ Relaciones con ubicación
-  country Countries? @relation(fields: [country_id], references: [id])
-  state   States?    @relation(fields: [state_id],   references: [id])
-  city    Cities?    @relation(fields: [city_id],    references: [id])
-
-  // ✅ Relaciones con User
-  registeredBy User?  @relation("CompanyRegisteredBy", fields: [user_id_register], references: [id])
-  users        User[] @relation("UserCompany") 
-    // ✅ Relación con seguidores
-  followers CompanyFollwers[]
-  liquidations EventLiquidation[]
+  updatedAt            DateTime           @updatedAt
+  status               Int                @default(0)
+  company_name         String             @unique
+  company_description  String?
+  company_email        String?            @unique
+  company_logo         String?
+  company_phone_number String?
+  company_cover        String?
+  company_presentation String             @default("")
+  rating               Float              @default(0)
+  nps_score            Int?
+  city                 Cities?            @relation(fields: [city_id], references: [id])
+  country              Countries?         @relation(fields: [country_id], references: [id])
+  state                States?            @relation(fields: [state_id], references: [id])
+  registeredBy         User?              @relation("CompanyRegisteredBy", fields: [user_id_register], references: [id])
+  followers            CompanyFollwers[]
+  liquidations         EventLiquidation[]
+  users                User[]             @relation("UserCompany")
 }
 
-model CompanyFollwers{
-  id           Int      @id @default(autoincrement())
-  company_id   Int
-  user_id     Int 
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+model CompanyFollwers {
+  id         Int      @id @default(autoincrement())
+  company_id Int
+  user_id    Int
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  company    Company  @relation(fields: [company_id], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
-  // ✅ Relaciones
-  company Company @relation(fields: [company_id], references: [id], onDelete: Cascade)
-  user    User    @relation(fields: [user_id], references: [id], onDelete: Cascade)
-
-  // ✅ Un usuario no puede seguir la misma empresa dos veces
   @@unique([company_id, user_id])
   @@index([company_id])
   @@index([user_id])
 }
 
-
-
-
 model Section {
-  id           Int      @id @default(autoincrement())
-  name_section String
-  icon         String?
-  link         String?  @unique
-  section_order Int     @default(0)
-  level        Int      @default(0)
-  parent_id    Int?
-  is_active    Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  parent          Section?  @relation("SectionTree", fields: [parent_id], references: [id])
-  children        Section[] @relation("SectionTree")
+  id              Int                     @id @default(autoincrement())
+  name_section    String
+  icon            String?
+  link            String?                 @unique
+  level           Int                     @default(0)
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+  parent_id       Int?
+  is_active       Boolean                 @default(true)
+  section_order   Int                     @default(0)
   rolePermissions RoleSectionPermission[]
+  parent          Section?                @relation("SectionTree", fields: [parent_id], references: [id])
+  children        Section[]               @relation("SectionTree")
 }
 
 model RoleSectionPermission {
-  role        ROLES
-  section_id  Int
-  can_view    Boolean @default(false)
-  can_create  Boolean @default(false)
-  can_edit    Boolean @default(false)
-  can_delete  Boolean @default(false)
-  can_export  Boolean @default(false)
-
-  section Section @relation(fields: [section_id], references: [id])
+  section_id Int
+  role       ROLES
+  can_create Boolean @default(false)
+  can_delete Boolean @default(false)
+  can_edit   Boolean @default(false)
+  can_export Boolean @default(false)
+  can_view   Boolean @default(false)
+  section    Section @relation(fields: [section_id], references: [id])
 
   @@id([role, section_id])
   @@index([role])
   @@index([role, section_id])
 }
 
-
-
-/** */
- enum ROLES {
-  PAYPAC
-  ORGANIZER
-  STAFF
-  STAFF_PROMOTER
-  PROMOTER
-  CUSTOMER
-  // @@schema("identity")
-}
-
-
 model Countries {
-  id               Int      @id @default(autoincrement())
+  id               Int        @id @default(autoincrement())
   name_country     String
-  code             String // ISO code
-  phone_code       String // Phone code
-  currency         String // Currency code
-  language_default String // Language code
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-
-  states     States[] // Un país tiene muchos estados
-  cities     Cities[] // Un país tiene muchas ciudades
-  categories Category[] // ← Relación inversa
-
-   companies Company[] // ← agregar
+  code             String
+  phone_code       String
+  currency         String
+  language_default String
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+  categories       Category[]
+  cities           Cities[]
+  companies        Company[]
+  states           States[]
 }
 
 model States {
-  id         Int      @id @default(autoincrement())
+  id         Int       @id @default(autoincrement())
   country_id Int
   name_state String
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-
-  country Countries @relation(fields: [country_id], references: [id])
-  cities  Cities[] // Un estado tiene muchas ciudades
-
-  companies Company[] // ← agregar
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  cities     Cities[]
+  companies  Company[]
+  country    Countries @relation(fields: [country_id], references: [id])
 }
 
 model Cities {
-  id         Int      @id @default(autoincrement())
+  id         Int       @id @default(autoincrement())
   state_id   Int
   country_id Int
   name_city  String
   latitude   String
   longitude  String
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-
-  state   States    @relation(fields: [state_id], references: [id])
-  country Countries @relation(fields: [country_id], references: [id])
-   companies Company[] // ← agregar
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  country    Countries @relation(fields: [country_id], references: [id])
+  state      States    @relation(fields: [state_id], references: [id])
+  companies  Company[]
 }
 
-//CATEGORIES
 model Category {
-  id            Int       @id @default(autoincrement()) // ID único para cada categoría
-  category_name String // Nombre de la categoría
-  category_icon String? // Icono de la categoría (opcional)
-  country_id    Int // ← FK al país
-  events        Event[] // Relación uno a muchos (un evento puede tener muchas categorías)
-  country       Countries @relation(fields: [country_id], references: [id]) // Relación con Countries
-  // ✅ 1:N — una categoría tiene muchas subcategorías (relación inversa)
+  id            Int           @id @default(autoincrement())
+  category_name String
+  country_id    Int
+  category_icon String?
+  country       Countries     @relation(fields: [country_id], references: [id])
+  events        Event[]
   subcategories SubCategory[]
 }
 
 model SubCategory {
-  id               Int        @id @default(autoincrement()) // ID único para cada subcategoría
-  subcategory_name String // Nombre de la subcategoría
+  id               Int        @id @default(autoincrement())
+  subcategory_name String
   category_id      Int
-  
-  // ✅ 1:N — muchos a uno con Category
-  category         Category  @relation(fields: [category_id], references: [id])
-
-  // ✅ 1:N — una subcategoría tiene muchos subgéneros (relación inversa)
-  subgenres        Subgenre[]
-
-  // ✅ 1:N — una subcategoría tiene muchos eventos (relación inversa)
   events           Event[]
+  category         Category   @relation(fields: [category_id], references: [id])
+  subgenres        Subgenre[]
 }
 
 model Subgenre {
   id               Int         @id @default(autoincrement())
   subcategory_name String
   subcategory_id   Int
- 
-  // ✅ 1:N — muchos a uno con SubCategory (ya estaba bien)
-  subcategory      SubCategory @relation(fields: [subcategory_id], references: [id])
-
-  // ✅ relación inversa con Event
   events           Event[]
+  subcategory      SubCategory @relation(fields: [subcategory_id], references: [id])
 }
 
-//EVENTS
 model Event {
-  id                Int           @id @default(autoincrement())
-  name              String
-  short_description String
-  description       String        @default("")
-  image             String        @default("")
-  cover             String        @default("")
-  date_event        DateTime     
-  date_end_event    DateTime? // Fin del evento — opcional (conciertos pueden no tener hora fija)
-  date_checkin_open DateTime? // Desde cuándo se puede hacer check-in — opcional
-  date_checkin_close DateTime?
-  commission_percentage Float?
-  place_address     String        @default("")
-  latitude          String        @default("")
-  longitude         String        @default("")
-  currency          String        @default("COP")
-  category_id     Int?
-  subcategory_id  Int?
-  subgenre_id     Int?
-  city              String        @default("")
-  country           String        @default("")
-  event_type        TypeEvent     @default(PUBLICO)
-  type_venue        Places        @default(SIN_NUMERAR)
-  url_video         String        @default("")
-  organizer_id      Int           @default(0)
-  num_max_tickets   Int           @default(0)
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
-  status            EVENT_STATUS  @default(CREATED)
-
-  date_type                EventDateType @default(SINGLE)
-  apply_dcto               Boolean       @default(false) // Aplica descuento
-  allow_external_promoters Boolean       @default(false) // Permite promotores externos
-  allow_paypac_promotion   Boolean       @default(false) //
-  sales_channel            String        @default("app") // Canal de ventas, por defecto "web","promoter","app"
-  
-  // Relación uno a uno con EventPlaces
-  //numbered_place    EventPlaces? @relation(fields: [numbered_place_id], references: [id])
-  numbered_place_id Int?
-
-  // Relación uno a muchos con EventLocalities
-  localities EventLocalities[] // Un evento puede tener muchas localidades
-
-  rewardRules      EventRewardRules[] // ← relación inversa
-  promoterBalances EventBalancePromoters[] // ← relación inversa
-  discounts        EventDcto[] // ← Inverso de EventDcto.event
-  favorites        EventFavorites[] // ← Inverso de EventFavorites.event
-
-  staffAssignments EventStaffAssignment[]
-  // ✅ Relaciones muchos-a-uno correctas
-  category        Category?    @relation(fields: [category_id],    references: [id])
-  subcategory     SubCategory? @relation(fields: [subcategory_id], references: [id])
-  subgenre        Subgenre?    @relation(fields: [subgenre_id],    references: [id])
-  //RElaciones Places and seats numbered_place_id
-  numbered_place    EventPlaces?      @relation(fields: [numbered_place_id], references: [id])
-  seatStatuses      EventSeatStatus[] // ← agregar relación inversa
-  tickets           Ticket[]
-  liquidations EventLiquidation[]
+  id                       Int                     @id @default(autoincrement())
+  name                     String
+  short_description        String
+  description              String                  @default("")
+  image                    String                  @default("")
+  cover                    String                  @default("")
+  date_event               DateTime
+  place_address            String                  @default("")
+  latitude                 String                  @default("")
+  longitude                String                  @default("")
+  currency                 String                  @default("COP")
+  city                     String                  @default("")
+  country                  String                  @default("")
+  event_type               TypeEvent               @default(PUBLICO)
+  type_venue               Places                  @default(SIN_NUMERAR)
+  url_video                String                  @default("")
+  organizer_id             Int                     @default(0)
+  num_max_tickets          Int                     @default(0)
+  createdAt                DateTime                @default(now())
+  updatedAt                DateTime                @updatedAt
+  status                   EVENT_STATUS            @default(CREATED)
+  date_type                EventDateType           @default(SINGLE)
+  apply_dcto               Boolean                 @default(false)
+  allow_external_promoters Boolean                 @default(false)
+  allow_paypac_promotion   Boolean                 @default(false)
+  sales_channel            String                  @default("app")
+  commission_to_charge     Float                   @default(0)
+  commission_to_promoter   Float                   @default(0)
+  numbered_place_id        Int?
+  category_id              Int?
+  subcategory_id           Int?
+  subgenre_id              Int?
+  commission_percentage    Float?
+  date_checkin_close       DateTime?
+  date_checkin_open        DateTime?
+  date_end_event           DateTime?
+  category                 Category?               @relation(fields: [category_id], references: [id])
+  numbered_place           EventPlaces?            @relation(fields: [numbered_place_id], references: [id])
+  subcategory              SubCategory?            @relation(fields: [subcategory_id], references: [id])
+  subgenre                 Subgenre?               @relation(fields: [subgenre_id], references: [id])
+  promoterBalances         EventBalancePromoters[]
+  discounts                EventDcto[]
+  favorites                EventFavorites[]
+  liquidations             EventLiquidation[]
+  localities               EventLocalities[]
+  rewardRules              EventRewardRules[]
+  seatStatuses             EventSeatStatus[]
+  staffAssignments         EventStaffAssignment[]
+  tickets                  Ticket[]
 }
-
-
 
 model EventStaffAssignment {
-  id          Int    @id @default(autoincrement())
-  event_id    Int // Evento al que está asignado
-  user_id     Int // Usuario STAFF/STAFF_PROMOTER
-  role_type   ROLES @default(STAFF) // "STAFF", "STAFF_PROMOTER"
-  assigned_by Int // ORGANIZER que lo asignó
-  door_identifier String? // Identificador de la puerta o entrada asignada al staff (opcional)
+  id                 Int       @id @default(autoincrement())
+  event_id           Int
+  user_id            Int
+  assigned_by        Int
+  latitude           String?
+  longitude          String?
+  checked_in         Boolean   @default(false)
+  checked_in_at      DateTime?
+  assigned_at        DateTime  @default(now())
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  role_type          ROLES     @default(STAFF)
+  door_identifier    String?
+  invitation_pending Boolean   @default(false)
+  invited_contact    String?
+  assignedBy         User      @relation("StaffAssigner", fields: [assigned_by], references: [id])
+  event              Event     @relation(fields: [event_id], references: [id], onDelete: Cascade)
+  user               User      @relation("StaffAssignments", fields: [user_id], references: [id], onDelete: Cascade)
 
-  // Geolocalización del staff (para validar en entrada)
-  latitude      String? // Lat donde está el staff
-  longitude     String? // Long donde está el staff
-  checked_in    Boolean   @default(false) // ¿Se "logeó" en el evento?
-  checked_in_at DateTime? // Cuándo se logeó
-  invited_contact String? // email o teléfono del invitado pendiente de aceptar
-invitation_pending Boolean @default(false) // true hasta que acepte
-
-
-  assigned_at DateTime @default(now())
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relaciones
-  event      Event @relation(fields: [event_id], references: [id], onDelete: Cascade)
-  user       User  @relation("StaffAssignments", fields: [user_id], references: [id], onDelete: Cascade)
-  assignedBy User  @relation("StaffAssigner", fields: [assigned_by], references: [id])
-
-  @@unique([event_id, user_id]) // Un staff no puede estar duplicado en el mismo evento
-  @@index([event_id]) // Buscar staff por evento
-  @@index([user_id]) // Buscar eventos de un staff
+  @@unique([event_id, user_id])
+  @@index([event_id])
+  @@index([user_id])
 }
-
-enum EVENT_STATUS {
-  CREATED
-  APPROVED
-  SCHEDULED
-  ACTIVE
-  CANCELED
-  RE_SCHEDULED
-  FINALIZED
-}
-
 
 model EventFavorites {
-  id           Int      @id @default(autoincrement())
-  user_id      Int // Usuario que marca como favorito
-  event_id     Int // Evento marcado como favorito
- 
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  user     User             @relation(fields: [user_id], references: [id])
-  event    Event            @relation(fields: [event_id], references: [id])
-
+  id        Int      @id @default(autoincrement())
+  user_id   Int
+  event_id  Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  event     Event    @relation(fields: [event_id], references: [id])
+  user      User     @relation(fields: [user_id], references: [id])
 }
 
 model EventDcto {
-  id              Int      @id @default(autoincrement())
-  user_id         Int // Usuario que aplica el descuento
+  id              Int              @id @default(autoincrement())
+  user_id         Int
   event_id        Int
   name_dcto       String
   description     String?
-  type_dcto       Int // 1: Porcentaje, 2: Monto fijo
-  value_dcto      Int // Valor del descuento
-  min_qty_tickets Int? // Cantidad mínima de tickets para aplicar el descuento
-  max_qty_tickets Int? // Cantidad máxima de tickets para aplicar el descuento
-  locality_id     Int? // Relación opcional con EventLocalities
-  //code dcto 
-  code        String?  @unique
-  is_active   Boolean  @default(true)
-  max_uses    Int?
-  uses_count  Int      @default(0)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  event    Event            @relation(fields: [event_id], references: [id])
-  locality EventLocalities? @relation(fields: [locality_id], references: [id])
-  user     User             @relation("UserEventDiscounts", fields: [user_id], references: [id])
-}
-
-enum EventDateType {
-  SINGLE // Evento de un solo día
-  MULTIPLE // Evento con múltiples fechas
-  RANGE_DATE // Evento con un rango de fechas
-  RANGE_DATE_EXCEPT // Evento con rango de fechas excepto algunas fechas
-  EXPLICIT_DATES // Evento con fechas explícitas
-}
-
-enum EventRewardPromoters {
-  NONE // Sin recompensa
-  PERCENTAGE // Porcentaje de las ventas
-  FIXED_AMOUNT // Monto fijo por venta
-  GUEST_LIST // Lista de invitados
-  TICKET_REWARD // Recompensa en forma de boletos
-  CASH_REWARD // Recompensa en efectivo
-  CONSUMPTION_REWARD // Recompensa en forma de consumo
+  type_dcto       Int
+  value_dcto      Int
+  min_qty_tickets Int?
+  max_qty_tickets Int?
+  locality_id     Int?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  code            String?          @unique
+  is_active       Boolean          @default(true)
+  max_uses        Int?
+  uses_count      Int              @default(0)
+  event           Event            @relation(fields: [event_id], references: [id])
+  locality        EventLocalities? @relation(fields: [locality_id], references: [id])
+  user            User             @relation("UserEventDiscounts", fields: [user_id], references: [id])
 }
 
 model EventRewardRules {
-  id                 Int                  @id @default(autoincrement())
-  event_id           Int
-  reward_type        EventRewardPromoters @default(NONE)
-  reward_percentage  Int?
-  reward_amount      Int?
-  min_qty_tickets    Int?
-  min_amount_tickets Int?
-  locality_id        Int?
-  createdAt          DateTime             @default(now())
-  updatedAt          DateTime             @updatedAt
-
-  event    Event            @relation(fields: [event_id], references: [id])
-  locality EventLocalities? @relation(fields: [locality_id], references: [id])
-
-  balances EventBalancePromoters[] // Relación inversa
+  id                      Int                     @id @default(autoincrement())
+  event_id                Int
+  reward_type             EventRewardPromoters    @default(NONE)
+  reward_percentage       Int?
+  reward_amount           Int?
+  min_qty_tickets         Int?
+  min_amount_tickets      Int?
+  locality_id             Int?
+  createdAt               DateTime                @default(now())
+  updatedAt               DateTime                @updatedAt
+  apply_customer_discount Boolean                 @default(false)
+  customer_discount_type  Int?
+  customer_discount_value Int?
+  commission_base         CommissionBase          @default(ON_DISCOUNTED)
+  balances                EventBalancePromoters[]
+  event                   Event                   @relation(fields: [event_id], references: [id])
+  locality                EventLocalities?        @relation(fields: [locality_id], references: [id])
 }
 
 model EventBalancePromoters {
-  id                 Int       @id @default(autoincrement())
+  id                 Int               @id @default(autoincrement())
   event_id           Int
   promoter_id        Int
   reward_rule_id     Int?
   reward_amount      Int?
   reward_description String?
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
-  expiration_date      DateTime?
-  invoice_id   Int?
-tickets_sold Int @default(0)
-  status             Int       @default(0) // 0: Pendiente, 1: Pagado, 2: Cancelado
-
-  event      Event             @relation(fields: [event_id], references: [id])
-  promoter   User              @relation("UserPromoterBalances", fields: [promoter_id], references: [id])
-  rewardRule EventRewardRules? @relation(fields: [reward_rule_id], references: [id])
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+  status             Int               @default(0)
+  expiration_date    DateTime?
+  invoice_id         Int?
+  tickets_sold       Int               @default(0)
+  event              Event             @relation(fields: [event_id], references: [id])
+  promoter           User              @relation("UserPromoterBalances", fields: [promoter_id], references: [id])
+  rewardRule         EventRewardRules? @relation(fields: [reward_rule_id], references: [id])
 }
 
 model PromoterCode {
-  id          Int      @id @default(autoincrement())
+  id          Int       @id @default(autoincrement())
   promoter_id Int
-  code        String   @unique
-  is_active   Boolean  @default(true)
-  uses_count  Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  promoter User      @relation("PromoterCodes", fields: [promoter_id], references: [id])
-  invoices Invoice[]
+  code        String    @unique
+  is_active   Boolean   @default(true)
+  uses_count  Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @default(now()) @updatedAt
+  invoices    Invoice[]
+  promoter    User      @relation("PromoterCodes", fields: [promoter_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@index([promoter_id])
   @@index([code])
 }
 
 model EventLiquidation {
-  id                   Int                    @id @default(autoincrement())
-  company_id           Int
-  event_id             Int
-  num_liquidation      String                 @unique // LIQ-XXXX
-  gross_amount         Float                  // ingresos brutos del evento
-  paypac_commission    Float
-  promoter_commission  Float                  @default(0)
-  refunds              Float                  @default(0) // total reembolsos procesados
-  net_amount           Float                // bruto - comision_paypac - comision_promotores - reembolsos
-  status               EventLiquidationStatus @default(PENDING)
-  liquidation_date     DateTime
-  paid_at              DateTime?
-  createdAt            DateTime               @default(now())
-  updatedAt            DateTime               @updatedAt
-
-  company Company @relation(fields: [company_id], references: [id])
-  event   Event   @relation(fields: [event_id], references: [id])
+  id                  Int                    @id @default(autoincrement())
+  company_id          Int
+  event_id            Int
+  num_liquidation     String                 @unique
+  gross_amount        Float
+  paypac_commission   Float
+  promoter_commission Float                  @default(0)
+  refunds             Float                  @default(0)
+  net_amount          Float
+  status              EventLiquidationStatus @default(PENDING)
+  liquidation_date    DateTime
+  paid_at             DateTime?
+  createdAt           DateTime               @default(now())
+  updatedAt           DateTime               @updatedAt
+  company             Company                @relation(fields: [company_id], references: [id])
+  event               Event                  @relation(fields: [event_id], references: [id])
 
   @@index([company_id])
   @@index([event_id])
   @@index([status])
 }
 
-enum EventLiquidationStatus {
-  PENDING
-  PAID
-  OVERDUE
-}
-
-//add user_id, company_id para recilar las localidades.
 model EventLocalities {
-  id                   Int    @id @default(autoincrement())
-  event_id             Int // Clave foránea que apunta a Event
-  name_locality        String // Nombre de la localidad
-  bkg_color            String // Color de fondo
-  title_color          String // Color del título
-  text_color           String // Color del texto
-  title_color_location String // Color específico para el título de la localidad
-  require_num_tickets  Boolean @default(false) // Número de tickets vendidos para esta localidad
-  num_max_tickets      Int?  @default(0) // Número máximo de tickets disponibles para esta localidad
-  num_tickets_sold    Int? @default(0) // Número de tickets vendidos para esta localidad
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
-
-  // Relación muchos a uno con Event
-  event Event @relation(fields: [event_id], references: [id])
-
-  // Relación uno a muchos con EventStages
-  stages EventStages[] // Una localidad puede tener varias etapas
-
- 
-
-  rewardRules EventRewardRules[] // ← relación inversa
-  discounts   EventDcto[] // ← Inverso de EventDcto.locality
-  
+  id                   Int                @id @default(autoincrement())
+  event_id             Int
+  name_locality        String
+  bkg_color            String
+  title_color          String
+  text_color           String
+  title_color_location String
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+  num_max_tickets      Int?               @default(0)
+  num_tickets_sold     Int?               @default(0)
+  require_num_tickets  Boolean            @default(false)
+  discounts            EventDcto[]
+  event                Event              @relation(fields: [event_id], references: [id])
+  rewardRules          EventRewardRules[]
+  stages               EventStages[]
 }
 
 model EventStages {
-  id           Int      @id @default(autoincrement())
-  locality_id  Int // Clave foránea que apunta a EventLocalities
+  id           Int             @id @default(autoincrement())
+  locality_id  Int
   stage_name   String
-  date_start   DateTime // Fecha de inicio de la etapa
-  date_end     DateTime // Fecha de fin de la etapa
-  price_ticket Int // Precio del boleto para esa etapa
-
-  // Relación muchos a uno con EventLocalities
-  locality EventLocalities @relation(fields: [locality_id], references: [id])
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-
-enum TypeEvent {
-  PUBLICO // Valor "Público"
-  PRIVADO // Valor "Privado"
-}
-
-// Enumeración para el tipo de lugar
-enum Places {
-  NUMERADO // Valor "Numerado"
-  SIN_NUMERAR // Valor "Sin numerar" 
+  date_start   DateTime
+  date_end     DateTime
+  price_ticket Int
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  locality     EventLocalities @relation(fields: [locality_id], references: [id])
 }
 
 model EventPlaces {
-  id         Int        @id @default(autoincrement())
+  id         Int              @id @default(autoincrement())
   name_place String
-  type_place TypePlaces         // TEATRO, ESTADIO, CINE, etc.
-  place_type Places             // NUMERADO (siempre, este modelo solo aplica a numerados)
-  map_place  Json?              // JSON con coordenadas x,y por silla — null hasta que se dibuje
-  capacity   Int                // total calculado del venue
-  createdAt  DateTime   @default(now())
-  updatedAt  DateTime   @updatedAt
-
-  zones  EventPlaceZone[]
-  events Event[]               // un venue puede usarse en múltiples eventos
+  type_place TypePlaces
+  capacity   Int
+  createdAt  DateTime         @default(now())
+  place_type Places
+  updatedAt  DateTime         @updatedAt
+  map_place  Json?
+  events     Event[]
+  zones      EventPlaceZone[]
 
   @@index([type_place])
 }
 
 model EventPlaceZone {
-  id       Int    @id @default(autoincrement())
+  id       Int             @id @default(autoincrement())
   place_id Int
-  name     String // "Luneta Izquierda", "Platea Alta", "VIP"
+  name     String
   capacity Int
-
-  place EventPlaces     @relation(fields: [place_id], references: [id])
-  rows  EventPlaceRow[]
+  rows     EventPlaceRow[]
+  place    EventPlaces     @relation(fields: [place_id], references: [id])
 
   @@index([place_id])
 }
 
 model EventPlaceRow {
-  id      Int    @id @default(autoincrement())
+  id      Int              @id @default(autoincrement())
   zone_id Int
-  name    String // "A", "B", "H"
-
-  zone  EventPlaceZone   @relation(fields: [zone_id], references: [id])
-  seats EventPlaceSeat[]
+  name    String
+  zone    EventPlaceZone   @relation(fields: [zone_id], references: [id])
+  seats   EventPlaceSeat[]
 
   @@index([zone_id])
 }
 
 model EventPlaceSeat {
-  id          Int        @id @default(autoincrement())
+  id          Int               @id @default(autoincrement())
   row_id      Int
-  seat_number String     // "A1", "Y15", "H23"
-  status      SeatStatus @default(ACTIVE) // estado permanente: ACTIVE | BLOCKED_MAINTENANCE
-
+  seat_number String
+  status      SeatStatus        @default(ACTIVE)
   row         EventPlaceRow     @relation(fields: [row_id], references: [id])
   eventStatus EventSeatStatus[]
 
@@ -672,40 +473,15 @@ model EventSeatStatus {
   seat_id    Int
   event_id   Int
   status     SeatEventStatus @default(AVAILABLE)
-  held_until DateTime?       // expira el HELD del carrito
-
-  seat  EventPlaceSeat @relation(fields: [seat_id], references: [id])
-  event Event          @relation(fields: [event_id], references: [id])
+  held_until DateTime?
+  event      Event           @relation(fields: [event_id], references: [id])
+  seat       EventPlaceSeat  @relation(fields: [seat_id], references: [id])
 
   @@unique([seat_id, event_id])
-  @@index([event_id, status])   // query principal del mapa interactivo
+  @@index([event_id, status])
   @@index([event_id])
 }
 
-enum SeatStatus {
-  ACTIVE
-  BLOCKED_MAINTENANCE
-}
-
-enum SeatEventStatus {
-  AVAILABLE
-  HELD        // en carrito — expira con held_until
-  SOLD
-  BLOCKED     // cortesía, prensa, producción
-}
-
-
-
-// Enumeración para el tipo de lugar (Place)
-enum TypePlaces {
-  CLUB
-  DISCOTECA
-  TEATRO
-  CINE
-  ESTADIO
-}
-
-//PAYMENTS
 model PaymentMethodsUI {
   id            Int      @id @default(autoincrement())
   method_name   String
@@ -714,7 +490,7 @@ model PaymentMethodsUI {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }
-//DELETE THIS IF NOT USED
+
 model PaymentMethodsUsers {
   id            Int      @id @default(autoincrement())
   user_id       Int
@@ -723,8 +499,7 @@ model PaymentMethodsUsers {
   method_status Int      @default(0)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
-
-  user User @relation(fields: [user_id], references: [id])
+  user          User     @relation(fields: [user_id], references: [id])
 }
 
 model PaymentMethodCard {
@@ -740,56 +515,41 @@ model PaymentMethodCard {
   exp_year         String
   exp_month        String
   card_holder      String
-  created_with_cvc Boolean @default(false) // Indica si se creó con CVC
+  created_with_cvc Boolean @default(false)
   expires_at       String
   validity_ends_at String
-
-  user User @relation(fields: [user_id], references: [id])
+  user             User    @relation(fields: [user_id], references: [id])
 }
 
-//Invoices
 model Invoice {
-  id                   Int           @id @default(autoincrement())
-  user_id              Int
-  user_uid             String
-  num_invoice          String
-  customer_UUID_phone  String?
-  user_name            String
-  user_lastname        String
-  user_num_doc         String
-  user_type_doc        DocType  @default(CC)
-  num_items            Int
-  event_id             Int
-  apply_discount       Int           @default(0) // 0: No aplica descuento, 1: Aplica descuento
-  discount_type        Int           @default(0) // Descuento aplicado  1: centavos , 2: Porcentaje
-  discount_value       Int           @default(0) // Valor del descuento aplicado
-  total_ticket_dcto    Int           @default(0) // Total del ticket después de aplicar el descuento
-  total_ticket_regular Int // Total del ticket sin descuento
-  total                Int //Total tckets pagado con o sin dcto
-  refunded_amount  Int?      // monto reembolsado (parcial o total)
-  refunded_at      DateTime? // fecha del reembolso
-  paypac_commission_pct     Float?  @default(0) // snapshot % PayPac al momento de compra
-  paypac_commission_amount  Int?    @default(0) // monto en pesos comisión PayPac
-  promoter_commission_amount Int?   @default(0) // monto en pesos comisión promotor (ya calculado)
-  //code promoter
-  promoter_code_id Int?
-
-  status               InvoiceStatus
-  createdAt            DateTime      @default(now())
-  updatedAt            DateTime      @updatedAt
-
-  invoiceTickets InvoiceTickets[]
-  promoterCode     PromoterCode? @relation(fields: [promoter_code_id], references: [id])
-}
-
-enum InvoiceStatus {
-  ISSUED
-  PROCESSING
-  PAID
-  PENDING
-  REJECTED
-  CANCELED
-  REFUNDED
+  id                         Int              @id @default(autoincrement())
+  user_id                    Int
+  user_uid                   String
+  num_invoice                String
+  user_name                  String
+  user_lastname              String
+  user_num_doc               String
+  user_type_doc              DocType          @default(CC)
+  num_items                  Int
+  event_id                   Int
+  apply_discount             Int              @default(0)
+  discount_type              Int              @default(0)
+  discount_value             Int              @default(0)
+  total_ticket_dcto          Int              @default(0)
+  total_ticket_regular       Int
+  total                      Int
+  status                     InvoiceStatus
+  createdAt                  DateTime         @default(now())
+  updatedAt                  DateTime         @updatedAt
+  refunded_amount            Int?
+  refunded_at                DateTime?
+  paypac_commission_pct      Float?           @default(0)
+  paypac_commission_amount   Int?             @default(0)
+  promoter_commission_amount Int?             @default(0)
+  promoter_code_id           Int?
+  customer_UUID_phone        String?
+  promoterCode               PromoterCode?    @relation(fields: [promoter_code_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  invoiceTickets             InvoiceTickets[]
 }
 
 model InvoiceTickets {
@@ -801,37 +561,30 @@ model InvoiceTickets {
   locality_name        String
   qty_tickets          Int
   price_ticket         Int
-  apply_discount       Int      @default(0) // 0: No aplica descuento, 1: Aplica descuento
-  discount_type        Int      @default(0) // Descuento aplicado  1: centavos , 2: Porcentaje
-  discount_value       Int      @default(0) // Valor del descuento aplicado
-  total_ticket_dcto    Int      @default(0) // Total del ticket después de aplicar el descuento
-  total_ticket_regular Int // Total del ticket sin descuento
-  total_ticket_paid    Int //Total tckets pagado con o sin dcto
+  apply_discount       Int      @default(0)
+  discount_type        Int      @default(0)
+  discount_value       Int      @default(0)
+  total_ticket_dcto    Int      @default(0)
+  total_ticket_regular Int
+  total_ticket_paid    Int
   purchase_date        DateTime
-  status_item          Int      @default(0) // 0: Pendiente, 1: Expedido (WHEN INVOICE IS PAID), 2: Cancelado
+  status_item          Int      @default(0)
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
-
-  invoice Invoice @relation(fields: [invoice_id], references: [id])
+  invoice              Invoice  @relation(fields: [invoice_id], references: [id])
 }
 
-//Ticket
 model Ticket {
   id                       Int          @id @default(autoincrement())
-  transaction_id           Int //Rel table transactions
-  event_id                 Int //Rel events
-  customer_id              Int //rel user comprador
-  customer_uid             String //rel user comprador firebase uid
+  transaction_id           Int
+  event_id                 Int
+  customer_id              Int
+  customer_uid             String
   customer_ID_phone        String
-  reference_ticket         String //Reference token ticket (random unique alfanuemrico) 
-  booking_ticket           String //INVOICE que empiece por PYC +  num aleatorio (4) +  ultmos 2 digitos timestamp
-  token_ticket             String //SECRET TOKEN para validar el ticket en la entrada al evento 
-  device_uuid              String?
-  device_public_key  String?  // Clave pública RSA del dispositivo tenedor
-  totp_secret              String? //TOTP (QR dinámico)    
-  nfc_id                   String? //NFC
+  reference_ticket         String
+  booking_ticket           String
+  token_ticket             String
   ticket_first_time        Int          @default(1)
-  status_ticket            TicketStatus @default(PENDING) //AGREGA ENUM STATUS PARA EL TICKET (pendiente, congelado, pagado, aceptado, cancelado, recibido, completado)
   ev_name                  String
   ev_short_description     String
   ev_cover                 String       @default("")
@@ -841,56 +594,28 @@ model Ticket {
   ev_type_venue            Places       @default(SIN_NUMERAR)
   ev_place_seat            String       @default("")
   ev_organizer_id          Int          @default(0)
-  ev_status                EVENT_STATUS  @default(CREATED)
   loc_id_locality          Int
-  loc_name_locality        String // Nombre de la localidad
-  loc_bkg_color            String // Color de fondo
-  loc_title_color          String // Color del título
-  loc_text_color           String // Color del texto
-  loc_title_color_location String // Color específico para el título de la localidad
+  loc_name_locality        String
+  loc_bkg_color            String
+  loc_title_color          String
+  loc_text_color           String
+  loc_title_color_location String
   created_at               DateTime     @default(now())
   updated_at               DateTime     @updatedAt
-  used_at                  DateTime? // Nullable, si es null, no se ha usado
-  read_by_user             Int?  //id customer
-  first_name_user          String? //informativo
-  last_name_user           String? //informativo
+  used_at                  DateTime?
+  status_ticket            TicketStatus @default(PENDING)
+  ev_status                EVENT_STATUS @default(CREATED)
+  first_name_user          String?
+  last_name_user           String?
+  read_by_user             Int?
+  device_uuid              String?
+  totp_secret              String?
   user_num_doc             String?
   user_type_doc            DocType?
-  event    Event @relation(fields: [event_id], references: [id])
-  customer User  @relation(fields: [customer_id], references: [id])
-}
-
-enum DocType {
-  CC      // Cédula de Ciudadanía
-  CE      // Cédula de Extranjería
-  PA      // Pasaporte
-  TI      // Tarjeta de Identidad
-  NIT     // NIT (empresas)
-  SSN     // SOCIAL SECURITY NUMBER USA
-}
-
-enum TicketStatus {
-  PENDING // Pendiente de pago
-  PAID // Pagado
-  ACTIVE // Activo (listo para usar)
-  USED // Ya usado en el evento
-  FROZEN // Congelado (esperando transferencia)
-  TRANSFERRED // Transferido
-  CANCELED // Cancelado
-  EXPIRED // Expirado  
-  ON_SALE //EN VENTA
-}
-
-enum TransactionStatus {
-  PENDING // Pendiente de aceptación
-  FROZEN // Congelado esperando pago (para ventas)
-  PAID // Pago recibido (para ventas)
-  ACCEPTED // Aceptado por receptor
-  RECEIVED // Recibido
-  COMPLETED // Completado
-  REJECTED // Rechazado
-  CANCELLED // Cancelado
-  ON_SALE //EN VENTA
+  nfc_id                   String?
+  device_public_key        String?
+  customer                 User         @relation(fields: [customer_id], references: [id])
+  event                    Event        @relation(fields: [event_id], references: [id])
 }
 
 model TicketTransaction {
@@ -906,21 +631,20 @@ model TicketTransaction {
   to_customer_token        String
   to_customer_uid          String
   to_customer_UUID_phone   String
-  type_transaction         String // "transfer", "sale", "gift"
+  type_transaction         String
   ev_name                  String
-  transaction_description  String //message de la transacción
+  transaction_description  String
   created_at               DateTime          @default(now())
   updated_at               DateTime          @updatedAt
-  completed_at             DateTime? // Nullable, si es null, no se ha completado
-  status_ticket            TransactionStatus @default(PENDING) // "pending", "frozen", "paid", "accepted",  "cancelled", "received", "completed", frozen: si se espera un pago.
+  completed_at             DateTime?
+  status_ticket            TransactionStatus @default(PENDING)
 }
 
-//Transactions
 model Transactions {
   id                  Int      @id @default(autoincrement())
   user_id             Int
   user_uid            String
-  invoice_id          String  // Referencia externa del gateway de pagos (ej: "INV-xxx")
+  invoice_id          String
   created_at          DateTime
   finalized_at        DateTime
   amount_in_cents     Int
@@ -941,56 +665,146 @@ model Transactions {
   taxes               String[]
   tip_in_cents        String
   meta                Json
-
-  user User @relation(fields: [user_id], references: [id])
+  user                User     @relation(fields: [user_id], references: [id])
 }
-
-/*
-//NOTIFICATIONS
-model NotificationEmailTemplates {
-  id            Int      @id @default(autoincrement())
-  template_name   String
-  template_subject    String
-  template_code   String   
-  template_type   TemplateTypes @default(EVENT_NOTIFICATION)
-  template_variables   String[]
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  // ✅ Relación inversa
-  messages NotificationMessageQueue[]
-}
-
-
-enum TemplateTypes {
-  REGISTRATION
-  PASSWORD_RESET
-  EVENT_NOTIFICATION
-  TRANSACTION
-  PROMOTER_UPDATE
-  MARKETING
-}
-
-*/
 
 model NotificationMessageQueue {
-   id              Int      @id @default(autoincrement())
-  user_id         Int
-  template_code   String   // Código del template usado (ej: "REGISTRATION_VERIFY")
-  email_delivery  String   // Email del destinatario
-  email_subject   String   // Subject pre-renderizado
-  email_body      String   @db.Text // HTML pre-renderizado
-  send_at         DateTime?
-  status          Int      @default(0) // 0: Pendiente, 1: Enviado, 2: Fallido
-  message_result  String?  @db.Text // Respuesta de Brevo
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id             Int       @id @default(autoincrement())
+  user_id        Int
+  email_delivery String
+  send_at        DateTime?
+  status         Int       @default(0)
+  message_result String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  email_subject  String
+  email_body     String
+  template_code  String
+  user           User      @relation(fields: [user_id], references: [id])
 
-   // ✅ Relaciones
-  user     User                        @relation(fields: [user_id], references: [id])
-  
   @@index([user_id])
   @@index([status])
   @@index([send_at])
+}
 
+/// *
+enum ROLES {
+  PAYPAC
+  ORGANIZER
+  STAFF
+  STAFF_PROMOTER
+  PROMOTER
+  CUSTOMER
+}
+
+enum EVENT_STATUS {
+  CREATED
+  APPROVED
+  SCHEDULED
+  ACTIVE
+  CANCELED
+  RE_SCHEDULED
+  FINALIZED
+}
+
+enum EventDateType {
+  SINGLE
+  MULTIPLE
+  RANGE_DATE
+  RANGE_DATE_EXCEPT
+  EXPLICIT_DATES
+}
+
+enum EventRewardPromoters {
+  NONE
+  PERCENTAGE
+  FIXED_AMOUNT
+  GUEST_LIST
+  TICKET_REWARD
+  CASH_REWARD
+  CONSUMPTION_REWARD
+}
+
+enum CommissionBase {
+  ON_ORIGINAL
+  ON_DISCOUNTED
+}
+
+enum EventLiquidationStatus {
+  PENDING
+  PAID
+  OVERDUE
+}
+
+enum TypeEvent {
+  PUBLICO
+  PRIVADO
+}
+
+enum Places {
+  NUMERADO
+  SIN_NUMERAR
+}
+
+enum SeatStatus {
+  ACTIVE
+  BLOCKED_MAINTENANCE
+}
+
+enum SeatEventStatus {
+  AVAILABLE
+  HELD
+  SOLD
+  BLOCKED
+}
+
+enum TypePlaces {
+  CLUB
+  DISCOTECA
+  TEATRO
+  CINE
+  ESTADIO
+}
+
+enum InvoiceStatus {
+  ISSUED
+  PROCESSING
+  PAID
+  PENDING
+  REJECTED
+  CANCELED
+  REFUNDED
+}
+
+enum DocType {
+  CC
+  CE
+  PA
+  TI
+  NIT
+  SSN
+}
+
+enum TicketStatus {
+  PENDING
+  PAID
+  ACTIVE
+  USED
+  FROZEN
+  TRANSFERRED
+  CANCELED
+  EXPIRED
+  ON_SALE
+}
+
+enum TransactionStatus {
+  PENDING
+  FROZEN
+  PAID
+  ACCEPTED
+  RECEIVED
+  COMPLETED
+  REJECTED
+  CANCELLED
+  ON_SALE
 }
