@@ -303,13 +303,16 @@ model EventDcto {
   locality_id     Int?
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
-  code            String?          @unique
+  code             String?         
   is_active       Boolean          @default(true)
   max_uses        Int?
   uses_count      Int              @default(0)
   event           Event            @relation(fields: [event_id], references: [id])
   locality        EventLocalities? @relation(fields: [locality_id], references: [id])
   user            User             @relation("UserEventDiscounts", fields: [user_id], references: [id])
+  
+  @@unique([event_id, code])  // ← único POR evento, no global
+
 }
 
 model EventRewardRules {
