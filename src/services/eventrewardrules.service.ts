@@ -225,7 +225,7 @@ async validateCode(code: string, eventId: number) {
   // ── 1. Buscar como código de descuento del organizador ──────────────
   const dcto = await prisma.eventDcto.findFirst({
     where: {
-      code,
+      code: { equals: code, mode: 'insensitive' },
       event_id:  eventId,
       is_active: true,
     },
@@ -248,11 +248,14 @@ async validateCode(code: string, eventId: number) {
     };
   }
 
-  // ── 2. Buscar como código de promotor ────────────────────────────────
-  const promoCode = await prisma.promoterCode.findUnique({
-    where: { code },
-    select: { id: true, is_active: true, promoter_id: true },
-  });
+  // ── 2. Buscar como código de promotor ───────────────────────────
+const promoCode = await prisma.promoterCode.findFirst({
+  where: {
+    code:      { equals: code, mode: 'insensitive' }, // ← case-insensitive
+    is_active: true,
+  },
+  select: { id: true, is_active: true, promoter_id: true },
+});
 
   if (!promoCode) {
     return { valid: false, reason: 'Código no encontrado' };
