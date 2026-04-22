@@ -88,10 +88,10 @@ const io = new SocketIOServer(server, {
     origin: [
       "http://localhost:3000",
       "http://localhost:4000",
-       "https://paypac-backend-mono-26-production.up.railway.app",
-       "https://paypac.com.co",
-       "https://api.paypac.com.co",
-        "https://app.paypac.com.co",
+      "https://paypac-backend-mono-26-production.up.railway.app",
+       "https://paypac.co",
+       "https://api.paypac.co",
+       "https://app.paypac.co",
     ],
     methods: ["GET", "POST","PUT","PATCH", "DELETE", "OPTIONS"],
     credentials: true
@@ -112,9 +112,9 @@ app.use(cors({
       "http://localhost:3000",
       "http://localhost:4000",
       "https://paypac-backend-mono-26-production.up.railway.app",
-       "https://paypac.com.co",
-       "https://api.paypac.com.co",
-       "https://app.paypac.com.co",
+       "https://paypac.co",
+       "https://api.paypac.co",
+       "https://app.paypac.co",
     ];
 
     if (!origin || allowedOrigins.includes(origin)) {
