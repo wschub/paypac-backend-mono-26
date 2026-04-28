@@ -175,9 +175,13 @@ if (filters?.date_from || filters?.date_to) {
    * Eliminar evento
    */
   async delete(id: number) {
-    return prisma.event.delete({
-      where: { id },
-    });
+    //return prisma.event.delete({
+     // where: { id },
+    //});
+    return prisma.$transaction([
+    prisma.eventFavorites.deleteMany({ where: { event_id: id } }),
+    prisma.event.delete({ where: { id } }),
+  ]);
   }
 
   /**
