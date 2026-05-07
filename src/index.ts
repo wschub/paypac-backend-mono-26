@@ -44,6 +44,7 @@ import countriesRoutes from './routes/countries.routes';
 import statesRoutes from './routes/states.routes';
 import citiesRoutes from './routes/cities.routes';
 import companyFollowersRoutes from './routes/company_followers.routes';
+import publicRouter from './routes/public';
 
 
 import { validateBrevoConfig } from './config/brevo';
@@ -125,7 +126,7 @@ app.use(cors({
     }
   },
   methods: ["GET", "POST", "PUT","PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Web-API-Key"],
   credentials: true
 }));
  
@@ -200,8 +201,11 @@ app.use('/api/webhooks', webhookRoutes); // Sin autenticación
 // Registrar rutas de FCM token
 app.use('/api/fcm-token', fcmTokenRoutes);
 
-//files 
+//files
 app.use("/api/upload", uploadRoutes);
+
+// Endpoints públicos para paypac.co (sin autenticación Firebase)
+app.use('/api/public', publicRouter);
 
 
 // Iniciar CRON jobs

@@ -20,6 +20,8 @@ import {
   updateEventStatusSchema,
   getEventsQuerySchema,
 } from '../validators/event.validation';
+import { markEventViewConversion } from '../controllers/eventViews.controller';
+import { markConversionSchema } from '../validators/eventViews.validation';
 
 const router = Router();
 
@@ -155,6 +157,14 @@ router.delete(
   authorizeRoles('ORGANIZER', 'PAYPAC'),
   validateRequest(getEventByIdSchema),
   deleteEvent
+);
+
+router.post(
+  '/:id/view/conversion',
+  authenticate,
+  authorizeRoles('CUSTOMER'),
+  validateRequest(markConversionSchema),
+  markEventViewConversion
 );
 
 export default router;

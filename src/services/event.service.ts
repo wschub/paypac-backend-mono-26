@@ -1,6 +1,7 @@
 import { EventRepository } from '../repositories/event.repository';
 import { Prisma, EVENT_STATUS } from '@prisma/client';
 import { EventLiquidationService } from './event_liquidation.service';
+import { prisma } from '../prisma/client';
 
 
 const eventRepo = new EventRepository();
@@ -269,4 +270,217 @@ async getAvailableEventsForPromoter(promoter_id: number) {
     price_from: this.getPriceFrom(event.localities ?? []),
   }));
 }
+
+  async getPublicEvents(filters: {
+    search?: string;
+    date_from?: string;
+    date_to?: string;
+    city?: string;
+    category_id?: string;
+    sort_by?: string;
+    page?: string;
+    limit?: string;
+  }) {
+    const now = new Date();
+    const page = parseInt(filters.page || '1') || 1;
+    const limit = Math.min(parseInt(filters.limit || '20') || 20, 100);
+    const skip = (page - 1) * limit;
+
+    const categoryIds = filters.category_id
+      ? filters.category_id.split(',').map(Number).filter(n => !isNaN(n))
+      : undefined;
+
+    const where: any = {
+      status: { in: ['APPROVED', 'ACTIVE'] },
+      event_type: 'PUBLICO',
+      localities: {
+        some: {
+          stages: {
+            some: {
+              date_start: { lte: now },
+              date_end: { gte: now },
+            },
+          },
+        },
+      },
+      ...(filters.search && {
+        OR: [
+          { name: { contains: filters.search, mode: 'insensitive' } },
+          { description: { contains: filters.search, mode: 'insensitive' } },
+          { short_description: { contains: filters.search, mode: 'insensitive' } },
+        ],
+      }),
+      ...(filters.date_from && { date_event: { gte: new Date(filters.date_from) } }),
+      ...(filters.date_to && { date_event: { lte: new Date(filters.date_to) } }),
+      ...(filters.city && { city: filters.city }),
+      ...(categoryIds && categoryIds.length > 0 && { category_id: { in: categoryIds } }),
+    };
+
+    const [events, total] = await Promise.all([
+      prisma.event.findMany({
+        where,
+        skip,
+        take: limit,
+        include: {
+          localities: {
+            include: {
+              stages: {
+                where: { date_start: { lte: now }, date_end: { gte: now } },
+                orderBy: { price_ticket: 'asc' },
+                take: 1,
+              },
+            },
+          },
+          _count: {
+            select: {
+              tickets: { where: { status_ticket: { in: ['PAID', 'ACTIVE'] } } },
+              views: true,
+            },
+          },
+        },
+      }) as any,
+      prisma.event.count({ where }),
+    ]);
+
+    let eventsFormatted = (events as any[]).map((event: any) => {
+      // Elegir la localidad con el stage activo más barato
+      const localitiesWithStage = event.localities.filter(
+        (l: any) => l.stages.length > 0
+      );
+      localitiesWithStage.sort(
+        (a: any, b: any) => a.stages[0].price_ticket - b.stages[0].price_ticket
+      );
+      const locality = localitiesWithStage[0];
+      const stage = locality?.stages[0];
+      return {
+        id: event.id,
+        name: event.name,
+        image: event.image,
+        short_description: event.short_description,
+        date_event: event.date_event,
+        place_address: event.place_address,
+        description: event.description,
+        cover: event.cover,
+        url_video: event.url_video,
+        organizer_id: event.organizer_id,
+        price_from: stage
+          ? {
+              name_locality: locality!.name_locality,
+              stage_name: stage.stage_name,
+              date_start: stage.date_start,
+              date_end: stage.date_end,
+              price_ticket: stage.price_ticket,
+            }
+          : null,
+        popularityScore:
+          (event._count.tickets * 0.6) + (event._count.views * 0.4),
+      };
+    });
+
+    const sortBy = filters.sort_by || 'date_asc';
+    if (sortBy === 'popularity') {
+      eventsFormatted.sort((a, b) =>
+        b.popularityScore !== a.popularityScore
+          ? b.popularityScore - a.popularityScore
+          : new Date(a.date_event).getTime() - new Date(b.date_event).getTime()
+      );
+    } else if (sortBy === 'price_asc') {
+      eventsFormatted.sort((a, b) => {
+        const pa = a.price_from?.price_ticket ?? Infinity;
+        const pb = b.price_from?.price_ticket ?? Infinity;
+        return pa !== pb
+          ? pa - pb
+          : new Date(a.date_event).getTime() - new Date(b.date_event).getTime();
+      });
+    } else if (sortBy === 'price_desc') {
+      eventsFormatted.sort((a, b) => {
+        const pa = a.price_from?.price_ticket ?? 0;
+        const pb = b.price_from?.price_ticket ?? 0;
+        return pa !== pb
+          ? pb - pa
+          : new Date(a.date_event).getTime() - new Date(b.date_event).getTime();
+      });
+    } else if (sortBy === 'name_asc') {
+      eventsFormatted.sort((a, b) => a.name.localeCompare(b.name));
+    } else {
+      eventsFormatted.sort(
+        (a, b) =>
+          new Date(a.date_event).getTime() - new Date(b.date_event).getTime()
+      );
+    }
+
+    const eventsClean = eventsFormatted.map(
+      ({ popularityScore, ...event }) => event
+    );
+
+    return { data: eventsClean, total, page, limit, totalPages: Math.ceil(total / limit) };
+  }
+
+  async getPublicEventById(id: number) {
+    const now = new Date();
+
+    const event = await prisma.event.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        name: true,
+        image: true,
+        short_description: true,
+        date_event: true,
+        place_address: true,
+        description: true,
+        cover: true,
+        url_video: true,
+        organizer_id: true,
+        status: true,
+        event_type: true,
+        localities: {
+          include: {
+            stages: {
+              where: { date_start: { lte: now }, date_end: { gte: now } },
+              orderBy: { price_ticket: 'asc' },
+              take: 1,
+            },
+          },
+        },
+      },
+    }) as any;
+
+    const ev = event as any;
+
+    if (
+      !ev ||
+      !['APPROVED', 'ACTIVE'].includes(ev.status) ||
+      ev.event_type !== 'PUBLICO'
+    ) {
+      throw new Error('Event not found');
+    }
+
+    const locality = ev.localities?.[0];
+    const stage = locality?.stages?.[0];
+
+    return {
+      data: {
+        id: ev.id,
+        name: ev.name,
+        image: ev.image,
+        short_description: ev.short_description,
+        date_event: ev.date_event,
+        place_address: ev.place_address,
+        description: ev.description,
+        cover: ev.cover,
+        url_video: ev.url_video,
+        organizer_id: ev.organizer_id,
+        price_from: stage
+          ? {
+              name_locality: locality.name_locality,
+              stage_name: stage.stage_name,
+              date_start: stage.date_start,
+              date_end: stage.date_end,
+              price_ticket: stage.price_ticket,
+            }
+          : null,
+      },
+    };
+  }
 }

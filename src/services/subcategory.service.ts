@@ -1,6 +1,7 @@
 import { SubCategoryRepository } from '../repositories/subcategory.repository';
 import { CategoryRepository } from '../repositories/category.repository';
 import { Prisma } from '@prisma/client';
+import { prisma } from '../prisma/client';
 
 const subCategoryRepo = new SubCategoryRepository();
 const categoryRepo = new CategoryRepository();
@@ -164,5 +165,28 @@ export class SubCategoryService {
     }
 
     return subCategoryRepo.getStats(filters);
+  }
+
+  async getPublicSubcategories(categoryId: number) {
+    const subcategories = await prisma.subCategory.findMany({
+      where: {
+        category_id: categoryId,
+        events: {
+          some: {
+            status: { in: ['APPROVED', 'ACTIVE'] },
+            event_type: 'PUBLICO',
+          },
+        },
+      },
+      select: {
+        id: true,
+        category_id: true,
+        subcategory_name: true,
+        createdAt: true,
+      } as any,
+      orderBy: { subcategory_name: 'asc' },
+    });
+
+    return { data: subcategories, total: subcategories.length };
   }
 }

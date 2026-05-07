@@ -1,6 +1,7 @@
 import { SubgenreRepository } from '../repositories/subgenre.repository';
 import { SubCategoryRepository } from '../repositories/subcategory.repository';
 import { Prisma } from '@prisma/client';
+import { prisma } from '../prisma/client';
 
 const subgenreRepo = new SubgenreRepository();
 const subCategoryRepo = new SubCategoryRepository();
@@ -158,5 +159,45 @@ export class SubgenreService {
     }
 
     return subgenreRepo.getStats(filters);
+  }
+
+  async getPublicSubgenres(filters: {
+    search?: string;
+    subcategory_id?: string;
+    category_id?: string;
+  }) {
+    const subcategoryId = filters.subcategory_id
+      ? parseInt(filters.subcategory_id)
+      : undefined;
+    const categoryId = filters.category_id
+      ? parseInt(filters.category_id)
+      : undefined;
+
+    const where: any = {
+      events: {
+        some: {
+          status: { in: ['APPROVED', 'ACTIVE'] },
+          event_type: 'PUBLICO',
+        },
+      },
+      ...(filters.search && {
+        subcategory_name: { contains: filters.search, mode: 'insensitive' },
+      }),
+      ...(subcategoryId && { subcategory_id: subcategoryId }),
+      ...(categoryId && { subcategory: { category_id: categoryId } }),
+    };
+
+    const subgenres = await prisma.subgenre.findMany({
+      where,
+      select: {
+        id: true,
+        subcategory_id: true,
+        subcategory_name: true,
+        createdAt: true,
+      } as any,
+      orderBy: { subcategory_name: 'asc' },
+    });
+
+    return { data: subgenres, total: subgenres.length };
   }
 }
