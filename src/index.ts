@@ -131,7 +131,7 @@ app.use(cors({
 }));
  
 
-
+app.set('trust proxy', 1); // Trust first proxy (Railway)
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
