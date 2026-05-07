@@ -56,7 +56,8 @@ model User {
   promoterCodes            PromoterCode[]             @relation("PromoterCodes")
   tickets                  Ticket[]
   transactions             Transactions[]
-  company                  Company?                   @relation("UserCompany", fields: [company_id], references: [id])
+  company                  Company?                   @relation("UserCompany", fields: [company_id], references: [id]) 
+  event_views              EventView[]  // ← AGREGAR                 @relation("UserCompany", fields: [company_id], references: [id])
 }
 
 model Company {
@@ -149,6 +150,7 @@ model Countries {
   cities           Cities[]
   companies        Company[]
   states           States[]
+  event_views EventView[]
 }
 
 model States {
@@ -174,6 +176,7 @@ model Cities {
   country    Countries @relation(fields: [country_id], references: [id])
   state      States    @relation(fields: [state_id], references: [id])
   companies  Company[]
+  event_views EventView[]
 }
 
 model Category {
@@ -253,6 +256,7 @@ model Event {
   seatStatuses             EventSeatStatus[]
   staffAssignments         EventStaffAssignment[]
   tickets                  Ticket[]
+  views EventView[]  // ← AGREGAR
 }
 
 model EventStaffAssignment {
@@ -286,8 +290,8 @@ model EventFavorites {
   event_id  Int
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  event     Event    @relation(fields: [event_id], references: [id])
-  user      User     @relation(fields: [user_id], references: [id])
+  event     Event    @relation(fields: [event_id], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
 }
 
 model EventDcto {
@@ -484,6 +488,51 @@ model EventSeatStatus {
   @@unique([seat_id, event_id])
   @@index([event_id, status])
   @@index([event_id])
+}
+
+model EventView {
+  id                   Int           @id @default(autoincrement())
+  event_id             Int
+  user_id              Int?
+  
+  session_token        String        // UUID generado en frontend
+  session_duration     Int           @default(0)  // Segundos acumulados
+  session_ip           String
+  session_channel      SalesChannel  @default(WEB)
+  session_conversion   Boolean       @default(false)
+  
+  country_id           Int?
+  city_id              Int?
+  
+  user_agent           String?
+  referrer             String?
+  device_type          DeviceType?
+  
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+  
+  event                Event         @relation(fields: [event_id], references: [id], onDelete: Cascade)
+  user                 User?         @relation(fields: [user_id], references: [id], onDelete: SetNull)
+  country              Countries?      @relation(fields: [country_id], references: [id], onDelete: SetNull)
+  city                 Cities?         @relation(fields: [city_id], references: [id], onDelete: SetNull)
+  
+  @@index([event_id, createdAt])
+  @@index([event_id, session_conversion])
+  @@index([user_id])
+  @@index([session_token])
+  
+  @@unique([event_id, session_token])
+}
+
+enum SalesChannel {
+  WEB
+  APP
+}
+
+enum DeviceType {
+  MOBILE
+  DESKTOP
+  TABLET
 }
 
 model PaymentMethodsUI {
