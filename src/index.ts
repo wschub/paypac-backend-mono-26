@@ -82,6 +82,7 @@ import { setupTicketSocketHandlers } from './sockets/ticket.socket';
 import { setupNotificationSocketHandlers } from './sockets/notification.socket';
 
 const app = express();
+app.set('trust proxy', 1); // Trust first proxy (Railway)
 const server = http.createServer(app);
 const io = new SocketIOServer(server, {
   cors: {
@@ -131,7 +132,7 @@ app.use(cors({
 }));
  
 
-app.set('trust proxy', 1); // Trust first proxy (Railway)
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
