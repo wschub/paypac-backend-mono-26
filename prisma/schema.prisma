@@ -58,6 +58,20 @@ model User {
   transactions             Transactions[]
   company                  Company?                   @relation("UserCompany", fields: [company_id], references: [id]) 
   event_views              EventView[]  // ← AGREGAR                 @relation("UserCompany", fields: [company_id], references: [id])
+  // Sistema de puntos
+  pointsBalance         UserPointsBalance?
+  pointsTransactions    PointsTransaction[]
+  
+  // Intereses
+  interests             UserInterest[]
+  
+  // Sistema de amigos/seguidores
+  followers             UserFollower[]        @relation("UserFollowers")
+  following             UserFollower[]        @relation("UserFollowing")
+  
+  // Notificaciones
+  notificationPreferences NotificationPreference[]
+  notificationQueue     NotificationQueue[]
 }
 
 model Company {
@@ -150,7 +164,8 @@ model Countries {
   cities           Cities[]
   companies        Company[]
   states           States[]
-  event_views EventView[]
+  event_views      EventView[]
+  web_blocks       WebBlockIndex[]
 }
 
 model States {
@@ -187,6 +202,7 @@ model Category {
   country       Countries     @relation(fields: [country_id], references: [id])
   events        Event[]
   subcategories SubCategory[]
+  userInterests         UserInterest[]  // ← AGREGAR
 }
 
 model SubCategory {
@@ -196,6 +212,7 @@ model SubCategory {
   events           Event[]
   category         Category   @relation(fields: [category_id], references: [id])
   subgenres        Subgenre[]
+  userInterests         UserInterest[]  // ← AGREGAR
 }
 
 model Subgenre {
@@ -204,6 +221,7 @@ model Subgenre {
   subcategory_id   Int
   events           Event[]
   subcategory      SubCategory @relation(fields: [subcategory_id], references: [id])
+  userInterests         UserInterest[]  // ← AGREGAR
 }
 
 model Event {
@@ -243,6 +261,9 @@ model Event {
   date_checkin_close       DateTime?
   date_checkin_open        DateTime?
   date_end_event           DateTime?
+  public_id                String?                 @unique
+  public_url               String?                 @unique
+  featured                 Boolean                 @default(false)
   category                 Category?               @relation(fields: [category_id], references: [id])
   numbered_place           EventPlaces?            @relation(fields: [numbered_place_id], references: [id])
   subcategory              SubCategory?            @relation(fields: [subcategory_id], references: [id])
@@ -256,7 +277,9 @@ model Event {
   seatStatuses             EventSeatStatus[]
   staffAssignments         EventStaffAssignment[]
   tickets                  Ticket[]
-  views EventView[]  // ← AGREGAR
+  views                    EventView[]
+  web_block_events         WebBlockEvents[]
+  web_block_slides         WebBlockSlideImgs[]
 }
 
 model EventStaffAssignment {
@@ -850,6 +873,51 @@ enum TicketStatus {
   ON_SALE
 }
 
+model WebBlockIndex {
+  id          Int                @id @default(autoincrement())
+  country_id  Int
+  title       String
+  type        WebBlockType
+  banner_img  String?
+  banner_text String?
+  banner_link String?
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  country     Countries          @relation(fields: [country_id], references: [id])
+  events      WebBlockEvents[]
+  slides      WebBlockSlideImgs[]
+
+  @@map("web_blocks_index")
+}
+
+model WebBlockEvents {
+  id       Int           @id @default(autoincrement())
+  block_id Int
+  event_id Int
+  block    WebBlockIndex @relation(fields: [block_id], references: [id], onDelete: Cascade)
+  event    Event         @relation(fields: [event_id], references: [id], onDelete: Cascade)
+
+  @@unique([block_id, event_id])
+  @@map("web_blocks_events")
+}
+
+model WebBlockSlideImgs {
+  id        Int           @id @default(autoincrement())
+  block_id  Int
+  event_id  Int?
+  image_url String
+  block     WebBlockIndex @relation(fields: [block_id], references: [id], onDelete: Cascade)
+  event     Event?        @relation(fields: [event_id], references: [id], onDelete: SetNull)
+
+  @@map("web_blocks_slide_imgs")
+}
+
+enum WebBlockType {
+  EVENTOS
+  BANNER
+  SLIDE
+}
+
 enum TransactionStatus {
   PENDING
   FROZEN
@@ -860,4 +928,212 @@ enum TransactionStatus {
   REJECTED
   CANCELLED
   ON_SALE
+}
+
+
+//points 
+// ============================================
+// SISTEMA DE PUNTOS
+// ============================================
+
+model UserPointsBalance {
+  id                    Int      @id @default(autoincrement())
+  user_id               Int      @unique
+  total_earned          Int      @default(0)
+  total_redeemed        Int      @default(0)
+  total_expired         Int      @default(0)
+  current_balance       Int      @default(0)
+  last_earned_at        DateTime?
+  last_redeemed_at      DateTime?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  
+  user                  User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  transactions          PointsTransaction[]
+  
+  @@index([user_id])
+  @@index([current_balance])
+}
+
+model PointsTransaction {
+  id                    Int                  @id @default(autoincrement())
+  user_id               Int
+  balance_id            Int
+  transaction_type      PointsTransactionType
+  points_amount         Int
+  balance_before        Int
+  balance_after         Int
+  reference_type        String?
+  reference_id          Int?
+  description           String?
+  expires_at            DateTime?
+  expired               Boolean              @default(false)
+  
+  // ============================================
+  // NUEVOS CAMPOS PARA TRANSFERENCIAS
+  // ============================================
+  transfer_from_user_id Int?                 // Usuario que envió (si es TRANSFER_RECEIVED)
+  transfer_to_user_id   Int?                 // Usuario que recibió (si es TRANSFER_SENT)
+  transfer_pair_id      Int?                 // ID de la transacción complementaria
+  
+  createdAt             DateTime             @default(now())
+  
+  user                  User                 @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  balance               UserPointsBalance    @relation(fields: [balance_id], references: [id], onDelete: Cascade)
+  
+  @@index([user_id, createdAt])
+  @@index([user_id, transaction_type])
+  @@index([reference_type, reference_id])
+  @@index([expires_at, expired])
+  @@index([transfer_pair_id])  // ← NUEVO: Para vincular transacciones pareadas
+}
+
+enum PointsTransactionType {
+  EARNED
+  REDEEMED
+  EXPIRED
+  ADJUSTMENT
+  BONUS
+  REFUND
+  TRANSFER_SENT      // ← NUEVO: Usuario envió puntos
+  TRANSFER_RECEIVED  // ← NUEVO: Usuario recibió puntos
+}
+
+// ============================================
+// INTERESES DEL USUARIO
+// ============================================
+
+model UserInterest {
+  id              Int       @id @default(autoincrement())
+  user_id         Int
+  category_id     Int?
+  subcategory_id  Int?
+  subgenre_id     Int?
+  interest_level  Int       @default(1)
+  source          InterestSource @default(MANUAL)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  user            User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  category        Category? @relation(fields: [category_id], references: [id], onDelete: Cascade)
+  subcategory     SubCategory? @relation(fields: [subcategory_id], references: [id], onDelete: Cascade)
+  subgenre        Subgenre? @relation(fields: [subgenre_id], references: [id], onDelete: Cascade)
+  
+  @@unique([user_id, category_id, subcategory_id, subgenre_id])
+  @@index([user_id])
+  @@index([category_id])
+  @@index([subcategory_id])
+  @@index([subgenre_id])
+}
+
+enum InterestSource {
+  MANUAL
+  PURCHASE
+  VIEW
+  IMPLICIT
+}
+
+// ============================================
+// SISTEMA DE AMIGOS / SEGUIDORES
+// ============================================
+
+model UserFollower {
+  id              Int      @id @default(autoincrement())
+  follower_id     Int
+  following_id    Int
+  status          FollowStatus @default(ACTIVE)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  follower        User     @relation("UserFollowers", fields: [follower_id], references: [id], onDelete: Cascade)
+  following       User     @relation("UserFollowing", fields: [following_id], references: [id], onDelete: Cascade)
+  
+  @@unique([follower_id, following_id])
+  @@index([follower_id])
+  @@index([following_id])
+  @@index([follower_id, status])
+  @@index([following_id, status])
+}
+
+enum FollowStatus {
+  ACTIVE
+  BLOCKED
+  MUTED
+}
+
+// ============================================
+// SISTEMA DE NOTIFICACIONES
+// ============================================
+
+model NotificationPreference {
+  id                    Int                   @id @default(autoincrement())
+  user_id               Int
+  notification_type     NotificationType
+  channel_web           Boolean               @default(true)
+  channel_push          Boolean               @default(true)
+  channel_whatsapp      Boolean               @default(false)
+  channel_email         Boolean               @default(true)
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+  
+  user                  User                  @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  
+  @@unique([user_id, notification_type])
+  @@index([user_id])
+}
+
+enum NotificationType {
+  FRIEND_REQUEST
+  FRIEND_ACCEPTED
+  FRIEND_ACTIVITY
+  EVENT_REMINDER
+  EVENT_NEW
+  EVENT_PRICE_DROP
+  EVENT_SOLD_OUT
+  TICKET_TRANSFER
+  TICKET_USED
+  POINTS_EARNED
+  POINTS_EXPIRING
+  PROMOTIONAL
+  SYSTEM
+}
+
+model NotificationQueue {
+  id                    Int                   @id @default(autoincrement())
+  user_id               Int
+  notification_type     NotificationType
+  channel               NotificationChannel
+  title                 String
+  body                  String
+  data                  Json?
+  status                NotificationStatus    @default(PENDING)
+  sent_at               DateTime?
+  read_at               DateTime?
+  error_message         String?
+  retry_count           Int                   @default(0)
+  max_retries           Int                   @default(3)
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+  
+  user                  User                  @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  
+  @@index([user_id, status])
+  @@index([status, createdAt])
+  @@index([user_id, read_at])
+}
+
+enum NotificationChannel {
+  WEB
+  PUSH
+  WHATSAPP
+  EMAIL
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  DELIVERED
+  READ
+  FAILED
+  CANCELLED
 }
