@@ -260,4 +260,45 @@ async findAvailableForPromoters(promoter_id: number) {
     };
   });
 }
+
+async findByPublicId(publicId: string) {
+  return prisma.event.findUnique({
+    where: { public_id: publicId },
+    include: {
+      category: true,
+      subcategory: true,
+      subgenre: true,
+      localities: { include: { stages: true } },
+    },
+  });
+}
+
+async findByPublicUrl(publicUrl: string) {
+  return prisma.event.findUnique({
+    where: { public_url: publicUrl },
+    include: {
+      category: true,
+      subcategory: true,
+      subgenre: true,
+      localities: { include: { stages: true } },
+    },
+  });
+}
+
+async getFeaturedEvents(limit = 10) {
+  return prisma.event.findMany({
+    where: {
+      featured: true,
+      status: { in: ['APPROVED', 'ACTIVE'] },
+    },
+    orderBy: { date_event: 'asc' },
+    take: limit,
+    include: {
+      category: true,
+      subcategory: true,
+      subgenre: true,
+      localities: { include: { stages: true } },
+    },
+  });
+}
 }

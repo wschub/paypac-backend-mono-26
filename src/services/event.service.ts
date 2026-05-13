@@ -2,6 +2,8 @@ import { EventRepository } from '../repositories/event.repository';
 import { Prisma, EVENT_STATUS } from '@prisma/client';
 import { EventLiquidationService } from './event_liquidation.service';
 import { prisma } from '../prisma/client';
+import { v4 as uuidv4 } from 'uuid';
+import { generateUniqueSlug } from '../utils/slug';
 
 
 const eventRepo = new EventRepository();
@@ -24,11 +26,15 @@ export class EventService {
       throw new Error('No tienes permisos para crear eventos');
     }
 
-    // Asignar el organizador automáticamente
+    const publicId = uuidv4();
+    const publicUrl = await generateUniqueSlug((data as any).name);
+
     const eventData = {
       ...data,
       organizer_id: userId,
-      status: EVENT_STATUS.CREATED, // Estado inicial
+      status: EVENT_STATUS.CREATED,
+      public_id: publicId,
+      public_url: publicUrl,
     };
 
     return eventRepo.create(eventData);
@@ -160,7 +166,13 @@ private getPriceFrom(localities: any[]) {
       );
     }
 
-    return eventRepo.update(id, data);
+    // Si cambió el nombre, regenerar public_url
+    let updateData: Prisma.EventUpdateInput = { ...data };
+    if ((data as any).name && (data as any).name !== event.name) {
+      updateData.public_url = await generateUniqueSlug((data as any).name, id);
+    }
+
+    return eventRepo.update(id, updateData);
   }
 
   /**
@@ -262,6 +274,14 @@ return updatedEvent;
  * Obtener eventos disponibles para promotores externos
  * con resumen de ventas del promotor autenticado
  */
+async getEventByPublicUrl(publicUrl: string) {
+  return eventRepo.findByPublicUrl(publicUrl);
+}
+
+async getFeaturedEvents(limit = 10) {
+  return eventRepo.getFeaturedEvents(limit);
+}
+
 async getAvailableEventsForPromoter(promoter_id: number) {
   const events = await eventRepo.findAvailableForPromoters(promoter_id);
 

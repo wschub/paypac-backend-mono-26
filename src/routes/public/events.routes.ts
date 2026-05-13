@@ -17,7 +17,7 @@ import {
   createEventViewSchema,
   updateEventViewSchema,
 } from '../../validators/public/eventViews.validation';
-import { getPublicEvents, getPublicEventById } from '../../controllers/public/events.controller';
+import { getPublicEvents, getPublicEventById, getPublicEventBySlug, getFeaturedEvents } from '../../controllers/public/events.controller';
 import { getPublicLocalities } from '../../controllers/public/localities.controller';
 import { createEventView, updateEventViewDuration } from '../../controllers/public/eventViews.controller';
 
@@ -30,6 +30,11 @@ router.get(
   validateRequest(getPublicEventsQuerySchema),
   getPublicEvents
 );
+
+// Rutas estáticas ANTES de /:id para evitar conflictos
+router.get('/featured', authenticatePublicWeb, publicEventsLimiter, getFeaturedEvents);
+
+router.get('/slug/:publicUrl', authenticatePublicWeb, publicEventDetailLimiter, getPublicEventBySlug);
 
 router.get(
   '/:id',

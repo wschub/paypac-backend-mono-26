@@ -8,6 +8,8 @@ import { UserRepository } from '../repositories/user.repository';
 import { TicketService } from './ticket.service';
 import { Prisma, InvoiceStatus } from '@prisma/client';
 import { PromoterCodeService } from './promoter_code.service';
+import { PointsService } from './points.service';
+import { InterestsService } from './interests.service';
 
 
 const invoiceRepo = new InvoiceRepository();
@@ -453,12 +455,36 @@ async updateInvoiceStatus(
     );
 
     console.log(`✅ ${ticketsResult.count} tickets creados para la factura ${invoice.num_invoice}`);
+
+    // Otorgar puntos e intereses de forma asíncrona (no bloquea la respuesta)
+    Promise.all([
+      new PointsService().awardPointsForPurchase(
+        invoice.user_id,
+        invoice.id,
+        invoice.total_ticket_regular
+      ).catch((err) => console.error('⚠️ Error otorgando puntos:', err)),
+
+      (async () => {
+        try {
+          if (event.category_id) {
+            await new InterestsService().recordInterestFromPurchase(
+              invoice.user_id,
+              event.category_id,
+              event.subcategory_id ?? undefined,
+              event.subgenre_id ?? undefined
+            );
+          }
+        } catch (err) {
+          console.error('⚠️ Error registrando interés:', err);
+        }
+      })(),
+    ]);
   }
 
   return updatedInvoice;
 }
-  
-  
+
+
 
   /* async updateInvoiceStatus(
     invoiceId: number,

@@ -45,6 +45,10 @@ import statesRoutes from './routes/states.routes';
 import citiesRoutes from './routes/cities.routes';
 import companyFollowersRoutes from './routes/company_followers.routes';
 import publicRouter from './routes/public';
+import pointsRoutes from './routes/points.routes';
+import interestsRoutes from './routes/interests.routes';
+import followersRoutes from './routes/followers.routes';
+import notificationsRoutes from './routes/notifications.routes';
 
 
 import { validateBrevoConfig } from './config/brevo';
@@ -207,6 +211,12 @@ app.use("/api/upload", uploadRoutes);
 
 // Endpoints públicos para paypac.co (sin autenticación Firebase)
 app.use('/api/public', publicRouter);
+
+// Sistemas sociales y puntos
+app.use('/api/points', pointsRoutes);
+app.use('/api/interests', interestsRoutes);
+app.use('/api/followers', followersRoutes);
+app.use('/api/notifications', notificationsRoutes);
 
 
 // Iniciar CRON jobs

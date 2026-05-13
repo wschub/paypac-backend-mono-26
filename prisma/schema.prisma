@@ -916,6 +916,7 @@ enum WebBlockType {
   EVENTOS
   BANNER
   SLIDE
+  CAROUSEL
 }
 
 enum TransactionStatus {
@@ -1094,6 +1095,8 @@ enum NotificationType {
   TICKET_USED
   POINTS_EARNED
   POINTS_EXPIRING
+  POINTS_TRANSFER_SENT
+  POINTS_TRANSFER_RECEIVED
   PROMOTIONAL
   SYSTEM
 }
