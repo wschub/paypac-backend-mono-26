@@ -62,6 +62,9 @@ export class WebBlocksRepository {
     country_id: number;
     title: string;
     type: WebBlockType;
+    block_order?: number;
+    block_identifier: string;
+    block_config?: any;
     banner_img?: string;
     banner_text?: string;
     banner_link?: string;
@@ -78,6 +81,9 @@ export class WebBlocksRepository {
       country_id?: number;
       title?: string;
       type?: WebBlockType;
+      block_order?: number;
+      block_identifier?: string;
+      block_config?: any | null;
       banner_img?: string | null;
       banner_text?: string | null;
       banner_link?: string | null;

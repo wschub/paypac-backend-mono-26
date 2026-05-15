@@ -44,7 +44,7 @@ export class AuthService {
       }
 
       // 2. ✅ Validar reglas de negocio según quien crea el usuario
-      /*if (createdBy) {
+      if (createdBy) {
         console.log(`👤 Usuario creado por: ${createdBy.userRole} (ID: ${createdBy.userId})`);
 
         if (createdBy.userRole === 'ORGANIZER') {
@@ -58,7 +58,7 @@ export class AuthService {
           throw new Error('El auto-registro solo permite el rol CUSTOMER');
         }
         console.log('👤 Auto-registro de CUSTOMER');
-      } */
+      } 
 
       const fullphoneNumber = `+57${data.phone_number}`;
 

@@ -36,6 +36,9 @@ export const createBlock = async (req: Request, res: Response) => {
     res.status(201).json({ block });
   } catch (error: any) {
     console.error('Error in createBlock:', error);
+    if (error.message.includes('ya está en uso')) {
+      return res.status(409).json({ error: 'Conflict', message: error.message });
+    }
     if (error.message.includes('no encontrado')) {
       return res.status(404).json({ error: 'Not found', message: error.message });
     }
@@ -50,6 +53,9 @@ export const updateBlock = async (req: Request, res: Response) => {
     res.status(200).json({ block });
   } catch (error: any) {
     console.error('Error in updateBlock:', error);
+    if (error.message.includes('ya está en uso')) {
+      return res.status(409).json({ error: 'Conflict', message: error.message });
+    }
     if (error.message.includes('no encontrado')) {
       return res.status(404).json({ error: 'Not found', message: error.message });
     }

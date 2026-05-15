@@ -22,12 +22,21 @@ export class WebBlocksService {
     country_id: number;
     title: string;
     type: WebBlockType;
+    block_order?: number;
+    block_identifier: string;
+    block_config?: any;
     banner_img?: string;
     banner_text?: string;
     banner_link?: string;
   }) {
     const country = await prisma.countries.findUnique({ where: { id: data.country_id } });
     if (!country) throw new Error('País no encontrado');
+
+    const existing = await prisma.webBlockIndex.findUnique({
+      where: { block_identifier: data.block_identifier },
+    });
+    if (existing) throw new Error(`El identificador '${data.block_identifier}' ya está en uso`);
+
     return repo.create(data);
   }
 
@@ -37,6 +46,9 @@ export class WebBlocksService {
       country_id?: number;
       title?: string;
       type?: WebBlockType;
+      block_order?: number;
+      block_identifier?: string;
+      block_config?: any | null;
       banner_img?: string | null;
       banner_text?: string | null;
       banner_link?: string | null;
@@ -48,6 +60,13 @@ export class WebBlocksService {
     if (data.country_id) {
       const country = await prisma.countries.findUnique({ where: { id: data.country_id } });
       if (!country) throw new Error('País no encontrado');
+    }
+
+    if (data.block_identifier) {
+      const duplicate = await prisma.webBlockIndex.findFirst({
+        where: { block_identifier: data.block_identifier, id: { not: id } },
+      });
+      if (duplicate) throw new Error(`El identificador '${data.block_identifier}' ya está en uso`);
     }
 
     return repo.update(id, data);
