@@ -45,9 +45,12 @@ export class WebBlocksRepository {
 
   async findAll(countryId?: number) {
     return prisma.webBlockIndex.findMany({
-      where: countryId ? { country_id: countryId } : undefined,
+      where: {
+        block_active: 1,
+        ...(countryId ? { country_id: countryId } : {}),
+      },
       include: this.fullInclude,
-      orderBy: { id: 'asc' },
+      orderBy: { block_order: 'asc' },
     });
   }
 
