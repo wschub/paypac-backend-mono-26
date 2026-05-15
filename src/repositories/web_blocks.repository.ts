@@ -65,6 +65,7 @@ export class WebBlocksRepository {
     block_order?: number;
     block_identifier: string;
     block_config?: any;
+    block_active?: number;
     banner_img?: string;
     banner_text?: string;
     banner_link?: string;
@@ -84,6 +85,7 @@ export class WebBlocksRepository {
       block_order?: number;
       block_identifier?: string;
       block_config?: any | null;
+      block_active?: number;
       banner_img?: string | null;
       banner_text?: string | null;
       banner_link?: string | null;

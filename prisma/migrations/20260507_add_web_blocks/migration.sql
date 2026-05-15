@@ -1,14 +1,16 @@
 -- ============================================
--- ENUM: WebBlockType
+-- ENUM: WebBlockType (idempotent)
 -- ============================================
 
-CREATE TYPE "WebBlockType" AS ENUM ('EVENTOS', 'BANNER', 'SLIDE', 'CAROUSEL');
+DO $$ BEGIN
+  CREATE TYPE "WebBlockType" AS ENUM ('EVENTOS', 'BANNER', 'SLIDE', 'CAROUSEL');
+EXCEPTION WHEN duplicate_object THEN null; END $$;
 
 -- ============================================
 -- TABLA: web_blocks_index
 -- ============================================
 
-CREATE TABLE "web_blocks_index" (
+CREATE TABLE IF NOT EXISTS "web_blocks_index" (
     "id" SERIAL NOT NULL,
     "country_id" INTEGER NOT NULL,
     "title" TEXT NOT NULL,
@@ -26,7 +28,7 @@ CREATE TABLE "web_blocks_index" (
 -- TABLA: web_blocks_events
 -- ============================================
 
-CREATE TABLE "web_blocks_events" (
+CREATE TABLE IF NOT EXISTS "web_blocks_events" (
     "id" SERIAL NOT NULL,
     "block_id" INTEGER NOT NULL,
     "event_id" INTEGER NOT NULL,
@@ -38,7 +40,7 @@ CREATE TABLE "web_blocks_events" (
 -- TABLA: web_blocks_slide_imgs
 -- ============================================
 
-CREATE TABLE "web_blocks_slide_imgs" (
+CREATE TABLE IF NOT EXISTS "web_blocks_slide_imgs" (
     "id" SERIAL NOT NULL,
     "block_id" INTEGER NOT NULL,
     "event_id" INTEGER,
@@ -51,31 +53,41 @@ CREATE TABLE "web_blocks_slide_imgs" (
 -- ÍNDICES
 -- ============================================
 
-CREATE INDEX "web_blocks_index_country_id_idx" ON "web_blocks_index"("country_id");
-CREATE INDEX "web_blocks_index_type_idx" ON "web_blocks_index"("type");
+CREATE INDEX IF NOT EXISTS "web_blocks_index_country_id_idx" ON "web_blocks_index"("country_id");
+CREATE INDEX IF NOT EXISTS "web_blocks_index_type_idx" ON "web_blocks_index"("type");
 
-CREATE UNIQUE INDEX "web_blocks_events_block_id_event_id_key" ON "web_blocks_events"("block_id", "event_id");
-CREATE INDEX "web_blocks_events_block_id_idx" ON "web_blocks_events"("block_id");
-CREATE INDEX "web_blocks_events_event_id_idx" ON "web_blocks_events"("event_id");
+CREATE UNIQUE INDEX IF NOT EXISTS "web_blocks_events_block_id_event_id_key" ON "web_blocks_events"("block_id", "event_id");
+CREATE INDEX IF NOT EXISTS "web_blocks_events_block_id_idx" ON "web_blocks_events"("block_id");
+CREATE INDEX IF NOT EXISTS "web_blocks_events_event_id_idx" ON "web_blocks_events"("event_id");
 
-CREATE INDEX "web_blocks_slide_imgs_block_id_idx" ON "web_blocks_slide_imgs"("block_id");
-CREATE INDEX "web_blocks_slide_imgs_event_id_idx" ON "web_blocks_slide_imgs"("event_id");
+CREATE INDEX IF NOT EXISTS "web_blocks_slide_imgs_block_id_idx" ON "web_blocks_slide_imgs"("block_id");
+CREATE INDEX IF NOT EXISTS "web_blocks_slide_imgs_event_id_idx" ON "web_blocks_slide_imgs"("event_id");
 
 -- ============================================
--- FOREIGN KEYS
+-- FOREIGN KEYS (idempotent)
 -- ============================================
 
-ALTER TABLE "web_blocks_index" ADD CONSTRAINT "web_blocks_index_country_id_fkey" 
-  FOREIGN KEY ("country_id") REFERENCES "Countries"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+DO $$ BEGIN
+  ALTER TABLE "web_blocks_index" ADD CONSTRAINT "web_blocks_index_country_id_fkey"
+    FOREIGN KEY ("country_id") REFERENCES "Countries"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN null; END $$;
 
-ALTER TABLE "web_blocks_events" ADD CONSTRAINT "web_blocks_events_block_id_fkey" 
-  FOREIGN KEY ("block_id") REFERENCES "web_blocks_index"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$ BEGIN
+  ALTER TABLE "web_blocks_events" ADD CONSTRAINT "web_blocks_events_block_id_fkey"
+    FOREIGN KEY ("block_id") REFERENCES "web_blocks_index"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN null; END $$;
 
-ALTER TABLE "web_blocks_events" ADD CONSTRAINT "web_blocks_events_event_id_fkey" 
-  FOREIGN KEY ("event_id") REFERENCES "Event"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$ BEGIN
+  ALTER TABLE "web_blocks_events" ADD CONSTRAINT "web_blocks_events_event_id_fkey"
+    FOREIGN KEY ("event_id") REFERENCES "Event"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN null; END $$;
 
-ALTER TABLE "web_blocks_slide_imgs" ADD CONSTRAINT "web_blocks_slide_imgs_block_id_fkey" 
-  FOREIGN KEY ("block_id") REFERENCES "web_blocks_index"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$ BEGIN
+  ALTER TABLE "web_blocks_slide_imgs" ADD CONSTRAINT "web_blocks_slide_imgs_block_id_fkey"
+    FOREIGN KEY ("block_id") REFERENCES "web_blocks_index"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN null; END $$;
 
-ALTER TABLE "web_blocks_slide_imgs" ADD CONSTRAINT "web_blocks_slide_imgs_event_id_fkey" 
-  FOREIGN KEY ("event_id") REFERENCES "Event"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+DO $$ BEGIN
+  ALTER TABLE "web_blocks_slide_imgs" ADD CONSTRAINT "web_blocks_slide_imgs_event_id_fkey"
+    FOREIGN KEY ("event_id") REFERENCES "Event"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN null; END $$;

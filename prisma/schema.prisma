@@ -881,6 +881,7 @@ model WebBlockIndex {
   block_order       Int                 @default(1)
   block_identifier  String              @unique
   block_config      Json?
+  block_active      Int?
   banner_img        String?
   banner_text       String?
   banner_link       String?
@@ -917,11 +918,12 @@ model WebBlockSlideImgs {
 }
 
 enum WebBlockType {
-  EVENTOS
+  EVENT
   BANNER
   SLIDE
   CAROUSEL
   CUSTOM
+  CATEGORY
 }
 
 enum TransactionStatus {
