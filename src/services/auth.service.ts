@@ -28,6 +28,7 @@ export class AuthService {
       phone_number: string;
       role: ROLES;
       company_id?: number | null;
+      source?: 'app' | 'web';
     },
     createdBy?: {
       userId: number;
@@ -112,7 +113,7 @@ export class AuthService {
       // 6. ✅ OPTIMIZACIÓN: Fire-and-forget para email
       //    El usuario NO necesita esperar a que el email se encole
       //    para ver "Registro exitoso"
-      this._sendRegistrationEmail(user, createdBy);
+      this._sendRegistrationEmail(user, createdBy, data.source);
 
       // 7. ✅ OPTIMIZACIÓN: Fire-and-forget para transferencias pendientes
       //    Solo para CUSTOMER auto-registrado
@@ -162,22 +163,42 @@ export class AuthService {
    */
   private _sendRegistrationEmail(
     user: { id: number; email: string; name: string; last_name: string; role: string },
-    createdBy?: { userId: number; userRole: string }
+    createdBy?: { userId: number; userRole: string },
+    source?: 'app' | 'web'
   ): void {
     const task = async () => {
       if (!createdBy) {
-        // Auto-registro CUSTOMER
-        const otpTemp = Math.floor(100000 + Math.random() * 900000).toString();
-        await emailService.queueEmail({
-          userId: user.id,
-          email: user.email,
-          templateCode: 'REGISTRATION_VERIFY_MAIL',
-          variables: {
-            user_name: `${user.name} ${user.last_name}`,
-            otp_code: otpTemp,
-            verify_link: 'https://paypac.co/verify-account',
-          },
+        // Generar y persistir OTP (válido 5 minutos)
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+        await userRepository.update(user.id, {
+          email_verification_code: otp,
+          email_verification_expires_at: expiresAt,
         });
+
+        if (source === 'web') {
+          const webUrl = process.env.WEB_URL || 'https://paypac.co';
+          await emailService.queueEmail({
+            userId: user.id,
+            email: user.email,
+            templateCode: 'REGISTRATION_VERIFY_MAIL_WEB',
+            variables: {
+              user_name: `${user.name} ${user.last_name}`,
+              verify_link: `${webUrl}/verify-email?code=${otp}`,
+            },
+          });
+        } else {
+          await emailService.queueEmail({
+            userId: user.id,
+            email: user.email,
+            templateCode: 'REGISTRATION_VERIFY_MAIL_v1',
+            variables: {
+              user_name: `${user.name} ${user.last_name}`,
+              otp_code: otp,
+              verify_link: '',
+            },
+          });
+        }
         console.log('📧 Email de verificación encolado para:', user.email);
       } else {
         // Creado por admin
@@ -234,6 +255,37 @@ export class AuthService {
     task().catch((err) => {
       console.error('⚠️ Error en accept transfers background:', err.message);
     });
+  }
+
+  /**
+   * Verificar email con código OTP (app y web)
+   */
+  async verifyEmailCode(userId: number, code: string) {
+    const user = await userRepository.findById(userId);
+    if (!user) throw new Error('Usuario no encontrado');
+
+    if (user.verified_user === 1) throw new Error('El email ya está verificado');
+
+    if (!user.email_verification_code || !user.email_verification_expires_at) {
+      throw new Error('No hay un código de verificación pendiente');
+    }
+
+    if (user.email_verification_code !== code) {
+      throw new Error('Código incorrecto');
+    }
+
+    if (new Date() > user.email_verification_expires_at) {
+      throw new Error('El código ha expirado');
+    }
+
+    await userRepository.update(userId, {
+      email_verified_at: new Date(),
+      verified_user: 1,
+      email_verification_code: null,
+      email_verification_expires_at: null,
+    });
+
+    return { verified: true };
   }
 
   /**

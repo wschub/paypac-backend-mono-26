@@ -12,7 +12,7 @@ const authService = new AuthService();
  * - /new-user: PAYPAC/ORGANIZER crean staff/promotores (con autenticación)
  */
 export const register = async (req: Request, res: Response): Promise<void> => {
-  const { name, last_name, email, password, role, company_id, phone_number } = req.body;
+  const { name, last_name, email, password, role, company_id, phone_number, source } = req.body;
 
   try {
     // Determinar si es auto-registro o creación por admin
@@ -47,6 +47,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
         role,
         company_id: finalCompanyId,
         phone_number,
+        source,
       },
       createdBy
     );
@@ -84,6 +85,24 @@ export const getProfile = async (req: Request, res: Response): Promise<void> => 
     });
   } catch (err: any) {
     res.status(500).json({ message: 'Error al obtener perfil' });
+  }
+};
+
+/**
+ * POST /auth/verify-email
+ * Verificar email con código OTP — app (código manual) y web (código desde URL)
+ */
+export const verifyEmailCode = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { code } = req.body;
+    if (!code || typeof code !== 'string') {
+      res.status(400).json({ message: 'Código requerido' });
+      return;
+    }
+    await authService.verifyEmailCode(req.user!.id, code);
+    res.status(201).json({ message: 'Email verificado exitosamente' });
+  } catch (err: any) {
+    res.status(400).json({ message: err.message });
   }
 };
 

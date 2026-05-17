@@ -165,7 +165,7 @@ export const EMAIL_TEMPLATES: Record<string, EmailTemplate> = {
 </html>`,
   },
 
-  // Verificación de email — solo botón con JWT (para registro web)
+  // Verificación de email — Web (botón con código en URL, sin OTP visible)
   REGISTRATION_VERIFY_MAIL_WEB: {
     subject: () => 'Verifica tu cuenta en PayPac',
     requiredVariables: ['user_name', 'verify_link'],
@@ -201,10 +201,10 @@ export const EMAIL_TEMPLATES: Record<string, EmailTemplate> = {
 
               <p style="font-size:15px;color:#33333F;line-height:1.6;margin-bottom:24px;font-family:'Inter','Helvetica Neue',Arial,sans-serif;">
                 Gracias por registrarte en <strong>PayPac</strong>. Haz clic en el botón para
-                confirmar tu dirección de email y activar tu cuenta.
+                verificar tu dirección de email y activar tu cuenta.
               </p>
 
-              <table role="presentation" cellspacing="0" cellpadding="0" border="0">
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:0 0 24px;">
                 <tr>
                   <td style="border-radius:8px;background-color:#0031FB;">
                     <a href="${vars.verify_link}"
@@ -215,14 +215,14 @@ export const EMAIL_TEMPLATES: Record<string, EmailTemplate> = {
                 </tr>
               </table>
 
-              <p style="font-size:13px;color:#6E6E80;line-height:1.5;margin:20px 0 8px;font-family:'Inter','Helvetica Neue',Arial,sans-serif;">
+              <p style="font-size:13px;color:#6E6E80;line-height:1.5;margin-bottom:16px;font-family:'Inter','Helvetica Neue',Arial,sans-serif;">
                 Si el botón no funciona, copia y pega este enlace en tu navegador:<br/>
                 <a href="${vars.verify_link}" style="color:#0031FB;text-decoration:none;font-weight:500;word-break:break-all;">${vars.verify_link}</a>
               </p>
 
-              <p style="font-size:13px;color:#6E6E80;line-height:1.5;margin:16px 0 0;font-family:'Inter','Helvetica Neue',Arial,sans-serif;">
-                Este enlace expira en <strong style="color:#B5660A;font-weight:600;">24 horas</strong>.
-                Si no creaste una cuenta en PayPac, ignora este mensaje.
+              <p style="font-size:13px;color:#6E6E80;line-height:1.5;margin:0;font-family:'Inter','Helvetica Neue',Arial,sans-serif;">
+                Este enlace expira en <strong style="color:#B5660A;font-weight:600;">5 minutos</strong>.
+                Si no solicitaste esta verificación, puedes ignorar este mensaje.
               </p>
             </td>
           </tr>

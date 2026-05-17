@@ -34,8 +34,10 @@ model User {
   provider_id              String?
   firebase_uid             String?                    @unique
   lang_user                String?
-  verified_user            Int                        @default(0)
-  status                   Int                        @default(0)
+  verified_user                  Int                        @default(0)
+  email_verification_code        String?
+  email_verification_expires_at  DateTime?
+  status                         Int                        @default(0)
   createdAt                DateTime                   @default(now())
   updatedAt                DateTime                   @updatedAt
   role                     ROLES                      @default(CUSTOMER)
