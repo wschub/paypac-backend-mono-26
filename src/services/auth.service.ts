@@ -2,7 +2,6 @@ import { UserRepository } from '../repositories/user.repository';
 import { firebaseAuth } from '../config/firebase';
 import { ROLES } from '@prisma/client';
 import { NotificationMessageQueueService } from './notificationmessagequeue.service';
-import jwt from 'jsonwebtoken';
 
 const userRepository = new UserRepository();
 const emailService = new NotificationMessageQueueService();
@@ -29,7 +28,6 @@ export class AuthService {
       phone_number: string;
       role: ROLES;
       company_id?: number | null;
-      source?: 'app' | 'web';
     },
     createdBy?: {
       userId: number;
@@ -60,10 +58,9 @@ export class AuthService {
           throw new Error('El auto-registro solo permite el rol CUSTOMER');
         }
         console.log('👤 Auto-registro de CUSTOMER');
-      } 
+      }
 */
       const fullphoneNumber = `+57${data.phone_number}`;
- 
 
       // 3. ✅ Crear usuario en Firebase Auth
       //    ⚠️ Esta es la operación más lenta (~400ms) — no se puede evitar
@@ -115,7 +112,7 @@ export class AuthService {
       // 6. ✅ OPTIMIZACIÓN: Fire-and-forget para email
       //    El usuario NO necesita esperar a que el email se encole
       //    para ver "Registro exitoso"
-      this._sendRegistrationEmail(user, createdBy, data.source);
+      this._sendRegistrationEmail(user, createdBy);
 
       // 7. ✅ OPTIMIZACIÓN: Fire-and-forget para transferencias pendientes
       //    Solo para CUSTOMER auto-registrado
@@ -165,54 +162,23 @@ export class AuthService {
    */
   private _sendRegistrationEmail(
     user: { id: number; email: string; name: string; last_name: string; role: string },
-    createdBy?: { userId: number; userRole: string },
-    source?: 'app' | 'web'
+    createdBy?: { userId: number; userRole: string }
   ): void {
     const task = async () => {
       if (!createdBy) {
-        if (source === 'web') {
-          // Registro desde web — JWT link
-          const secret = process.env.JWT_EMAIL_SECRET || 'jwt_email_secret_change_in_production';
-          const token = jwt.sign(
-            { userId: user.id, email: user.email, type: 'email_verification' },
-            secret,
-            { expiresIn: '24h' }
-          );
-          const webUrl = process.env.WEB_URL || 'https://paypac.co';
-          const verifyLink = `${webUrl}/verify-email?token=${token}`;
-
-          await emailService.queueEmail({
-            userId: user.id,
-            email: user.email,
-            templateCode: 'REGISTRATION_VERIFY_MAIL_WEB',
-            variables: {
-              user_name: `${user.name} ${user.last_name}`,
-              verify_link: verifyLink,
-            },
-          });
-          console.log('📧 Email de verificación web encolado para:', user.email);
-        } else {
-          // Registro desde app — OTP
-          const otp = Math.floor(100000 + Math.random() * 900000).toString();
-          const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutos
-
-          await userRepository.update(user.id, {
-            email_verification_code: otp,
-            email_verification_expires_at: expiresAt,
-          });
-
-          await emailService.queueEmail({
-            userId: user.id,
-            email: user.email,
-            templateCode: 'REGISTRATION_VERIFY_MAIL_v1',
-            variables: {
-              user_name: `${user.name} ${user.last_name}`,
-              otp_code: otp,
-              verify_link: '',
-            },
-          });
-          console.log('📧 Email de verificación app encolado para:', user.email);
-        }
+        // Auto-registro CUSTOMER
+        const otpTemp = Math.floor(100000 + Math.random() * 900000).toString();
+        await emailService.queueEmail({
+          userId: user.id,
+          email: user.email,
+          templateCode: 'REGISTRATION_VERIFY_MAIL',
+          variables: {
+            user_name: `${user.name} ${user.last_name}`,
+            otp_code: otpTemp,
+            verify_link: 'https://paypac.co/verify-account',
+          },
+        });
+        console.log('📧 Email de verificación encolado para:', user.email);
       } else {
         // Creado por admin
         await emailService.queueEmail({
@@ -233,6 +199,7 @@ export class AuthService {
       }
     };
 
+    // Ejecutar sin await — errores se loguean pero no bloquean
     task().catch((err) => {
       console.error('⚠️ Error en email background:', err.message);
     });
@@ -267,67 +234,6 @@ export class AuthService {
     task().catch((err) => {
       console.error('⚠️ Error en accept transfers background:', err.message);
     });
-  }
-
-  /**
-   * 12.1 — Verificar email desde la app con código OTP
-   */
-  async verifyEmailApp(userId: number, code: string) {
-    const user = await userRepository.findById(userId);
-    if (!user) throw new Error('Usuario no encontrado');
-
-    if (user.verified_user === 1) throw new Error('El email ya está verificado');
-
-    if (!user.email_verification_code || !user.email_verification_expires_at) {
-      throw new Error('No hay un código de verificación pendiente');
-    }
-
-    if (user.email_verification_code !== code) {
-      throw new Error('Código incorrecto');
-    }
-
-    if (new Date() > user.email_verification_expires_at) {
-      throw new Error('El código ha expirado');
-    }
-
-    await userRepository.update(userId, {
-      email_verified_at: new Date(),
-      verified_user: 1,
-      email_verification_code: null,
-      email_verification_expires_at: null,
-    });
-
-    return { verified: true };
-  }
-
-  /**
-   * 12.2 — Verificar email desde la web con token JWT
-   */
-  async verifyEmailWeb(token: string) {
-    const secret = process.env.JWT_EMAIL_SECRET || 'jwt_email_secret_change_in_production';
-
-    let payload: { userId: number; email: string; type: string };
-    try {
-      payload = jwt.verify(token, secret) as typeof payload;
-    } catch {
-      throw new Error('Token inválido o expirado');
-    }
-
-    if (payload.type !== 'email_verification') {
-      throw new Error('Token inválido');
-    }
-
-    const user = await userRepository.findById(payload.userId);
-    if (!user) throw new Error('Usuario no encontrado');
-    if (user.email !== payload.email) throw new Error('Token inválido');
-    if (user.verified_user === 1) throw new Error('El email ya está verificado');
-
-    await userRepository.update(payload.userId, {
-      email_verified_at: new Date(),
-      verified_user: 1,
-    });
-
-    return { verified: true };
   }
 
   /**

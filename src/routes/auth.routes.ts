@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { register, getUsers, getProfile, verifyEmailApp, verifyEmailWeb } from '../controllers/auth.controller';
+import { register, getUsers, getProfile } from '../controllers/auth.controller';
 import { validateRequest } from '../middlewares/validate.middleware';
 import { registerUserSchema, getUsersSchema } from '../validators/user.validation';
 import { authenticate } from '../middlewares/auth.middleware';
@@ -57,16 +57,7 @@ router.get(
   getUsers
 );
 
-/**
- * POST /auth/verify-email
- * 12.1 — Verificar OTP de email (app, requiere autenticación Firebase)
- */
-router.post('/verify-email', authenticate, verifyEmailApp);
 
-/**
- * GET /auth/verify-email/web?token=xxx
- * 12.2 — Verificar email vía JWT link (web, público)
- */
-router.get('/verify-email/web', verifyEmailWeb);
+
 
 export default router;
