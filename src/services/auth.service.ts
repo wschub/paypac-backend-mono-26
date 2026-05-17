@@ -46,7 +46,7 @@ export class AuthService {
       }
 
       // 2. ✅ Validar reglas de negocio según quien crea el usuario
-      if (createdBy) {
+      /*if (createdBy) {
         console.log(`👤 Usuario creado por: ${createdBy.userRole} (ID: ${createdBy.userId})`);
 
         if (createdBy.userRole === 'ORGANIZER') {
@@ -61,8 +61,9 @@ export class AuthService {
         }
         console.log('👤 Auto-registro de CUSTOMER');
       } 
-
+*/
       const fullphoneNumber = `+57${data.phone_number}`;
+ 
 
       // 3. ✅ Crear usuario en Firebase Auth
       //    ⚠️ Esta es la operación más lenta (~400ms) — no se puede evitar
