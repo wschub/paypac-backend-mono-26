@@ -29,9 +29,14 @@ export class EventWaitingListService {
     return repo.create(data);
   }
 
-  async getByEvent(eventId: number) {
+  async getByEvent(eventId: number, requesterId: number, requesterRole: string) {
     const event = await prisma.event.findUnique({ where: { id: eventId } });
     if (!event) throw new Error('Evento no encontrado');
+
+    const isOwner = event.organizer_id === requesterId;
+    const isPaypac = requesterRole === 'PAYPAC';
+    if (!isOwner && !isPaypac) throw new Error('No tienes permiso para ver esta lista');
+
     return repo.findByEventId(eventId);
   }
 

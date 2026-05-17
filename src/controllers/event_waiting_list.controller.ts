@@ -6,12 +6,15 @@ const service = new EventWaitingListService();
 export const getWaitingListByEvent = async (req: Request, res: Response) => {
   try {
     const eventId = parseInt(req.params.eventId as string);
-    const list = await service.getByEvent(eventId);
+    const list = await service.getByEvent(eventId, req.user!.id, req.user!.role);
     res.status(200).json({ list });
   } catch (error: any) {
     console.error('Error in getWaitingListByEvent:', error);
     if (error.message.includes('no encontrado')) {
       return res.status(404).json({ error: 'Not found', message: error.message });
+    }
+    if (error.message.includes('permiso')) {
+      return res.status(403).json({ error: 'Forbidden', message: error.message });
     }
     res.status(500).json({ error: 'Internal server error', message: 'Error al obtener lista de espera' });
   }
