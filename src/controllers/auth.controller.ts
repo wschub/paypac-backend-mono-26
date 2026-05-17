@@ -12,7 +12,7 @@ const authService = new AuthService();
  * - /new-user: PAYPAC/ORGANIZER crean staff/promotores (con autenticación)
  */
 export const register = async (req: Request, res: Response): Promise<void> => {
-  const { name, last_name, email, password, role, company_id, phone_number } = req.body;
+  const { name, last_name, email, password, role, company_id, phone_number, source } = req.body;
 
   try {
     // Determinar si es auto-registro o creación por admin
@@ -47,6 +47,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
         role,
         company_id: finalCompanyId,
         phone_number,
+        source,
       },
       createdBy
     );
@@ -95,6 +96,42 @@ export const getUsers = async (req: Request, res: Response): Promise<void> => {
   try {
     const result = await authService.getUsers();
     res.json(result);
+  } catch (err: any) {
+    res.status(400).json({ message: err.message });
+  }
+};
+
+/**
+ * POST /auth/verify-email
+ * 12.1 — Verificar email desde la app con código OTP (requiere autenticación)
+ */
+export const verifyEmailApp = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { code } = req.body;
+    if (!code || typeof code !== 'string') {
+      res.status(400).json({ message: 'Código requerido' });
+      return;
+    }
+    await authService.verifyEmailApp(req.user!.id, code);
+    res.status(201).json({ message: 'Email verificado exitosamente' });
+  } catch (err: any) {
+    res.status(400).json({ message: err.message });
+  }
+};
+
+/**
+ * GET /auth/verify-email/web?token=xxx
+ * 12.2 — Verificar email desde la web con token JWT (público)
+ */
+export const verifyEmailWeb = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { token } = req.query;
+    if (!token || typeof token !== 'string') {
+      res.status(400).json({ message: 'Token requerido' });
+      return;
+    }
+    await authService.verifyEmailWeb(token);
+    res.status(200).json({ message: 'Email verificado exitosamente' });
   } catch (err: any) {
     res.status(400).json({ message: err.message });
   }

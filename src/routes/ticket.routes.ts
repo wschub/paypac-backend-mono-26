@@ -9,6 +9,10 @@ import {
   getEventTicketStats,
   registerPublicKey, getTotpSecret,
 } from '../controllers/ticket.controller';
+import {
+  registerConsumption,
+  getConsumptionHistory,
+} from '../controllers/ticket_consumption.controller';
 import { authenticate } from '../middlewares/auth.middleware';
 import { authorizeRoles } from '../middlewares/role.middleware';
 import { validateRequest } from '../middlewares/validate.middleware';
@@ -176,6 +180,30 @@ router.delete(
   authorizeRoles('PAYPAC', 'ORGANIZER', 'STAFF', 'STAFF_PROMOTER', 'PROMOTER', 'CUSTOMER'),
   validateRequest(cancelTicketSchema),
   cancelTicket
+);
+
+/**
+ * POST /api/tickets/:id/consume
+ * Registrar consumo en ticket consumible
+ * Requiere: STAFF, STAFF_PROMOTER, ORGANIZER, PAYPAC
+ */
+router.post(
+  '/:id/consume',
+  authenticate,
+  authorizeRoles('PAYPAC', 'ORGANIZER', 'STAFF', 'STAFF_PROMOTER'),
+  registerConsumption
+);
+
+/**
+ * GET /api/tickets/:id/consumptions
+ * Ver historial de consumos
+ * Requiere: dueño del ticket o staff
+ */
+router.get(
+  '/:id/consumptions',
+  authenticate,
+  authorizeRoles('PAYPAC', 'ORGANIZER', 'STAFF', 'STAFF_PROMOTER', 'PROMOTER', 'CUSTOMER'),
+  getConsumptionHistory
 );
 
 export default router;

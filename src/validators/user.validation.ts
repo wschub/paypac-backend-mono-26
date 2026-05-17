@@ -15,6 +15,7 @@ export const registerUserSchema = z.object({
     company_id: z.number().int().positive().optional(),
     num_doc: z.string().optional(),
     type_doc: z.number().int().optional(),
+    source: z.enum(['app', 'web']).optional(),
   }),
 });
 

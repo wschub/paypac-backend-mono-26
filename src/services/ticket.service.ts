@@ -1,6 +1,7 @@
 import { TicketRepository } from '../repositories/ticket.repository';
 import { EventStaffAssignmentRepository } from '../repositories/event_staff_assignment.repository';
 import { EventRepository } from '../repositories/event.repository';
+import { EventLocalitiesRepository } from '../repositories/eventlocalities.repository';
 import { Prisma, TicketStatus } from '@prisma/client';
 import {
   generateTicketData,
@@ -15,6 +16,7 @@ import {
 const ticketRepo = new TicketRepository();
 const staffAssignmentRepo = new EventStaffAssignmentRepository();
 const eventRepo = new EventRepository();
+const localitiesRepo = new EventLocalitiesRepository();
 
 // Mapa en memoria para challenges activos — TTL 15s
 // En producción futura usar Redis
@@ -61,6 +63,8 @@ async getTotpSecret(id: number, userId: number) {
         text_color: string;
         title_color_location: string;
       };
+      is_consumable?: boolean;
+      vip_access?: boolean;
     }>;
   },
   eventSnapshot: {
@@ -145,6 +149,9 @@ async getTotpSecret(id: number, userId: number) {
         loc_title_color: item.locality_colors?.title_color || '#FFFFFF',
         loc_text_color: item.locality_colors?.text_color || '#FFFFFF',
         loc_title_color_location: item.locality_colors?.title_color_location || '#FFFFFF',
+        is_consumable:    item.is_consumable ?? false,
+        consumable_total: (item.is_consumable ?? false) ? item.price_ticket : 0,
+        vip_access:       item.vip_access ?? false,
       });
       
       console.log(`      ✅ Ticket ${i + 1} agregado al array`);
@@ -365,6 +372,19 @@ if (event.date_checkin_close && now > new Date(event.date_checkin_close)) {
 }
     
     
+
+    // Validar ventana horaria de la localidad (los tickets consumibles la ignoran)
+    if (!(ticket as any).is_consumable) {
+      const locality = await localitiesRepo.findById(ticket.loc_id_locality);
+      if (locality?.entry_time_open && now < new Date(locality.entry_time_open)) {
+        throw new Error(
+          `La entrada para esta localidad abre a las ${new Date(locality.entry_time_open).toLocaleString('es-CO', { timeZone: 'America/Bogota' })}`
+        );
+      }
+      if (locality?.entry_time_close && now > new Date(locality.entry_time_close)) {
+        throw new Error('La ventana de entrada para esta localidad ha cerrado');
+      }
+    }
 
     // Verificar que no esté ya usado
     if (ticket.ticket_first_time === 0) {

@@ -1,6 +1,6 @@
 import { NotificationMessageQueueRepository } from '../repositories/notificationmessagequeue.repository';
 import { BrevoService } from './brevo.service';
-import { EMAIL_TEMPLATES, renderSubject } from '../templates/email-templates';
+import { EMAIL_TEMPLATES } from '../templates/email-templates';
 
 const messageRepo = new NotificationMessageQueueRepository();
 const brevoService = new BrevoService();
@@ -33,7 +33,7 @@ export class NotificationMessageQueueService {
     }
 
     // 3. Renderizar subject y HTML
-    const emailSubject = renderSubject(template.subject, params.variables);
+    const emailSubject = template.subject(params.variables);
     const emailBody = template.html(params.variables);
 
     // 4. Guardar en cola

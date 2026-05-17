@@ -34,8 +34,10 @@ model User {
   provider_id              String?
   firebase_uid             String?                    @unique
   lang_user                String?
-  verified_user            Int                        @default(0)
-  status                   Int                        @default(0)
+  verified_user                    Int                        @default(0)
+  email_verification_code          String?
+  email_verification_expires_at    DateTime?
+  status                           Int                        @default(0)
   createdAt                DateTime                   @default(now())
   updatedAt                DateTime                   @updatedAt
   role                     ROLES                      @default(CUSTOMER)
@@ -77,6 +79,9 @@ model User {
   ticket_listings_selling    TicketSaleListing[]     @relation("TicketListingsSeller")
   ticket_listings_bought     TicketSaleListing[]     @relation("TicketListingsBuyer")
   ticket_offers              TicketSaleOffer[]        @relation("TicketOffersBuyer")
+  ticket_consumptions_done   TicketConsumption[]
+  promoter_requests          PromoterRequest[]       @relation("PromoterRequests")
+  promoter_reviews           PromoterRequest[]       @relation("PromoterRequestReviewer")
 }
 
 model Company {
@@ -423,6 +428,24 @@ model PromoterCode {
   @@index([code])
 }
 
+model PromoterRequest {
+  id                Int                   @id @default(autoincrement())
+  user_id           Int
+  status            PromoterRequestStatus @default(PENDING)
+  motivation        String?
+  reviewed_by_id    Int?
+  reviewed_at       DateTime?
+  rejection_reason  String?
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+  user              User                  @relation("PromoterRequests", fields: [user_id], references: [id])
+  reviewed_by       User?                 @relation("PromoterRequestReviewer", fields: [reviewed_by_id], references: [id])
+
+  @@index([user_id])
+  @@index([status])
+  @@map("promoter_requests")
+}
+
 model EventLiquidation {
   id                  Int                    @id @default(autoincrement())
   company_id          Int
@@ -459,6 +482,10 @@ model EventLocalities {
   num_max_tickets      Int?               @default(0)
   num_tickets_sold     Int?               @default(0)
   require_num_tickets  Boolean            @default(false)
+  is_consumable        Boolean            @default(false)
+  vip_access           Boolean            @default(false)
+  entry_time_open      DateTime?
+  entry_time_close     DateTime?
   discounts            EventDcto[]
   event                Event              @relation(fields: [event_id], references: [id])
   rewardRules          EventRewardRules[]
@@ -722,9 +749,30 @@ model Ticket {
   user_type_doc            DocType?
   nfc_id                   String?
   device_public_key        String?
+  is_consumable            Boolean                 @default(false)
+  consumable_total         Int                     @default(0)
+  consumable_used          Int                     @default(0)
+  vip_access               Boolean                 @default(false)
   customer                 User                    @relation(fields: [customer_id], references: [id])
   event                    Event                   @relation(fields: [event_id], references: [id])
   sale_listing             TicketSaleListing?
+  consumptions             TicketConsumption[]
+}
+
+model TicketConsumption {
+  id             Int      @id @default(autoincrement())
+  ticket_id      Int
+  amount         Int
+  description    String?
+  consumed_by_id Int
+  consumed_at    DateTime @default(now())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  ticket         Ticket   @relation(fields: [ticket_id], references: [id], onDelete: Cascade)
+  consumed_by    User     @relation(fields: [consumed_by_id], references: [id])
+
+  @@index([ticket_id])
+  @@map("ticket_consumptions")
 }
 
 model TicketSaleListing {
@@ -847,6 +895,12 @@ enum ROLES {
   STAFF_PROMOTER
   PROMOTER
   CUSTOMER
+}
+
+enum PromoterRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }
 
 enum EVENT_STATUS {

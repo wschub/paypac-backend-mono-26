@@ -478,6 +478,8 @@ async updateInvoiceStatus(
             text_color: '#FFFFFF',
             title_color_location: '#FFFFFF',
           },
+          is_consumable: locality?.is_consumable ?? false,
+          vip_access:    locality?.vip_access    ?? false,
         };
       })
     );
