@@ -146,6 +146,17 @@ export class InvoiceTicketsRepository {
     return count > 0;
   }
 
+  async countTotalTicketsSoldByEventId(eventId: number): Promise<number> {
+    const result = await prisma.invoiceTickets.aggregate({
+      where: {
+        invoice: { event_id: eventId, status: 'PAID' },
+        status_item: 1,
+      },
+      _sum: { qty_tickets: true },
+    });
+    return result._sum.qty_tickets ?? 0;
+  }
+
   /**
    * Obtener resumen de ventas por localidad de un evento
    */

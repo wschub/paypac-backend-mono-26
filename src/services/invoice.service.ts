@@ -59,6 +59,18 @@ export class InvoiceService {
       throw new Error('Usuario no encontrado');
     }
 
+    // Caso 1.1: Límite global del evento
+    const newQtyTotal = data.items.reduce((sum, i) => sum + i.qty_tickets, 0);
+    if (event.num_max_tickets > 0) {
+      const soldTotal = await invoiceTicketsRepo.countTotalTicketsSoldByEventId(data.event_id);
+      if (soldTotal + newQtyTotal > event.num_max_tickets) {
+        const available = event.num_max_tickets - soldTotal;
+        throw new Error(
+          `No hay suficientes tickets disponibles para este evento. Disponibles: ${available}`
+        );
+      }
+    }
+
     // Calcular totales y validar disponibilidad
     let totalTickets = 0;
     let totalRegular = 0;
@@ -80,11 +92,15 @@ if (!stageLocality || stageLocality.event_id !== data.event_id) {
 }
 
 
-      // TODO: Verificar disponibilidad de tickets
-      // const soldTickets = await invoiceTicketsRepo.countTicketsByStageId(item.stage_id);
-      // if (soldTickets + item.qty_tickets > maxCapacity) {
-      //   throw new Error('No hay suficientes tickets disponibles');
-      // }
+      // Caso 1.2: Localidad con límite propio habilitado
+      if (stageLocality.require_num_tickets && (stageLocality.num_max_tickets ?? 0) > 0) {
+        const available = (stageLocality.num_max_tickets ?? 0) - (stageLocality.num_tickets_sold ?? 0);
+        if (item.qty_tickets > available) {
+          throw new Error(
+            `No hay suficientes tickets disponibles en la localidad "${stageLocality.name_locality}". Disponibles: ${available}`
+          );
+        }
+      }
 
       const itemTotal = stage.price_ticket * item.qty_tickets;
       totalTickets += item.qty_tickets;
@@ -455,6 +471,17 @@ async updateInvoiceStatus(
     );
 
     console.log(`✅ ${ticketsResult.count} tickets creados para la factura ${invoice.num_invoice}`);
+
+    // Casos 1.2 y 1.3: actualizar num_tickets_sold por localidad
+    const localityQtyMap = invoiceItems.reduce<Record<number, number>>((acc, item) => {
+      acc[item.locality_id] = (acc[item.locality_id] ?? 0) + item.qty_tickets;
+      return acc;
+    }, {});
+    await Promise.all(
+      Object.entries(localityQtyMap).map(([localityId, qty]) =>
+        localitiesRepo.incrementTicketsSold(Number(localityId), qty)
+      )
+    );
 
     // Otorgar puntos e intereses de forma asíncrona (no bloquea la respuesta)
     Promise.all([

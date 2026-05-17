@@ -73,6 +73,13 @@ export class EventLocalitiesRepository {
     });
   }
 
+  async incrementTicketsSold(id: number, qty: number): Promise<void> {
+    await prisma.eventLocalities.update({
+      where: { id },
+      data: { num_tickets_sold: { increment: qty } },
+    });
+  }
+
   /**
    * Verificar si una localidad existe
    */
