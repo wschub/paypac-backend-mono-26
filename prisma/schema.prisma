@@ -72,6 +72,11 @@ model User {
   // Notificaciones
   notificationPreferences NotificationPreference[]
   notificationQueue     NotificationQueue[]
+
+  // Ventas de tickets
+  ticket_listings_selling    TicketSaleListing[]     @relation("TicketListingsSeller")
+  ticket_listings_bought     TicketSaleListing[]     @relation("TicketListingsBuyer")
+  ticket_offers              TicketSaleOffer[]        @relation("TicketOffersBuyer")
 }
 
 model Company {
@@ -692,8 +697,52 @@ model Ticket {
   user_type_doc            DocType?
   nfc_id                   String?
   device_public_key        String?
-  customer                 User         @relation(fields: [customer_id], references: [id])
-  event                    Event        @relation(fields: [event_id], references: [id])
+  customer                 User                    @relation(fields: [customer_id], references: [id])
+  event                    Event                   @relation(fields: [event_id], references: [id])
+  sale_listing             TicketSaleListing?
+}
+
+model TicketSaleListing {
+  id           Int              @id @default(autoincrement())
+  ticket_id    Int              @unique
+  seller_id    Int
+  sale_type    TicketSaleType
+  asking_price Int?
+  min_price    Int?
+  status       TicketSaleStatus @default(ACTIVE)
+  expires_at   DateTime
+  buyer_id     Int?
+  sold_price   Int?
+  sold_at      DateTime?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  ticket       Ticket           @relation(fields: [ticket_id], references: [id], onDelete: Cascade)
+  seller       User             @relation("TicketListingsSeller", fields: [seller_id], references: [id])
+  buyer        User?            @relation("TicketListingsBuyer", fields: [buyer_id], references: [id])
+  offers       TicketSaleOffer[]
+
+  @@index([seller_id])
+  @@index([status])
+  @@map("ticket_sale_listings")
+}
+
+model TicketSaleOffer {
+  id               Int              @id @default(autoincrement())
+  listing_id       Int
+  buyer_id         Int
+  amount           Int
+  status           TicketOfferStatus @default(PENDING)
+  notified_to_pay_at DateTime?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  listing          TicketSaleListing @relation(fields: [listing_id], references: [id], onDelete: Cascade)
+  buyer            User              @relation("TicketOffersBuyer", fields: [buyer_id], references: [id])
+
+  @@index([listing_id])
+  @@index([buyer_id])
+  @@map("ticket_sale_offers")
 }
 
 model TicketTransaction {
@@ -1168,4 +1217,23 @@ enum NotificationStatus {
   READ
   FAILED
   CANCELLED
+}
+
+enum TicketSaleType {
+  FIXED
+  AUCTION
+}
+
+enum TicketSaleStatus {
+  ACTIVE
+  SOLD
+  CANCELLED
+  EXPIRED
+}
+
+enum TicketOfferStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  EXPIRED
 }

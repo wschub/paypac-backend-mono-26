@@ -50,6 +50,7 @@ import interestsRoutes from './routes/interests.routes';
 import followersRoutes from './routes/followers.routes';
 import notificationsRoutes from './routes/notifications.routes';
 import waitingListRoutes from './routes/event_waiting_list.routes';
+import ticketSaleRoutes from './routes/ticket_sale.routes';
 
 
 import { validateBrevoConfig } from './config/brevo';
@@ -219,6 +220,7 @@ app.use('/api/interests', interestsRoutes);
 app.use('/api/followers', followersRoutes);
 app.use('/api/notifications', notificationsRoutes);
 app.use('/api/waiting-list', waitingListRoutes);
+app.use('/api', ticketSaleRoutes);
 
 
 // Iniciar CRON jobs
