@@ -11,6 +11,7 @@ import { PromoterCodeService } from './promoter_code.service';
 import { PointsService } from './points.service';
 import { InterestsService } from './interests.service';
 import { calculateDiscountFromPoints } from '../config/constants';
+import { EventPrivateGuestRepository } from '../repositories/event_private_guest.repository';
 
 
 const invoiceRepo = new InvoiceRepository();
@@ -22,6 +23,7 @@ const dctoRepo = new EventDctoRepository();
 const userRepo = new UserRepository();
 const ticketService = new TicketService();
 const promoCodeService = new PromoterCodeService();
+const guestRepo = new EventPrivateGuestRepository();
 
 export class InvoiceService {
   /**
@@ -60,6 +62,14 @@ export class InvoiceService {
     const user = await userRepo.findById(userId);
     if (!user) {
       throw new Error('Usuario no encontrado');
+    }
+
+    // Validar acceso a eventos privados con confirmación requerida
+    if (event.event_type === 'PRIVADO' && (event as any).confirmation_required) {
+      const guest = await guestRepo.findByEventAndEmail(data.event_id, user.email);
+      if (!guest || guest.status !== 'CONFIRMED') {
+        throw new Error('No estás en la lista de invitados confirmados para este evento privado');
+      }
     }
 
     // Caso 1.1: Límite global del evento

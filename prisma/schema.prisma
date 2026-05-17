@@ -269,6 +269,8 @@ model Event {
   public_id                String?                 @unique
   public_url               String?                 @unique
   featured                 Boolean                 @default(false)
+  type_payment             TypePayment             @default(PAID)
+  confirmation_required    Boolean                 @default(false)
   category                 Category?               @relation(fields: [category_id], references: [id])
   numbered_place           EventPlaces?            @relation(fields: [numbered_place_id], references: [id])
   subcategory              SubCategory?            @relation(fields: [subcategory_id], references: [id])
@@ -276,6 +278,7 @@ model Event {
   promoterBalances         EventBalancePromoters[]
   discounts                EventDcto[]
   favorites                EventFavorites[]
+  guest_list               EventPrivateGuestList[]
   liquidations             EventLiquidation[]
   localities               EventLocalities[]
   rewardRules              EventRewardRules[]
@@ -311,6 +314,24 @@ model EventStaffAssignment {
   @@unique([event_id, user_id])
   @@index([event_id])
   @@index([user_id])
+}
+
+model EventPrivateGuestList {
+  id           Int         @id @default(autoincrement())
+  event_id     Int
+  email        String
+  name         String?
+  user_id      Int?
+  status       GuestStatus @default(PENDING)
+  invited_at   DateTime    @default(now())
+  confirmed_at DateTime?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  event        Event       @relation(fields: [event_id], references: [id], onDelete: Cascade)
+
+  @@unique([event_id, email])
+  @@index([event_id])
+  @@map("event_private_guest_list")
 }
 
 model EventFavorites {
@@ -870,6 +891,17 @@ enum EventLiquidationStatus {
 enum TypeEvent {
   PUBLICO
   PRIVADO
+}
+
+enum TypePayment {
+  FREE
+  PAID
+}
+
+enum GuestStatus {
+  PENDING
+  CONFIRMED
+  REJECTED
 }
 
 enum Places {
