@@ -17,11 +17,13 @@ export const createInvoiceSchema = z.object({
   .refine((arr) => arr.length > 0, {
     message: 'Debe agregar al menos un item',
   }),
-    discount_code: z.string().optional(),
+    discount_code:  z.string().optional(),
     promoter_code:  z.string().optional(),
-    user_num_doc:  z.string().optional(),
-    user_type_doc: z.enum(['CC','CE','PA','TI','NIT','SSN']).optional(),
+    user_num_doc:   z.string().optional(),
+    user_type_doc:  z.enum(['CC','CE','PA','TI','NIT','SSN']).optional(),
     device_uuid:    z.string().min(1).optional(),
+    payment_method: z.enum(['CARD', 'POINTS', 'BNPL']).optional(),
+    points_to_use:  z.number().int().min(1).optional(),
   }),
 });
 

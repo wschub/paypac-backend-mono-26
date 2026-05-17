@@ -10,6 +10,7 @@ import { Prisma, InvoiceStatus } from '@prisma/client';
 import { PromoterCodeService } from './promoter_code.service';
 import { PointsService } from './points.service';
 import { InterestsService } from './interests.service';
+import { calculateDiscountFromPoints } from '../config/constants';
 
 
 const invoiceRepo = new InvoiceRepository();
@@ -35,11 +36,13 @@ export class InvoiceService {
         locality_id: number;
         qty_tickets: number;
       }>;
-      discount_code?: string;
-      promoter_code?: string; 
-      device_uuid?:   string;  
-      user_num_doc?:  string;   // ← agregar
-      user_type_doc?: string;  
+      discount_code?:  string;
+      promoter_code?:  string;
+      device_uuid?:    string;
+      user_num_doc?:   string;
+      user_type_doc?:  string;
+      payment_method?: 'CARD' | 'POINTS' | 'BNPL';
+      points_to_use?:  number;
     }
   ) {
     // Verificar que el evento existe
@@ -213,8 +216,28 @@ if (data.promoter_code && event.allow_external_promoters) {
 }
 
 
+// ── Pago con puntos ──────────────────────────────────────────────
+const paymentMethod = data.payment_method ?? 'CARD';
+let pointsUsed    = 0;
+let pointsDiscount = 0;
+
+if (paymentMethod === 'POINTS' && data.points_to_use && data.points_to_use > 0) {
+  const pointsSvc = new PointsService();
+  const balance   = await pointsSvc.getBalance(userId);
+
+  if (balance.current_balance < data.points_to_use) {
+    throw new Error(
+      `Saldo de puntos insuficiente. Disponible: ${balance.current_balance}, Solicitado: ${data.points_to_use}`
+    );
+  }
+
+  pointsUsed     = data.points_to_use;
+  pointsDiscount = calculateDiscountFromPoints(pointsUsed);
+}
+
 // ── finalTotal único — después de ambos descuentos ───────────────
-const finalTotal = discountApplied ? totalWithDiscount : totalRegular;
+const baseTotal  = discountApplied ? totalWithDiscount : totalRegular;
+const finalTotal = Math.max(0, baseTotal - pointsDiscount);
 
 
 /*
@@ -262,7 +285,10 @@ if (!finalNumDoc) {
       user_lastname: user.last_name,
       user_num_doc:         finalNumDoc,           // ← actualizado
       user_type_doc:        finalTypeDoc,          // ← actualizado
-      customer_UUID_phone:  data.device_uuid ?? null, // ← agregar
+      customer_UUID_phone:  data.device_uuid ?? null,
+      payment_method:       paymentMethod,
+      points_used:          pointsUsed,
+      points_discount:      pointsDiscount,
       num_items: totalTickets,
       event_id: data.event_id,
       apply_discount: discountApplied,
@@ -482,6 +508,15 @@ async updateInvoiceStatus(
         localitiesRepo.incrementTicketsSold(Number(localityId), qty)
       )
     );
+
+    // Descontar puntos si el pago fue con puntos (bloqueante — debe completarse antes de confirmar)
+    if ((invoice as any).points_used > 0) {
+      await new PointsService().redeemPointsForPurchase(
+        invoice.user_id,
+        invoice.id,
+        (invoice as any).points_used
+      );
+    }
 
     // Otorgar puntos e intereses de forma asíncrona (no bloquea la respuesta)
     Promise.all([

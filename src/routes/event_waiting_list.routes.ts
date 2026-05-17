@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { authenticate } from '../middlewares/auth.middleware';
-import { validateRequest } from '../middlewares/validateRequest';
+import { validateRequest } from '../middlewares/validate.middleware';
 import {
   getWaitingListByEvent,
   getWaitingListByLocality,

@@ -135,7 +135,7 @@ export class TicketSaleService {
     const buyer  = await prisma.user.findUnique({ where: { id: buyerId } });
     if (!buyer) throw new Error('Comprador no encontrado');
 
-    const buyerIdPhone = buyer.customer_UUID_phone ?? '';
+    const buyerIdPhone = buyer.firebase_uid ?? '';
     const newToken = regenerateTokenOnTransfer(
       ticket.reference_ticket,
       ticket.booking_ticket,
@@ -144,7 +144,7 @@ export class TicketSaleService {
 
     await ticketRepo.updateStatus(ticket.id, 'TRANSFERRED');
 
-    const { reference, booking } = generateTicketData(ticket.event_id, buyerId, buyerIdPhone);
+    const { reference_ticket, booking_ticket } = generateTicketData(buyerIdPhone);
 
     const newTicket = await ticketRepo.create({
       transaction_id:           ticket.transaction_id,
@@ -152,8 +152,8 @@ export class TicketSaleService {
       customer_id:              buyerId,
       customer_uid:             buyer.firebase_uid ?? '',
       customer_ID_phone:        buyerIdPhone,
-      reference_ticket:         reference,
-      booking_ticket:           booking,
+      reference_ticket:         reference_ticket,
+      booking_ticket:           booking_ticket,
       token_ticket:             newToken,
       ticket_first_time:        1,
       ev_name:                  ticket.ev_name,
@@ -173,7 +173,7 @@ export class TicketSaleService {
       status_ticket:            'ACTIVE',
       ev_status:                ticket.ev_status,
       first_name_user:          buyer.name,
-      last_name_user:           buyer.lastname,
+      last_name_user:           buyer.last_name,
       totp_secret:              generateTotpSecret(),
     });
 

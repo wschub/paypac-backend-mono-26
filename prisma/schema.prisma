@@ -569,6 +569,7 @@ model PaymentMethodsUI {
   id            Int      @id @default(autoincrement())
   method_name   String
   mehtod_img    String
+  method_code   String?
   method_status Int      @default(0)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -631,6 +632,9 @@ model Invoice {
   promoter_commission_amount Int?             @default(0)
   promoter_code_id           Int?
   customer_UUID_phone        String?
+  payment_method             String           @default("CARD")
+  points_used                Int              @default(0)
+  points_discount            Int              @default(0)
   promoterCode               PromoterCode?    @relation(fields: [promoter_code_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   invoiceTickets             InvoiceTickets[]
 }

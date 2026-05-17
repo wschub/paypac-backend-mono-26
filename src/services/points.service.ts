@@ -171,6 +171,39 @@ export class PointsService {
     };
   }
 
+  async redeemPointsForPurchase(userId: number, invoiceId: number, points: number) {
+    if (points <= 0) throw new Error('La cantidad de puntos debe ser mayor a 0');
+
+    const balance = await this.getBalance(userId);
+    if (balance.current_balance < points) {
+      throw new Error(`Saldo insuficiente. Disponible: ${balance.current_balance}, Solicitado: ${points}`);
+    }
+
+    const transaction = await prisma.pointsTransaction.create({
+      data: {
+        user_id: userId,
+        balance_id: balance.id,
+        transaction_type: 'REDEEMED',
+        points_amount: -points,
+        balance_before: balance.current_balance,
+        balance_after: balance.current_balance - points,
+        reference_type: 'INVOICE',
+        reference_id: invoiceId,
+        description: 'Puntos canjeados en compra de tickets',
+      },
+    });
+
+    await prisma.userPointsBalance.update({
+      where: { id: balance.id },
+      data: {
+        current_balance: { decrement: points },
+        total_redeemed: { increment: points },
+      },
+    });
+
+    return transaction;
+  }
+
   async awardPointsForPurchase(userId: number, invoiceId: number, amount: number) {
     const points = calculatePointsFromAmount(amount);
     const expiresAt = calculateExpirationDate();
