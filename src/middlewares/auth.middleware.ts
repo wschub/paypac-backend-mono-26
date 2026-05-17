@@ -51,15 +51,16 @@ export const authenticate = async (
 
     next();
   } catch (error: any) {
-    console.error('Error en autenticación Firebase:', error.message);
+    console.error('🔐 Firebase auth error — code:', error.code, '| message:', error.message);
 
-    // Diferenciar tipos de error para mejor debugging
     if (error.code === 'auth/id-token-expired') {
       res.status(401).json({ message: 'Token expirado' });
     } else if (error.code === 'auth/argument-error') {
       res.status(401).json({ message: 'Token malformado' });
+    } else if (error.code === 'auth/id-token-revoked') {
+      res.status(401).json({ message: 'Token revocado' });
     } else {
-      res.status(401).json({ message: 'Token inválido' });
+      res.status(401).json({ message: 'Token inválido', code: error.code ?? 'unknown' });
     }
     return;
   }

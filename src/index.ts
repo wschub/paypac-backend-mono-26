@@ -1,10 +1,9 @@
+import './env'; // must be first — loads .env before any other module reads process.env
 import express from 'express';
 //import "./types/express";
 import cors from 'cors';
 import http from 'http';
 import { Server as SocketIOServer } from 'socket.io';
-import dotenv from 'dotenv';
-dotenv.config();
 
 import dashboardRoutes     from './routes/dashboard.routes';
 import reportsRoutes       from './routes/reports.routes';
