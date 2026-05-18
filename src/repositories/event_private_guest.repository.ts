@@ -1,8 +1,19 @@
 import { prisma } from '../prisma/client';
 import { GuestStatus } from '@prisma/client';
 
+export interface GuestCreateData {
+  event_id: number;
+  email: string;
+  name?: string;
+  last_name?: string;
+  phone_number?: string;
+  user_id?: number;
+  email_notification?: boolean;
+  phone_notification?: boolean;
+}
+
 export class EventPrivateGuestRepository {
-  async create(data: { event_id: number; email: string; name?: string; user_id?: number }) {
+  async create(data: GuestCreateData) {
     return prisma.eventPrivateGuestList.create({ data });
   }
 

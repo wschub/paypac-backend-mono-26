@@ -1,4 +1,4 @@
-import { EventPrivateGuestRepository } from '../repositories/event_private_guest.repository';
+import { EventPrivateGuestRepository, GuestCreateData } from '../repositories/event_private_guest.repository';
 import { EventRepository } from '../repositories/event.repository';
 
 const guestRepo = new EventPrivateGuestRepository();
@@ -10,7 +10,7 @@ export class EventPrivateGuestService {
     eventId: number,
     requesterId: number,
     requesterRole: string,
-    data: { email: string; name?: string; user_id?: number }
+    data: Omit<GuestCreateData, 'event_id'>
   ) {
     const event = await eventRepo.findById(eventId);
     if (!event) throw new Error('Evento no encontrado');
@@ -82,7 +82,7 @@ export class EventPrivateGuestService {
     eventId: number,
     requesterId: number,
     requesterRole: string,
-    guests: Array<{ email: string; name?: string; user_id?: number }>
+    guests: Array<Omit<GuestCreateData, 'event_id'>>
   ) {
     const event = await eventRepo.findById(eventId);
     if (!event) throw new Error('Evento no encontrado');
@@ -111,7 +111,7 @@ export class EventPrivateGuestService {
         continue;
       }
 
-      await guestRepo.create({ event_id: eventId, email, name: guest.name, user_id: guest.user_id });
+      await guestRepo.create({ ...guest, event_id: eventId, email });
       inserted.push(guest);
     }
 
