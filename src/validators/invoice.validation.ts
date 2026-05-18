@@ -22,7 +22,16 @@ export const createInvoiceSchema = z.object({
     user_num_doc:   z.string().optional(),
     user_type_doc:  z.enum(['CC','CE','PA','TI','NIT','SSN']).optional(),
     device_uuid:    z.string().min(1).optional(),
-    payment_method: z.enum(['CARD', 'POINTS', 'BNPL']).optional(),
+    payment_method: z.union([
+      z.enum(['CARD', 'POINTS', 'BNPL']),
+      z.object({
+        type:         z.string(),
+        card_token:   z.string().optional(),
+        installments: z.number().int().optional(),
+        brand:        z.string().optional(),
+        last_four:    z.string().optional(),
+      }),
+    ]).optional(),
     points_to_use:  z.number().int().min(1).optional(),
   }),
 });

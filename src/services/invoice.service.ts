@@ -43,7 +43,13 @@ export class InvoiceService {
       device_uuid?:    string;
       user_num_doc?:   string;
       user_type_doc?:  string;
-      payment_method?: 'CARD' | 'POINTS' | 'BNPL';
+      payment_method?: 'CARD' | 'POINTS' | 'BNPL' | {
+        type:         string;
+        card_token?:  string;
+        installments?: number;
+        brand?:       string;
+        last_four?:   string;
+      };
       points_to_use?:  number;
     }
   ) {
@@ -227,7 +233,15 @@ if (data.promoter_code && event.allow_external_promoters) {
 
 
 // ── Pago con puntos ──────────────────────────────────────────────
-const paymentMethod = data.payment_method ?? 'CARD';
+const _rawMethod = data.payment_method;
+const paymentMethod: 'CARD' | 'POINTS' | 'BNPL' = (() => {
+  if (!_rawMethod) return 'CARD';
+  if (typeof _rawMethod === 'string') return _rawMethod;
+  const map: Record<string, 'CARD' | 'POINTS' | 'BNPL'> = {
+    CREDIT_CARD: 'CARD', CARD: 'CARD', POINTS: 'POINTS', BNPL: 'BNPL',
+  };
+  return map[_rawMethod.type] ?? 'CARD';
+})();
 let pointsUsed    = 0;
 let pointsDiscount = 0;
 
