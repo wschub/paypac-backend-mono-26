@@ -193,7 +193,48 @@ async getTotpSecret(id: number, userId: number) {
    * Obtener mis tickets (Wallet)
    */
   async getMyTickets(userId: number, status?: TicketStatus | TicketStatus[]) {
-  return ticketRepo.findByCustomer(userId, status);
+  const tickets = await ticketRepo.findByCustomer(userId, status);
+
+  // Group by event_id preserving ev_date_event ASC order
+  const eventMap = new Map<number, {
+    event_id: number;
+    ev_name: string;
+    ev_cover: string;
+    ev_date_event: Date;
+    ev_place_address: string;
+    ev_event_type: string;
+    ev_type_venue: string;
+    ev_status: string;
+    ticket_count: number;
+    tickets: typeof tickets;
+  }>();
+
+  for (const ticket of tickets) {
+    if (!eventMap.has(ticket.event_id)) {
+      eventMap.set(ticket.event_id, {
+        event_id:        ticket.event_id,
+        ev_name:         ticket.ev_name,
+        ev_cover:        ticket.ev_cover,
+        ev_date_event:   ticket.ev_date_event,
+        ev_place_address: ticket.ev_place_address,
+        ev_event_type:   ticket.ev_event_type,
+        ev_type_venue:   ticket.ev_type_venue,
+        ev_status:       ticket.ev_status,
+        ticket_count:    0,
+        tickets:         [],
+      });
+    }
+    const group = eventMap.get(ticket.event_id)!;
+    group.tickets.push(ticket);
+    group.ticket_count++;
+  }
+
+  // Sort event groups by ev_date_event ASC
+  const events = Array.from(eventMap.values()).sort(
+    (a, b) => a.ev_date_event.getTime() - b.ev_date_event.getTime()
+  );
+
+  return { event_count: events.length, events };
 }
 
   /**

@@ -53,12 +53,12 @@ export const getMyTickets = async (req: Request, res: Response): Promise<void> =
         : (rawStatus as TicketStatus)
       : undefined;
 
-    const tickets = await ticketService.getMyTickets(userId, status);
+    const result = await ticketService.getMyTickets(userId, status);
 
     res.status(200).json({
       success: true,
-      count: tickets.length,
-      tickets,
+      event_count: result.event_count,
+      events: result.events,
     });
   } catch (err: any) {
     res.status(400).json({ success: false, message: err.message });
