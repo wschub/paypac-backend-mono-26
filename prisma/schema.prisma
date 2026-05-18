@@ -276,6 +276,7 @@ model Event {
   featured                 Boolean                 @default(false)
   type_payment             TypePayment             @default(PAID)
   confirmation_required    Boolean                 @default(false)
+  private_price_ticket     Int                     @default(0)
   category                 Category?               @relation(fields: [category_id], references: [id])
   numbered_place           EventPlaces?            @relation(fields: [numbered_place_id], references: [id])
   subcategory              SubCategory?            @relation(fields: [subcategory_id], references: [id])
@@ -322,17 +323,24 @@ model EventStaffAssignment {
 }
 
 model EventPrivateGuestList {
-  id           Int         @id @default(autoincrement())
-  event_id     Int
-  email        String
-  name         String?
-  user_id      Int?
-  status       GuestStatus @default(PENDING)
-  invited_at   DateTime    @default(now())
-  confirmed_at DateTime?
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
-  event        Event       @relation(fields: [event_id], references: [id], onDelete: Cascade)
+  id                 Int                @id @default(autoincrement())
+  event_id           Int
+  email              String
+  name               String?
+  last_name          String?
+  phone_number       String?
+  user_id            Int?
+  status             GuestStatus        @default(PENDING)
+  payment_status     GuestPaymentStatus @default(PENDING)
+  invoice_id         Int?
+  transaction_id     String?
+  email_notification Boolean            @default(false)
+  phone_notification Boolean            @default(false)
+  invited_at         DateTime           @default(now())
+  confirmed_at       DateTime?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  event              Event              @relation(fields: [event_id], references: [id], onDelete: Cascade)
 
   @@unique([event_id, email])
   @@index([event_id])
@@ -950,12 +958,19 @@ enum TypeEvent {
 enum TypePayment {
   FREE
   PAID
+  CONTRIBUTION
 }
 
 enum GuestStatus {
   PENDING
   CONFIRMED
   REJECTED
+}
+
+enum GuestPaymentStatus {
+  PENDING
+  PAID
+  EXEMPT
 }
 
 enum Places {
