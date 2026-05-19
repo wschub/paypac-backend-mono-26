@@ -187,12 +187,12 @@ if (filters?.date_from || filters?.date_to) {
       if (userRole !== 'PAYPAC' && userRole !== 'ORGANIZER') {
         throw new Error('Solo usuarios con rol PAYPAC u ORGANIZER pueden eliminar eventos en estado CREATED');
       }
-    } else if (event.status === 'CANCELED' || event.status === 'FINALIZED') {
+    } else if (event.status === 'CANCELED') {
       if (userRole !== 'PAYPAC') {
-        throw new Error(`Solo usuarios con rol PAYPAC pueden eliminar eventos en estado ${event.status}`);
+        throw new Error(`Solo usuarios con rol PAYPAC pueden eliminar eventos en estado CANCELED`);
       }
     } else {
-      throw new Error(`No se permite eliminar un evento en estado ${event.status}. Primero debe cancelarse.`);
+      throw new Error(`No se permite eliminar un evento en estado ${event.status}.`);
     }
 
     // 2. Ejecutar borrado en cascada manual para relaciones sin 'onDelete: Cascade' en el schema
@@ -206,8 +206,18 @@ if (filters?.date_from || filters?.date_to) {
       prisma.eventBalancePromoters.deleteMany({ where: { event_id: id } }),
       prisma.eventDcto.deleteMany({ where: { event_id: id } }),
       prisma.eventSeatStatus.deleteMany({ where: { event_id: id } }),
-      //Revisar esto para cron aumatico que elimine despues de un año.
-      prisma.eventLiquidation.deleteMany({ where: { event_id: id } }), // Agregado para eliminar liquidaciones
+      
+      // Limpieza de ventas (Tickets e Invoices)
+      prisma.ticket.deleteMany({ where: { event_id: id } }),
+      prisma.invoiceTickets.deleteMany({ where: { invoice: { event_id: id } } }),
+      prisma.invoice.deleteMany({ where: { event_id: id } }),
+
+      prisma.eventLiquidation.deleteMany({ where: { event_id: id } }),
+      
+      // Listas auxiliares
+      prisma.eventWaitingList.deleteMany({ where: { event_id: id } }),
+      prisma.eventPrivateGuestList.deleteMany({ where: { event_id: id } }),
+
       // Se eliminan manualmente estas tablas para evitar violaciones de FK si el Cascade no está activo en la DB
       prisma.eventFavorites.deleteMany({ where: { event_id: id } }),
       prisma.eventStaffAssignment.deleteMany({ where: { event_id: id } }),
