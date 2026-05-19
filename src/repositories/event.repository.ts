@@ -206,6 +206,8 @@ if (filters?.date_from || filters?.date_to) {
       prisma.eventBalancePromoters.deleteMany({ where: { event_id: id } }),
       prisma.eventDcto.deleteMany({ where: { event_id: id } }),
       prisma.eventSeatStatus.deleteMany({ where: { event_id: id } }),
+      //Revisar esto para cron aumatico que elimine despues de un año.
+      prisma.eventLiquidation.deleteMany({ where: { event_id: id } }), // Agregado para eliminar liquidaciones
       // Las tablas con onDelete: Cascade en el schema (Favorites, Staff, Views) se borrarán automáticamente aquí:
       prisma.event.delete({ where: { id } }),
     ]);
