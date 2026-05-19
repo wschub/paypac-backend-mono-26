@@ -195,7 +195,7 @@ private getPriceFrom(localities: any[]) {
     // No se puede eliminar si hay tickets vendidos (agregar validación futura)
     // TODO: Verificar si hay invoices/tickets asociados
 
-    return eventRepo.delete(id);
+    return eventRepo.delete(id,userRole);
   }
 
   /**

@@ -174,14 +174,41 @@ if (filters?.date_from || filters?.date_to) {
   /**
    * Eliminar evento
    */
-  async delete(id: number) {
-    //return prisma.event.delete({
-     // where: { id },
-    //});
+  async delete(id: number, userRole: string) {
+    const event = await prisma.event.findUnique({
+      where: { id },
+      select: { status: true }
+    });
+
+    if (!event) throw new Error('Evento no encontrado');
+
+    // 1. Aplicar reglas de negocio para el borrado
+    if (event.status === 'CREATED') {
+      if (userRole !== 'PAYPAC' && userRole !== 'ORGANIZER') {
+        throw new Error('Solo usuarios con rol PAYPAC u ORGANIZER pueden eliminar eventos en estado CREATED');
+      }
+    } else if (event.status === 'CANCELED' || event.status === 'FINALIZED') {
+      if (userRole !== 'PAYPAC') {
+        throw new Error(`Solo usuarios con rol PAYPAC pueden eliminar eventos en estado ${event.status}`);
+      }
+    } else {
+      throw new Error(`No se permite eliminar un evento en estado ${event.status}. Primero debe cancelarse.`);
+    }
+
+    // 2. Ejecutar borrado en cascada manual para relaciones sin 'onDelete: Cascade' en el schema
     return prisma.$transaction([
-    prisma.eventFavorites.deleteMany({ where: { event_id: id } }),
-    prisma.event.delete({ where: { id } }),
-  ]);
+      // Eliminar etapas vinculadas a las localidades
+      prisma.eventStages.deleteMany({
+        where: { locality: { event_id: id } }
+      }),
+      prisma.eventLocalities.deleteMany({ where: { event_id: id } }),
+      prisma.eventRewardRules.deleteMany({ where: { event_id: id } }),
+      prisma.eventBalancePromoters.deleteMany({ where: { event_id: id } }),
+      prisma.eventDcto.deleteMany({ where: { event_id: id } }),
+      prisma.eventSeatStatus.deleteMany({ where: { event_id: id } }),
+      // Las tablas con onDelete: Cascade en el schema (Favorites, Staff, Views) se borrarán automáticamente aquí:
+      prisma.event.delete({ where: { id } }),
+    ]);
   }
 
   /**
