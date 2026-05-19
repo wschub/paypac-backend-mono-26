@@ -225,7 +225,8 @@ async validateCode(code: string, eventId: number) {
   // ── 1. Buscar como código de descuento del organizador ──────────────
   const dcto = await prisma.eventDcto.findFirst({
     where: {
-      code: { equals: code, mode: 'insensitive' },
+      //code: { equals: code, mode: 'insensitive' },
+      name_dcto: { equals: code, mode: 'insensitive' },
       event_id:  eventId,
       is_active: true,
     },
