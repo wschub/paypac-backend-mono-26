@@ -1,0 +1,69 @@
+model User {
+  id                       Int                        @id @default(autoincrement())
+  email                    String                     @unique
+  name                     String
+  last_name                String
+  email_verified_at        DateTime?
+  password                 String
+  remember_token           String?
+  phone_number             String
+  phone_number_verified_at DateTime?
+  num_doc                  String?
+  type_doc                 DocType?
+  role_default             String                     @default("CUSTOMER")
+  company_id               Int?
+  auth_method              String?
+  provider_id              String?
+  firebase_uid             String?                    @unique
+  lang_user                String?
+  verified_user                  Int                        @default(0)
+  email_verification_code        String?
+  email_verification_expires_at  DateTime?
+  status                         Int                        @default(0)
+  createdAt                DateTime                   @default(now())
+  updatedAt                DateTime                   @updatedAt
+  role                     ROLES                      @default(CUSTOMER)
+  fcm_token                String?
+  fcm_updated              DateTime?
+}
+
+
+
+model Countries {
+  id               Int        @id @default(autoincrement())
+  name_country     String
+  code             String
+  phone_code       String
+  currency         String
+  language_default String
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+}
+
+
+
+model Company {
+  id                   Int                @id @default(autoincrement())
+  user_id_register     Int?
+  type_identification  String?
+  num_identification   String?
+  website              String?
+  address              String?
+  country_id           Int?
+  state_id             Int?
+  city_id              Int?
+  createdAt            DateTime           @default(now())
+  approved_at          DateTime?
+  updatedAt            DateTime           @updatedAt
+  status               Int                @default(0)
+  company_name         String             @unique
+  company_description  String?
+  company_email        String?            @unique
+  company_logo         String?
+  company_phone_number String?
+  company_cover        String?
+  company_presentation String             @default("")
+  users                User[]             @relation("UserCompany")
+}
+
+A partir de aqui, tener en cuenta: Si es multi-sede, si las sedes estan en la misma ciudad o tienen horario diferencial etc.. aplicar todo lo descrito en las reglas de negocio y cassos de uso.

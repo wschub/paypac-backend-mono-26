@@ -300,6 +300,7 @@ async getAvailableEventsForPromoter(promoter_id: number) {
     sort_by?: string;
     page?: string;
     limit?: string;
+    featured?: string;
   }) {
     const now = new Date();
     const page = parseInt(filters.page || '1') || 1;
@@ -313,6 +314,7 @@ async getAvailableEventsForPromoter(promoter_id: number) {
     const where: any = {
       status: { in: ['APPROVED', 'ACTIVE'] },
       event_type: 'PUBLICO',
+      ...(filters.featured === 'true' && { featured: true }),
       localities: {
         some: {
           stages: {
@@ -374,6 +376,9 @@ async getAvailableEventsForPromoter(promoter_id: number) {
       const stage = locality?.stages[0];
       return {
         id: event.id,
+        public_id: event.public_id,
+        public_url: event.public_url,
+        featured: event.featured,
         name: event.name,
         image: event.image,
         short_description: event.short_description,
@@ -443,6 +448,9 @@ async getAvailableEventsForPromoter(promoter_id: number) {
       where: { id },
       select: {
         id: true,
+        public_id: true,
+        public_url: true,
+        featured: true,
         name: true,
         image: true,
         short_description: true,
@@ -482,6 +490,9 @@ async getAvailableEventsForPromoter(promoter_id: number) {
     return {
       data: {
         id: ev.id,
+        public_id: ev.public_id,
+        public_url: ev.public_url,
+        featured: ev.featured,
         name: ev.name,
         image: ev.image,
         short_description: ev.short_description,
