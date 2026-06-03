@@ -97,10 +97,14 @@ async getCompanyFollowers(companyId: number) {
       status?: number;
     },
     userId: number,
-    userRole: string
+    userRole: string,
+    userCompanyId?: number
   ) {
+    // ORGANIZER solo puede listar la empresa a la que pertenece
     if (userRole === 'ORGANIZER') {
-      return companyRepo.findByRegisteredUser(userId);
+      if (!userCompanyId) return [];
+      const company = await companyRepo.findById(userCompanyId);
+      return company ? [company] : [];
     }
 
     if (!['PAYPAC', 'STAFF'].includes(userRole)) {
@@ -113,14 +117,14 @@ async getCompanyFollowers(companyId: number) {
   /**
    * Empresa por ID
    */
-  async getCompanyById(id: number, userId: number, userRole: string) {
+  async getCompanyById(id: number, userId: number, userRole: string, userCompanyId?: number) {
     const company = await companyRepo.findById(id);
     if (!company) {
       throw new Error('Empresa no encontrada');
     }
 
-    // ORGANIZER solo puede ver las suyas
-    if (userRole === 'ORGANIZER' && company.user_id_register !== userId) {
+    // Seguridad: ORGANIZER solo puede ver la empresa a la que pertenece el token
+    if (userRole === 'ORGANIZER' && userCompanyId !== id) {
       throw new Error('No tienes acceso a esta empresa');
     }
 
@@ -163,7 +167,8 @@ async getCompanyFollowers(companyId: number) {
       company_presentation?: string;
     },
     userId: number,
-    userRole: string
+    userRole: string,
+    userCompanyId?: number
   ) {
     if (!['PAYPAC', 'ORGANIZER'].includes(userRole)) {
       throw new Error('No tienes permisos para actualizar empresas');
@@ -173,8 +178,8 @@ async getCompanyFollowers(companyId: number) {
     if (!company) throw new Error('Empresa no encontrada');
 
     if (userRole === 'ORGANIZER') {
-      if (company.user_id_register !== userId) {
-        throw new Error('No puedes editar una empresa que no registraste');
+      if (userCompanyId !== id) {
+        throw new Error('No tienes permisos para editar una empresa a la que no perteneces');
       }
       if (company.status === 1) {
         throw new Error('No puedes editar una empresa ya aprobada. Contacta a PAYPAC');
@@ -273,10 +278,12 @@ async getCompanyFollowers(companyId: number) {
   /*
    PROFILE-COMPANY
   */
-  async getMyCompany(companyId: number, userRole: string) {
-  if (userRole !== 'ORGANIZER') throw new Error('Solo ORGANIZER puede acceder a su perfil de empresa');
+  async getMyCompany(companyId: number | undefined, userRole: string) {
+    if (!['ORGANIZER', 'PAYPAC'].includes(userRole)) {
+      throw new Error('No tienes permisos para acceder a esta información');
+    }
 
-  if (!companyId) throw new Error('Tu cuenta no tiene una empresa asociada');
+    if (!companyId) throw new Error('Tu cuenta no tiene una empresa asociada en el token');
 
   const company = await companyRepo.findById(companyId);
   if (!company) throw new Error('Empresa no encontrada');
