@@ -15,7 +15,10 @@ export const getPublicEventsQuerySchema = z.object({
 
 export const getPublicEventByIdParamsSchema = z.object({
   params: z.object({
-    id: z.string().regex(/^\d+$/, 'El id debe ser numérico'),
+    id: z.string().refine(
+      (val) => /^\d+$/.test(val) || /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val),
+      'El id debe ser numérico o UUID'
+    ),
   }),
 });
 

@@ -16,8 +16,9 @@ export const getPublicEvents = async (req: Request, res: Response) => {
 
 export const getPublicEventById = async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
-    const result = await eventService.getPublicEventById(Number(id));
+    const id = req.params.id as string;
+    const isNumeric = /^\d+$/.test(id);
+    const result = await eventService.getPublicEventById(isNumeric ? Number(id) : id);
     res.status(200).json(result);
   } catch (error) {
     console.error('Error in getPublicEventById:', error);

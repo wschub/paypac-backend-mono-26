@@ -441,11 +441,13 @@ async getAvailableEventsForPromoter(promoter_id: number) {
     return { data: eventsClean, total, page, limit, totalPages: Math.ceil(total / limit) };
   }
 
-  async getPublicEventById(id: number) {
+  async getPublicEventById(id: number | string) {
     const now = new Date();
 
+    const where = typeof id === 'number' ? { id } : { public_id: id };
+
     const event = await prisma.event.findUnique({
-      where: { id },
+      where,
       select: {
         id: true,
         public_id: true,
