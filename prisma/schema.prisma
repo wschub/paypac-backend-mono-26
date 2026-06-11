@@ -689,6 +689,7 @@ model Invoice {
   promoter_code_id           Int?
   customer_UUID_phone        String?
   payment_method             String           @default("CARD")
+  sale_channel               SaleChannel      @default(WEB)
   points_used                Int              @default(0)
   points_discount            Int              @default(0)
   promoterCode               PromoterCode?    @relation(fields: [promoter_code_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
@@ -1006,6 +1007,11 @@ enum InvoiceStatus {
   REJECTED
   CANCELED
   REFUNDED
+}
+
+enum SaleChannel {
+  WEB
+  APP
 }
 
 enum DocType {

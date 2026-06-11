@@ -7,7 +7,8 @@ import {
   getTransactionByReference,
   getTransactionByInvoiceId,
   getTransactionsByStatus,
-  getAllTransactions
+  getAllTransactions,
+  getPseFinancialInstitutions
 } from '../controllers/transaction.controller';
 import { authenticate } from '../middlewares/auth.middleware';
 import { authorizeRoles } from '../middlewares/role.middleware';
@@ -51,6 +52,19 @@ router.post(
   authorizeRoles(...ALL_ROLES),
   validateRequest(processTransactionSchema),
   processTransaction
+);
+
+/**
+ * GET /api/transactions/pse/financial-institutions
+ * Listar bancos disponibles para PSE (proxy a Wompi)
+ * Acceso: todos los roles autenticados
+ * ⚠️ Antes de /:id
+ */
+router.get(
+  '/pse/financial-institutions',
+  authenticate,
+  authorizeRoles(...ALL_ROLES),
+  getPseFinancialInstitutions
 );
 
 /**

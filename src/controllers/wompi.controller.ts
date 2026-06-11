@@ -192,6 +192,16 @@ async function handleTransactionUpdated(transaction: any) {
   console.log('   Status actual:', invoice.status);
   console.log('   Total:', invoice.total, 'COP\n');
 
+  // Registrar en la factura el método de pago REAL confirmado por Wompi
+  // (fuente de verdad para reportes; puede diferir del declarado al crearla)
+  if (payment_method_type && invoice.payment_method !== payment_method_type) {
+    await prisma.invoice.update({
+      where: { id: invoice.id },
+      data: { payment_method: payment_method_type },
+    });
+    console.log(`✅ Invoice.payment_method actualizado a ${payment_method_type}\n`);
+  }
+
   // ============================================
   // 2️⃣ BUSCAR O CREAR TRANSACTION
   // ============================================

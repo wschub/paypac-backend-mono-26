@@ -43,7 +43,8 @@ export class InvoiceService {
       device_uuid?:    string;
       user_num_doc?:   string;
       user_type_doc?:  string;
-      payment_method?: 'CARD' | 'POINTS' | 'BNPL' | {
+      sale_channel?:   'WEB' | 'APP';
+      payment_method?: string | {
         type:         string;
         card_token?:  string;
         installments?: number;
@@ -232,15 +233,28 @@ if (data.promoter_code && event.allow_external_promoters) {
 }
 
 
-// ── Pago con puntos ──────────────────────────────────────────────
+// ── Método de pago ───────────────────────────────────────────────
+// Códigos Wompi soportados (ver PaymentMethodFactory) + POINTS (interno)
+const VALID_PAYMENT_METHODS = [
+  'CARD', 'NEQUI', 'PSE', 'BANCOLOMBIA_TRANSFER', 'BANCOLOMBIA_QR',
+  'BANCOLOMBIA_COLLECT', 'DAVIPLATA', 'BANCOLOMBIA_BNPL', 'PCOL', 'POINTS',
+];
 const _rawMethod = data.payment_method;
-const paymentMethod: 'CARD' | 'POINTS' | 'BNPL' = (() => {
-  if (!_rawMethod) return 'CARD';
-  if (typeof _rawMethod === 'string') return _rawMethod;
-  const map: Record<string, 'CARD' | 'POINTS' | 'BNPL'> = {
-    CREDIT_CARD: 'CARD', CARD: 'CARD', POINTS: 'POINTS', BNPL: 'BNPL',
-  };
-  return map[_rawMethod.type] ?? 'CARD';
+const paymentMethod: string = (() => {
+  const raw = !_rawMethod
+    ? 'CARD'
+    : typeof _rawMethod === 'string'
+      ? _rawMethod
+      : _rawMethod.type;
+  const normalized = String(raw).toUpperCase();
+  const aliases: Record<string, string> = { CREDIT_CARD: 'CARD', BNPL: 'BANCOLOMBIA_BNPL' };
+  const code = aliases[normalized] ?? normalized;
+  if (!VALID_PAYMENT_METHODS.includes(code)) {
+    throw new Error(
+      `Método de pago inválido: "${raw}". Permitidos: ${VALID_PAYMENT_METHODS.join(', ')}`
+    );
+  }
+  return code;
 })();
 let pointsUsed    = 0;
 let pointsDiscount = 0;
@@ -311,6 +325,7 @@ if (!finalNumDoc) {
       user_type_doc:        finalTypeDoc,          // ← actualizado
       customer_UUID_phone:  data.device_uuid ?? null,
       payment_method:       paymentMethod,
+      sale_channel:         data.sale_channel ?? 'WEB',
       points_used:          pointsUsed,
       points_discount:      pointsDiscount,
       num_items: totalTickets,
