@@ -8,7 +8,8 @@ import {
   getTransactionByInvoiceId,
   getTransactionsByStatus,
   getAllTransactions,
-  getPseFinancialInstitutions
+  getPseFinancialInstitutions,
+  getAcceptanceContracts
 } from '../controllers/transaction.controller';
 import { authenticate } from '../middlewares/auth.middleware';
 import { authorizeRoles } from '../middlewares/role.middleware';
@@ -52,6 +53,19 @@ router.post(
   authorizeRoles(...ALL_ROLES),
   validateRequest(processTransactionSchema),
   processTransaction
+);
+
+/**
+ * GET /api/transactions/acceptance-contracts
+ * Links de los contratos de aceptación Wompi (para los 2 checkboxes del front)
+ * Acceso: todos los roles autenticados
+ * ⚠️ Antes de /:id
+ */
+router.get(
+  '/acceptance-contracts',
+  authenticate,
+  authorizeRoles(...ALL_ROLES),
+  getAcceptanceContracts
 );
 
 /**

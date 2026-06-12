@@ -3,6 +3,7 @@ import { InvoiceService } from '../services/invoice.service';
 import { TransactionRepository } from '../repositories/transaction.repository';
 import { PushNotificationService } from '../services/push-notification.service';
 import { NotificationMessageQueueService } from '../services/notificationmessagequeue.service';
+import { emitPaymentCompleted } from '../sockets/notification.socket';
 import { io } from '../index';
 
 const invoiceService  = new InvoiceService();
@@ -54,6 +55,16 @@ export class WebhookService {
     }
 
     console.log('✅ Invoice encontrada:', invoice.id, '\n');
+
+    // Registrar en la factura el método de pago REAL confirmado por Wompi
+    // (fuente de verdad para reportes; puede diferir del declarado al crearla)
+    if (payment_method_type && invoice.payment_method !== payment_method_type) {
+      await prisma.invoice.update({
+        where: { id: invoice.id },
+        data: { payment_method: payment_method_type },
+      });
+      console.log(`✅ Invoice.payment_method actualizado a ${payment_method_type}\n`);
+    }
 
     // ============================================
     // 2️⃣ BUSCAR O CREAR TRANSACTION
@@ -485,6 +496,19 @@ try {
     else {
       console.log('❓ STATUS DESCONOCIDO:', status, '\n');
     }
+
+    // ============================================
+    // 5️⃣ EMITIR payment:completed (SIEMPRE, al final del procesamiento)
+    // La app lo usa como señal única de "puedo navegar" (can_continue)
+    // ============================================
+    emitPaymentCompleted(io, invoice.user_id, {
+      invoice_id: invoice.id,
+      num_invoice: invoice.num_invoice,
+      transaction_id: transactionRecord.id,
+      status: status as any,
+      status_message: getStatusMessage(status),
+      can_continue: status !== 'PENDING',
+    });
   }
 }
 

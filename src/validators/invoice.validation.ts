@@ -22,8 +22,14 @@ export const createInvoiceSchema = z.object({
     user_num_doc:   z.string().optional(),
     user_type_doc:  z.enum(['CC','CE','PA','TI','NIT','SSN']).optional(),
     device_uuid:    z.string().min(1).optional(),
+    sale_channel:   z.enum(['WEB', 'APP']).optional(),
     payment_method: z.union([
-      z.enum(['CARD', 'POINTS', 'BNPL']),
+      // Códigos Wompi + POINTS (interno) + alias legacy (CREDIT_CARD, BNPL)
+      z.enum([
+        'CARD', 'NEQUI', 'PSE', 'BANCOLOMBIA_TRANSFER', 'BANCOLOMBIA_QR',
+        'BANCOLOMBIA_COLLECT', 'DAVIPLATA', 'BANCOLOMBIA_BNPL', 'PCOL',
+        'POINTS', 'CREDIT_CARD', 'BNPL',
+      ]),
       z.object({
         type:         z.string(),
         card_token:   z.string().optional(),

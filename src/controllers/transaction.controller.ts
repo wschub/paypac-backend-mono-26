@@ -76,6 +76,40 @@ export const processTransaction = async (req: Request, res: Response): Promise<v
 };
 
 /**
+ * GET /api/transactions/acceptance-contracts
+ * Contratos de aceptación Wompi (Habeas Data) — proxy a GET /merchants/:pub_key
+ *
+ * El front debe mostrar DOS checkboxes antes de iniciar el pago o guardar una
+ * tarjeta, cada uno con el link (permalink) de su contrato PDF:
+ *  1. privacy_policy        → Términos y condiciones / política de privacidad
+ *  2. personal_data_auth    → Autorización de tratamiento de datos personales
+ */
+export const getAcceptanceContracts = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const axios = (await import('axios')).default;
+    const { getWompiBaseUrl, getWompiPublicKey } = await import('../utils/wompi.utils');
+
+    const response = await axios.get(`${getWompiBaseUrl()}/merchants/${getWompiPublicKey()}`);
+    const data = response.data.data;
+
+    res.status(200).json({
+      success: true,
+      privacy_policy: {
+        permalink: data.presigned_acceptance?.permalink ?? null,
+        type: data.presigned_acceptance?.type ?? 'END_USER_POLICY',
+      },
+      personal_data_auth: {
+        permalink: data.presigned_personal_data_auth?.permalink ?? null,
+        type: data.presigned_personal_data_auth?.type ?? 'PERSONAL_DATA_AUTH',
+      },
+    });
+  } catch (err: any) {
+    console.error('❌ Error obteniendo contratos de aceptación:', err.message);
+    res.status(400).json({ success: false, message: 'No fue posible obtener los contratos de aceptación' });
+  }
+};
+
+/**
  * GET /api/transactions/pse/financial-institutions
  * Listar bancos disponibles para PSE (proxy a Wompi)
  * El front la necesita para que el usuario elija su banco antes de pagar con PSE

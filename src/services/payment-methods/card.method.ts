@@ -40,6 +40,9 @@ export class CardPaymentMethod extends WompiPaymentMethod {
         type: 'CARD',
         token: payload.token,
         acceptance_token: wompi.acceptanceToken,
+        ...(wompi.personalAuthToken
+          ? { accept_personal_auth: wompi.personalAuthToken }
+          : {}),
         customer_email: payment.customer_email,
       },
       { headers: wompi.headers }

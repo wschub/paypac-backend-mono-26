@@ -24,6 +24,24 @@ Respuesta: lista con `method_code` (úsalo como `payment_method.type`), `method_
 `mehtod_img` y `method_status`. **Solo mostrar los que lleguen aquí** — el backend
 rechaza métodos inactivos aunque se envíen.
 
+> ⚠️ `mehtod_img` (sic) puede venir como ruta relativa (ej. `/assets/payments/card.png`):
+> el front debe alojar esos íconos en su carpeta pública con esa ruta, o pedir a
+> backend que actualice la tabla con URLs absolutas. Usar siempre un fallback
+> (ícono genérico) si la imagen no carga.
+
+### 1.5 Datos del pagador (prellenar formularios)
+
+```
+GET /api/users/me/profile
+Authorization: Bearer <token>
+```
+
+Devuelve el perfil completo del usuario autenticado: `num_doc`, `type_doc`,
+`phone_number`, `email`, `name`, `last_name`, etc. Úsalo para prellenar
+`user_num_doc`/`user_type_doc` y los campos por método (celular en Nequi/Daviplata,
+documento en PSE/BNPL). `GET /api/auth/me` es la versión ligera (id, email, nombre,
+rol — **sin** documento ni teléfono).
+
 ### 2. Crear la factura
 
 ```
@@ -44,8 +62,38 @@ POST /api/invoices
 ```
 
 - `sale_channel`: `"WEB"` o `"APP"` según el canal. **Obligatorio enviarlo desde ya.**
-- `payment_method`: el `method_code` elegido por el usuario.
+- `payment_method`: el `method_code` elegido por el usuario. También se acepta como
+  objeto (forma actual de la app): `{ "type": "CREDIT_CARD", "card_token": "...",
+  "installments": 1, "brand": "VISA", "last_four": "4242" }` — el alias
+  `CREDIT_CARD` se normaliza a `CARD` y `BNPL` a `BANCOLOMBIA_BNPL`.
 - Guarda el `invoice.id` de la respuesta para el paso 3.
+
+### 2.5 Aceptación de contratos Wompi (obligatorio — Habeas Data) ⚠️
+
+Antes de habilitar el botón de pagar (y también en la pantalla de **guardar
+tarjeta**), el front debe mostrar **dos checkboxes**, cada uno con el link a su
+contrato PDF. Los links se obtienen de:
+
+```
+GET /api/transactions/acceptance-contracts
+Authorization: Bearer <token>
+```
+```json
+{
+  "success": true,
+  "privacy_policy":     { "permalink": "https://wompi.co/...terminos.pdf", "type": "END_USER_POLICY" },
+  "personal_data_auth": { "permalink": "https://wompi.com/...datos-personales.pdf", "type": "PERSONAL_DATA_AUTH" }
+}
+```
+
+UI requerida (el botón de pagar queda deshabilitado hasta marcar ambos):
+
+- ☐ Acepto los [Términos y condiciones]({privacy_policy.permalink}) de Wompi
+- ☐ Autorizo el [tratamiento de mis datos personales]({personal_data_auth.permalink})
+
+Los tokens de aceptación los adjunta el **backend** automáticamente al crear la
+transacción en Wompi — el front solo es responsable de mostrar los contratos y
+exigir el check explícito del usuario.
 
 ### 3. Procesar el pago
 
@@ -89,11 +137,21 @@ La respuesta incluye `next_action` con `type`, `data` y `message`:
 
 ### 5. Resultado final (Socket.IO)
 
-Conectarse al room del usuario y escuchar:
+Conectarse al room del usuario (`user:{userId}`) y escuchar:
 
-- `transaction:updated` — cambio de estado (`APPROVED`, `DECLINED`, `VOIDED`, `ERROR`, `PENDING`)
-- `tickets:created` — tickets generados (pago aprobado)
-- `payment:declined` / `payment:voided` / `payment:pending`
+| Evento | Cuándo | Payload relevante |
+|---|---|---|
+| `payment:completed` | **Siempre** al terminar de procesar el webhook | `status`, `status_message`, `num_invoice`, `can_continue` (true = estado final, navegar; false = PENDING, seguir esperando) |
+| `transaction:updated` | Cada cambio de estado | `status`, `status_message`, `num_invoice`, `amount` |
+| `tickets:created` | Pago aprobado y tickets generados | `ticket_count`, `tickets[]` (incluye `id`, `totp_secret`, `token_ticket`, `reference_ticket`) |
+| `tickets:error` | Pago aprobado pero falló la generación de tickets | `error` — mostrar "contacta a soporte" |
+| `payment:declined` | DECLINED o ERROR | `message` |
+| `payment:voided` | VOIDED (anulación) | `message` |
+| `payment:pending` | PENDING (sigue en proceso) | `message` |
+
+Señal principal recomendada: **`payment:completed` con `can_continue: true`**;
+`tickets:created` complementa con los datos de los tickets. Mantener un timeout de
+respaldo (~30s para CARD/NEQUI; para efectivo no aplica — puede tardar días).
 
 **Nunca** asumir el resultado por la redirección de vuelta: la fuente de verdad es el
 webhook de Wompi → socket. Como respaldo, consultar `GET /api/transactions/my-transactions`.

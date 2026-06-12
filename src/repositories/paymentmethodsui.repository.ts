@@ -24,7 +24,8 @@ export class PaymentMethodsUIRepository {
 
     return prisma.paymentMethodsUI.findMany({
       where,
-      orderBy: { createdAt: 'desc' },
+      // id ASC: respeta el orden del seed (CARD primero, id 1)
+      orderBy: { id: 'asc' },
     });
   }
 

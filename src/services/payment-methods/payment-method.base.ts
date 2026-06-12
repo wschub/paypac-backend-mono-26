@@ -20,7 +20,8 @@ export interface PaymentMethodPayload {
 /** Contexto de conexión a Wompi (lo arma TransactionService) */
 export interface WompiContext {
   wompiUrl: string;          // URL base del API (sandbox o producción)
-  acceptanceToken: string;   // acceptance_token vigente del comercio
+  acceptanceToken: string;   // acceptance_token vigente (política de privacidad)
+  personalAuthToken?: string; // accept_personal_auth vigente (tratamiento de datos personales)
   headers: Record<string, string>; // Authorization Bearer llave privada
 }
 

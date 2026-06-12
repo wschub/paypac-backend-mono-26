@@ -323,11 +323,17 @@ export class TransactionService {
       const prvCertificate       = cleanString(configManager.paymentSources());
 
       const merchantsResponse = await axios.get(urlMerchants);
-      const acceptanceToken   = merchantsResponse.data.data.presigned_acceptance.acceptance_token;
+      const merchantData      = merchantsResponse.data.data;
+      // Tokens de aceptación Wompi (Habeas Data): política de privacidad +
+      // autorización de tratamiento de datos personales. El usuario debe haber
+      // aceptado ambos contratos en la UI (checkboxes) antes de llegar aquí.
+      const acceptanceToken   = merchantData.presigned_acceptance?.acceptance_token;
+      const personalAuthToken = merchantData.presigned_personal_data_auth?.acceptance_token;
 
       const wompiCtx: WompiContext = {
         wompiUrl,
         acceptanceToken,
+        personalAuthToken,
         headers: {
           Authorization: `Bearer ${prvCertificate}`,
           'Content-Type': 'application/json',
@@ -362,6 +368,7 @@ export class TransactionService {
       const paymentMethodBody = method.buildPaymentMethod(payload);
       const transactionData: Record<string, any> = {
         acceptance_token: acceptanceToken,
+        ...(personalAuthToken ? { accept_personal_auth: personalAuthToken } : {}),
         amount_in_cents: params.amount_in_cents,
         currency: params.currency,
         signature,

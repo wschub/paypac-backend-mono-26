@@ -4,7 +4,14 @@ Visa, MasterCard y American Express con CVC. El front **tokeniza** la tarjeta
 directamente contra Wompi con la **llave pública** (los datos de la tarjeta nunca
 pasan por nuestro backend) y envía el token resultante.
 
-## Paso 0 — Tokenizar la tarjeta (front → Wompi)
+## Paso 0a — Checkboxes de aceptación (obligatorio)
+
+En la pantalla donde se agrega/guarda la tarjeta deben aparecer los **dos
+checkboxes de aceptación de Wompi** (términos y condiciones + tratamiento de
+datos personales) con los links de `GET /api/transactions/acceptance-contracts`.
+No permitir tokenizar ni pagar sin ambos marcados. Ver README §2.5.
+
+## Paso 0b — Tokenizar la tarjeta (front → Wompi)
 
 ```
 POST {WOMPI_URL}/tokens/cards
