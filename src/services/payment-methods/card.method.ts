@@ -18,9 +18,17 @@ export class CardPaymentMethod extends WompiPaymentMethod {
   private paymentSourceId: number | null = null;
 
   validate(payload: PaymentMethodPayload): void {
-    this.require(payload, ['token']);
-    if (!String(payload.token).startsWith('tok_')) {
-      throw new Error('[CARD] El token de tarjeta no es válido (debe iniciar con tok_)');
+    // Acepta payment_source_id (reuso de fuente existente) O token fresco
+    if (payload.payment_source_id) {
+      const id = Number(payload.payment_source_id);
+      if (!Number.isInteger(id) || id <= 0) {
+        throw new Error('[CARD] payment_source_id debe ser un número entero positivo');
+      }
+    } else {
+      this.require(payload, ['token']);
+      if (!String(payload.token).startsWith('tok_')) {
+        throw new Error('[CARD] El token de tarjeta no es válido (debe iniciar con tok_)');
+      }
     }
     const installments = Number(payload.installments ?? 1);
     if (!Number.isInteger(installments) || installments < 1 || installments > 36) {
@@ -28,12 +36,20 @@ export class CardPaymentMethod extends WompiPaymentMethod {
     }
   }
 
-  /** Crea la fuente de pago en Wompi y retorna payment_source_id para el body */
+  /** Crea la fuente de pago en Wompi (o reutiliza una existente) */
   async prepare(
     wompi: WompiContext,
     payload: PaymentMethodPayload,
     payment: PaymentContext
   ): Promise<Record<string, any>> {
+    // Si ya se tiene el payment_source_id (tarjeta guardada usada antes),
+    // omitir la llamada a /payment_sources — el token ya fue consumido.
+    if (payload.payment_source_id) {
+      this.paymentSourceId = Number(payload.payment_source_id);
+      console.log('✅ [CARD] Reutilizando payment_source existente:', this.paymentSourceId);
+      return { payment_source_id: this.paymentSourceId };
+    }
+
     const response = await axios.post(
       `${wompi.wompiUrl}/payment_sources`,
       {
