@@ -232,6 +232,27 @@ export class TransactionService {
         throw new Error(`Pago fallido: ${paymentResult.message}`);
       }
 
+      // ── 3b. Actualizar PaymentMethodCard con el payment_source_id permanente ──
+      // El tok_... es de un solo uso; lo reemplazamos con el ID de la fuente de
+      // pago de Wompi (permanente) para que futuros reintentos no fallen.
+      if (
+        methodPayload.type === 'CARD' &&
+        paymentResult.payment_source_id &&
+        methodPayload.token?.startsWith('tok_')
+      ) {
+        try {
+          const updated = await prisma.paymentMethodCard.updateMany({
+            where: { id_token: methodPayload.token },
+            data: { id_token: String(paymentResult.payment_source_id) },
+          });
+          if (updated.count > 0) {
+            console.log(`✅ PaymentMethodCard actualizado con payment_source_id: ${paymentResult.payment_source_id}`);
+          }
+        } catch (e: any) {
+          console.warn('⚠️ No se pudo actualizar PaymentMethodCard:', e.message);
+        }
+      }
+
       // ── 4. Crear registro en Transactions y desbloquear usuario ──
       const transaction = await prisma.transactions.create({
         data: {
