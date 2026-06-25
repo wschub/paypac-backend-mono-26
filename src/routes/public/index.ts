@@ -6,6 +6,7 @@ import subgenresRouter from './subgenres.routes';
 import citiesRouter from './cities.routes';
 import webBlocksRouter from './web_blocks.routes';
 import waitingListRouter from './event_waiting_list.routes';
+import countriesRouter from './countries.routes';
 
 const publicRouter = Router();
 
@@ -16,5 +17,6 @@ publicRouter.use('/subgenres', subgenresRouter);
 publicRouter.use('/cities', citiesRouter);
 publicRouter.use('/web-blocks', webBlocksRouter);
 publicRouter.use('/waiting-list', waitingListRouter);
+publicRouter.use('/countries', countriesRouter);
 
 export default publicRouter;

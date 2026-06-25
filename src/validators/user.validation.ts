@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { ROLES } from '@prisma/client';
+import { ROLES, DocType, Gender } from '@prisma/client';
 
 /**
  * Schema para registrar usuario (usado en auth)
@@ -8,15 +8,25 @@ export const registerUserSchema = z.object({
   body: z.object({
     name: z.string().min(2, 'El nombre debe tener al menos 2 caracteres'),
     last_name: z.string().min(2, 'El apellido debe tener al menos 2 caracteres'),
-    email: z.string().email('Email inválido'),
-    password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
-    phone_number: z.string().min(10, 'El teléfono debe tener al menos 10 dígitos'),
-    role: z.nativeEnum(ROLES), // ✅ SIN errorMap
+    // email y password son opcionales cuando se usa social_token
+    email: z.string().email('Email inválido').optional(),
+    password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres').optional(),
+    phone_number: z.string().min(7, 'El teléfono debe tener al menos 7 dígitos'),
+    role: z.nativeEnum(ROLES),
     company_id: z.number().int().positive().optional(),
     num_doc: z.string().optional(),
-    type_doc: z.number().int().optional(),
+    type_doc: z.nativeEnum(DocType).optional(),
+    birth_date: z.string().datetime({ offset: true }).optional(),
+    lang_user: z.string().optional(),
+    country_id: z.number().int().positive().optional(),
+    gender: z.nativeEnum(Gender).optional(),
     source: z.enum(['app', 'web']).optional(),
-  }),
+    // Registro social: token de Firebase (Google/Apple) ya autenticado
+    social_token: z.string().optional(),
+  }).refine(
+    d => d.social_token || (d.email && d.password),
+    { message: 'Se requiere email+password o social_token' }
+  ),
 });
 
 /**

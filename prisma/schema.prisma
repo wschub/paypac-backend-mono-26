@@ -45,6 +45,9 @@ model User {
   fcm_updated              DateTime?
   birth_date               DateTime?
   city                     String?
+  country_id               Int?
+  gender                   Gender?
+  country                  Countries?            @relation(fields: [country_id], references: [id])
   companiesRegistered      Company[]                  @relation("CompanyRegisteredBy")
   followedCompanies        CompanyFollwers[]
   promoterBalances         EventBalancePromoters[]    @relation("UserPromoterBalances")
@@ -176,6 +179,7 @@ model Countries {
   states           States[]
   event_views      EventView[]
   web_blocks       WebBlockIndex[]
+  users            User[]
 }
 
 model States {
@@ -1021,6 +1025,13 @@ enum DocType {
   TI
   NIT
   SSN
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  NON_BINARY
+  I_PREFER_NOT_TO_ANSWER
 }
 
 enum TicketStatus {

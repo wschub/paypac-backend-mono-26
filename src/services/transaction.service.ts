@@ -377,6 +377,26 @@ export class TransactionService {
       // 2. Pasos previos (ej: CARD crea payment_source) → campos extra del body
       const extraFields = await method.prepare(wompiCtx, payload, paymentCtx);
 
+      // Persistir payment_source_id inmediatamente: el tok_ queda consumido en
+      // Wompi tras prepare(), incluso si la transacción falla después.
+      if (
+        payload.type === 'CARD' &&
+        payload.token?.startsWith('tok_') &&
+        (extraFields as any).payment_source_id
+      ) {
+        try {
+          const r = await prisma.paymentMethodCard.updateMany({
+            where: { id_token: payload.token },
+            data:  { id_token: String((extraFields as any).payment_source_id) },
+          });
+          if (r.count > 0) {
+            console.log(`✅ [CARD] PaymentMethodCard.id_token → ${(extraFields as any).payment_source_id}`);
+          }
+        } catch (e: any) {
+          console.warn('⚠️ [CARD] No se pudo persistir payment_source_id:', e.message);
+        }
+      }
+
       // 3. Firma de integridad
       const signature = await configManager.getSignature(
         params.reference,

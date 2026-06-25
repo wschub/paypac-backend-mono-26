@@ -1,7 +1,8 @@
 import { UserRepository } from '../repositories/user.repository';
 import { firebaseAuth } from '../config/firebase';
-import { ROLES } from '@prisma/client';
+import { ROLES, DocType, Gender } from '@prisma/client';
 import { NotificationMessageQueueService } from './notificationmessagequeue.service';
+import { prisma } from '../prisma/client';
 
 const userRepository = new UserRepository();
 const emailService = new NotificationMessageQueueService();
@@ -23,12 +24,19 @@ export class AuthService {
     data: {
       name: string;
       last_name: string;
-      email: string;
-      password: string;
+      email?: string;
+      password?: string;
       phone_number: string;
       role: ROLES;
       company_id?: number | null;
       source?: 'app' | 'web';
+      num_doc?: string;
+      type_doc?: DocType;
+      birth_date?: Date;
+      lang_user?: string;
+      country_id?: number;
+      gender?: Gender;
+      social_token?: string; // Firebase ID token (registro Google/Apple)
     },
     createdBy?: {
       userId: number;
@@ -38,55 +46,77 @@ export class AuthService {
     let firebaseUid: string | null = null;
 
     try {
-      // 1. ✅ Verificar que el email no exista en PostgreSQL
-      const existing = await userRepository.findByEmail(data.email);
-      if (existing) {
-        throw new Error('Email already in use');
-      }
+      const isSocial = !!data.social_token;
+      let resolvedEmail = data.email ?? '';
 
-      // 2. ✅ Validar reglas de negocio según quien crea el usuario
-      /*if (createdBy) {
-        console.log(`👤 Usuario creado por: ${createdBy.userRole} (ID: ${createdBy.userId})`);
+      if (isSocial) {
+        // ── Registro social (Google/Apple): Firebase user ya existe ──
+        // Verificar el ID token y extraer uid + email
+        const decoded = await firebaseAuth.verifyIdToken(data.social_token!);
+        firebaseUid = decoded.uid;
+        resolvedEmail = decoded.email ?? data.email ?? '';
 
-        if (createdBy.userRole === 'ORGANIZER') {
-          const allowedRoles: ROLES[] = [ROLES.STAFF, ROLES.STAFF_PROMOTER, ROLES.PROMOTER, ROLES.CUSTOMER];
-          if (!allowedRoles.includes(data.role)) {
-            throw new Error('ORGANIZER solo puede crear usuarios con roles: STAFF, STAFF_PROMOTER, PROMOTER, CUSTOMER');
-          }
-        }
+        // Asegurarse de que no haya ya un registro en la BD
+        const existingByUid = await userRepository.findByFirebaseUid(firebaseUid);
+        if (existingByUid) throw new Error('Este usuario ya está registrado');
+
+        console.log('🔗 Registro social verificado — Firebase UID:', firebaseUid);
       } else {
-        if (data.role !== ROLES.CUSTOMER) {
-          throw new Error('El auto-registro solo permite el rol CUSTOMER');
-        }
-        console.log('👤 Auto-registro de CUSTOMER');
+        // ── Registro email/password ──
+        if (!data.email || !data.password) throw new Error('Email y contraseña son requeridos');
+
+        // 1. Verificar que el email no exista en PostgreSQL
+        const existing = await userRepository.findByEmail(data.email);
+        if (existing) throw new Error('Email already in use');
+
+        const fullphoneNumber = data.phone_number.startsWith('+')
+          ? data.phone_number
+          : `+57${data.phone_number}`;
+
+        // 3. Crear usuario en Firebase Auth
+        const firebaseUser = await firebaseAuth.createUser({
+          email: data.email,
+          password: data.password,
+          displayName: `${data.name} ${data.last_name}`,
+          phoneNumber: fullphoneNumber,
+          emailVerified: false,
+        });
+
+        firebaseUid = firebaseUser.uid;
+        console.log('✅ Usuario creado en Firebase:', firebaseUid);
       }
-*/
-      const fullphoneNumber = `+57${data.phone_number}`;
 
-      // 3. ✅ Crear usuario en Firebase Auth
-      //    ⚠️ Esta es la operación más lenta (~400ms) — no se puede evitar
-      const firebaseUser = await firebaseAuth.createUser({
-        email: data.email,
-        password: data.password,
-        displayName: `${data.name} ${data.last_name}`,
-        phoneNumber: fullphoneNumber,
-        emailVerified: false,
-      });
-
-      firebaseUid = firebaseUser.uid;
-      console.log('✅ Usuario creado en Firebase:', firebaseUid);
+      const fullphoneNumber = data.phone_number.startsWith('+')
+        ? data.phone_number
+        : `+57${data.phone_number}`;
 
       // 4. ✅ Guardar en PostgreSQL
+      // Si se envía country_id y no lang_user, heredar language_default del país
+      let resolvedLangUser = data.lang_user;
+      if (!resolvedLangUser && data.country_id) {
+        const country = await prisma.countries.findUnique({
+          where: { id: data.country_id },
+          select: { language_default: true },
+        });
+        if (country) resolvedLangUser = country.language_default;
+      }
+
       const user = await userRepository.create({
         name: data.name,
         last_name: data.last_name,
-        email: data.email,
+        email: resolvedEmail,
         password: 'firebase_managed',
         phone_number: fullphoneNumber,
         role: data.role,
         company_id: data.company_id || null,
         firebase_uid: firebaseUid,
-        auth_method: 'firebase',
+        auth_method: isSocial ? 'social' : 'firebase',
+        num_doc: data.num_doc,
+        type_doc: data.type_doc,
+        birth_date: data.birth_date,
+        lang_user: resolvedLangUser,
+        country_id: data.country_id,
+        gender: data.gender,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -104,8 +134,8 @@ export class AuthService {
       };
 
       const [, customToken] = await Promise.all([
-        firebaseAuth.setCustomUserClaims(firebaseUser.uid, claimsPayload),
-        firebaseAuth.createCustomToken(firebaseUser.uid, claimsPayload),
+        firebaseAuth.setCustomUserClaims(firebaseUid!, claimsPayload),
+        firebaseAuth.createCustomToken(firebaseUid!, claimsPayload),
       ]);
 
       console.log('✅ Custom claims + token generados en paralelo');

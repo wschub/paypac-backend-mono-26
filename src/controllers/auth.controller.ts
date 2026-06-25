@@ -12,7 +12,10 @@ const authService = new AuthService();
  * - /new-user: PAYPAC/ORGANIZER crean staff/promotores (con autenticación)
  */
 export const register = async (req: Request, res: Response): Promise<void> => {
-  const { name, last_name, email, password, role, company_id, phone_number, source } = req.body;
+  const {
+    name, last_name, email, password, role, company_id, phone_number, source,
+    num_doc, type_doc, birth_date, lang_user, country_id, gender, social_token,
+  } = req.body;
 
   try {
     // Determinar si es auto-registro o creación por admin
@@ -48,6 +51,13 @@ export const register = async (req: Request, res: Response): Promise<void> => {
         company_id: finalCompanyId,
         phone_number,
         source,
+        num_doc,
+        type_doc,
+        birth_date: birth_date ? new Date(birth_date) : undefined,
+        lang_user,
+        country_id,
+        gender,
+        social_token,
       },
       createdBy
     );
