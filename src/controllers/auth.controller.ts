@@ -99,6 +99,19 @@ export const getProfile = async (req: Request, res: Response): Promise<void> => 
 };
 
 /**
+ * POST /auth/resend-verification
+ * Reenviar código OTP de verificación de email (app)
+ */
+export const resendVerification = async (req: Request, res: Response): Promise<void> => {
+  try {
+    await authService.resendVerificationEmail(req.user!.id);
+    res.json({ message: 'Código reenviado a tu email' });
+  } catch (err: any) {
+    res.status(400).json({ message: err.message });
+  }
+};
+
+/**
  * POST /auth/verify-email
  * Verificar email con código OTP — app (código manual) y web (código desde URL)
  */

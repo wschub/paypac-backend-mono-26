@@ -288,6 +288,36 @@ export class AuthService {
   }
 
   /**
+   * Reenviar código de verificación de email (app)
+   */
+  async resendVerificationEmail(userId: number) {
+    const user = await userRepository.findById(userId);
+    if (!user) throw new Error('Usuario no encontrado');
+    if (user.verified_user === 1) throw new Error('El email ya está verificado');
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+
+    await userRepository.update(userId, {
+      email_verification_code: otp,
+      email_verification_expires_at: expiresAt,
+    });
+
+    await emailService.queueEmail({
+      userId: user.id,
+      email: user.email,
+      templateCode: 'REGISTRATION_VERIFY_MAIL_v1',
+      variables: {
+        user_name: `${user.name} ${user.last_name}`,
+        otp_code: otp,
+        verify_link: '',
+      },
+    });
+
+    return { sent: true };
+  }
+
+  /**
    * Verificar email con código OTP (app y web)
    */
   async verifyEmailCode(userId: number, code: string) {

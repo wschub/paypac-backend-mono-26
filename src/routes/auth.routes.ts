@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { register, getUsers, getProfile, verifyEmailCode } from '../controllers/auth.controller';
+import { register, getUsers, getProfile, verifyEmailCode, resendVerification } from '../controllers/auth.controller';
 import { validateRequest } from '../middlewares/validate.middleware';
 import { registerUserSchema, getUsersSchema } from '../validators/user.validation';
 import { authenticate } from '../middlewares/auth.middleware';
@@ -65,5 +65,11 @@ router.get(
  * Verificar email con código OTP — requiere autenticación Firebase
  */
 router.post('/verify-email', authenticate, verifyEmailCode);
+
+/**
+ * POST /auth/resend-verification
+ * Reenviar OTP de verificación de email — requiere autenticación Firebase
+ */
+router.post('/resend-verification', authenticate, resendVerification);
 
 export default router;
