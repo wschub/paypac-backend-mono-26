@@ -101,12 +101,14 @@ export class AuthService {
         if (country) resolvedLangUser = country.language_default;
       }
 
+      const now = new Date();
       const user = await userRepository.create({
         name: data.name,
         last_name: data.last_name,
         email: resolvedEmail,
         password: 'firebase_managed',
         phone_number: fullphoneNumber,
+        phone_number_verified_at: now, // teléfono ya validado por SMS OTP antes del registro
         role: data.role,
         company_id: data.company_id || null,
         firebase_uid: firebaseUid,
@@ -117,8 +119,8 @@ export class AuthService {
         lang_user: resolvedLangUser,
         country_id: data.country_id,
         gender: data.gender,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        createdAt: now,
+        updatedAt: now,
       });
 
       console.log('✅ Usuario creado en PostgreSQL:', user.id);
