@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { register, getUsers, getProfile, verifyEmailCode, resendVerification } from '../controllers/auth.controller';
+import { register, getUsers, getProfile, verifyEmailCode, resendVerification, deleteAccount } from '../controllers/auth.controller';
 import { validateRequest } from '../middlewares/validate.middleware';
 import { registerUserSchema, getUsersSchema } from '../validators/user.validation';
 import { authenticate } from '../middlewares/auth.middleware';
@@ -71,5 +71,11 @@ router.post('/verify-email', authenticate, verifyEmailCode);
  * Reenviar OTP de verificación de email — requiere autenticación Firebase
  */
 router.post('/resend-verification', authenticate, resendVerification);
+
+/**
+ * DELETE /auth/account
+ * Eliminar cuenta del usuario autenticado (cumplimiento Google Play Store)
+ */
+router.delete('/account', authenticate, deleteAccount);
 
 export default router;

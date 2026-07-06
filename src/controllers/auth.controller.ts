@@ -89,12 +89,28 @@ export const getProfile = async (req: Request, res: Response): Promise<void> => 
       email: user.email,
       name: user.name,
       last_name: user.last_name,
+      phone_number: user.phone_number,
+      num_doc: user.num_doc,
+      type_doc: user.type_doc,
       role: user.role,
       company_id: user.company_id,
       firebase_uid: user.firebase_uid,
     });
   } catch (err: any) {
     res.status(500).json({ message: 'Error al obtener perfil' });
+  }
+};
+
+/**
+ * DELETE /auth/account
+ * Eliminar cuenta del usuario autenticado (cumplimiento Google Play Store)
+ */
+export const deleteAccount = async (req: Request, res: Response): Promise<void> => {
+  try {
+    await authService.deleteAccount(req.user!.id, req.user!.firebase_uid!);
+    res.json({ message: 'Cuenta eliminada exitosamente' });
+  } catch (err: any) {
+    res.status(400).json({ message: err.message });
   }
 };
 

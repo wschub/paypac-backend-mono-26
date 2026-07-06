@@ -320,6 +320,21 @@ export class AuthService {
   }
 
   /**
+   * Eliminar cuenta del usuario (requerido por Google Play Store)
+   */
+  async deleteAccount(userId: number, firebaseUid: string) {
+    await userRepository.delete(userId);
+    try {
+      await firebaseAuth.deleteUser(firebaseUid);
+    } catch (err: any) {
+      if (err.code !== 'auth/user-not-found') {
+        console.error('⚠️ Error eliminando usuario de Firebase:', err.message);
+      }
+    }
+    return { deleted: true };
+  }
+
+  /**
    * Verificar email con código OTP (app y web)
    */
   async verifyEmailCode(userId: number, code: string) {

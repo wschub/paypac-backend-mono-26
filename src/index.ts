@@ -52,6 +52,7 @@ import waitingListRoutes from './routes/event_waiting_list.routes';
 import ticketSaleRoutes from './routes/ticket_sale.routes';
 import eventPrivateGuestRoutes from './routes/event_private_guest.routes';
 import promoterRequestRoutes from './routes/promoter_request.routes';
+import webSectionsRoutes from './routes/web_sections.routes';
 
 
 import { validateBrevoConfig } from './config/brevo';
@@ -224,6 +225,7 @@ app.use('/api/waiting-list', waitingListRoutes);
 app.use('/api', ticketSaleRoutes);
 app.use('/api/events/:eventId/guest-list', eventPrivateGuestRoutes);
 app.use('/api/promoter-requests', promoterRequestRoutes);
+app.use('/api/web-sections', webSectionsRoutes);
 
 
 // Iniciar CRON jobs
