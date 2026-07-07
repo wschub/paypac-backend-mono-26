@@ -486,9 +486,6 @@ model EventLocalities {
   event_id             Int
   name_locality        String
   bkg_color            String
-  title_color          String
-  text_color           String
-  title_color_location String
   createdAt            DateTime           @default(now())
   updatedAt            DateTime           @updatedAt
   num_max_tickets      Int?               @default(0)

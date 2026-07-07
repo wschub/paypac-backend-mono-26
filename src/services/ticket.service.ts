@@ -59,9 +59,6 @@ async getTotpSecret(id: number, userId: number) {
       price_ticket: number;
       locality_colors?: {
         bkg_color: string;
-        title_color: string;
-        text_color: string;
-        title_color_location: string;
       };
       is_consumable?: boolean;
       vip_access?: boolean;
@@ -142,13 +139,13 @@ async getTotpSecret(id: number, userId: number) {
         ev_organizer_id: eventSnapshot.organizer_id,
         ev_status: eventSnapshot.status as any,
         
-        // Snapshot de localidad CON COLORES
+        // Snapshot de localidad
         loc_id_locality: item.locality_id,
         loc_name_locality: item.locality_name,
         loc_bkg_color: item.locality_colors?.bkg_color || '#000000',
-        loc_title_color: item.locality_colors?.title_color || '#FFFFFF',
-        loc_text_color: item.locality_colors?.text_color || '#FFFFFF',
-        loc_title_color_location: item.locality_colors?.title_color_location || '#FFFFFF',
+        loc_title_color: '#FFFFFF',
+        loc_text_color: '#FFFFFF',
+        loc_title_color_location: '#FFFFFF',
         is_consumable:    item.is_consumable ?? false,
         consumable_total: (item.is_consumable ?? false) ? item.price_ticket : 0,
         vip_access:       item.vip_access ?? false,

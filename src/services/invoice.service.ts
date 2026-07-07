@@ -495,17 +495,8 @@ async updateInvoiceStatus(
           locality_name: item.locality_name,
           qty_tickets: item.qty_tickets,
           price_ticket: item.price_ticket,
-          // ✅ Colores de la localidad
-          locality_colors: locality ? {
-            bkg_color: locality.bkg_color || '#000000',
-            title_color: locality.title_color || '#FFFFFF',
-            text_color: locality.text_color || '#FFFFFF',
-            title_color_location: locality.title_color_location || '#FFFFFF',
-          } : {
-            bkg_color: '#000000',
-            title_color: '#FFFFFF',
-            text_color: '#FFFFFF',
-            title_color_location: '#FFFFFF',
+          locality_colors: {
+            bkg_color: locality?.bkg_color || '#000000',
           },
           is_consumable: locality?.is_consumable ?? false,
           vip_access:    locality?.vip_access    ?? false,
@@ -632,13 +623,7 @@ async updateInvoiceStatus(
             locality_name: item.locality_name,
             qty_tickets: item.qty_tickets,
             price_ticket: item.price_ticket,
-            // Agregar colores de la localidad
-            locality_colors: locality ? {
-              bkg_color: locality.bkg_color,
-              title_color: locality.title_color,
-              text_color: locality.text_color,
-              title_color_location: locality.title_color_location,
-            } : undefined,
+            locality_colors: locality ? { bkg_color: locality.bkg_color } : undefined,
           };
         })
       );

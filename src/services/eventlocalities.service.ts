@@ -201,21 +201,10 @@ if (blockedStatuses.includes(event.status)) {
    * Validar datos de localidad antes de crear/actualizar
    */
   validateLocalityData(data: any) {
-    const { bkg_color, title_color, text_color, title_color_location } = data;
+    const { bkg_color } = data;
 
-    const colors = [
-      { name: 'bkg_color', value: bkg_color },
-      { name: 'title_color', value: title_color },
-      { name: 'text_color', value: text_color },
-      { name: 'title_color_location', value: title_color_location },
-    ];
-
-    for (const color of colors) {
-      if (color.value && !this.isValidHexColor(color.value)) {
-        throw new Error(
-          `El color ${color.name} debe ser un código hexadecimal válido (ej: #FF5733)`
-        );
-      }
+    if (bkg_color && !this.isValidHexColor(bkg_color)) {
+      throw new Error('El color bkg_color debe ser un código hexadecimal válido (ej: #FF5733)');
     }
 
     return true;

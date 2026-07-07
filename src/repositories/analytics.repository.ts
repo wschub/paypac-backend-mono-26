@@ -643,7 +643,6 @@ async getOrganizerNextEvent(organizer_id: number) {
         id:                  locality.id,
         name:                locality.name_locality,
         bkg_color:           locality.bkg_color,
-        title_color:         locality.title_color,
         require_num_tickets: locality.require_num_tickets,
         capacity,
         sold,

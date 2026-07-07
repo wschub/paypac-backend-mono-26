@@ -18,9 +18,6 @@ export const createLocalitySchema = z.object({
   body: z.object({
     name_locality: z.string().min(2, 'El nombre de la localidad debe tener al menos 2 caracteres'),
     bkg_color: hexColorSchema,
-    title_color: hexColorSchema,
-    text_color: hexColorSchema,
-    title_color_location: hexColorSchema,
   }),
 });
 
@@ -34,9 +31,6 @@ export const updateLocalitySchema = z.object({
   body: z.object({
     name_locality: z.string().min(2).optional(),
     bkg_color: hexColorSchema.optional(),
-    title_color: hexColorSchema.optional(),
-    text_color: hexColorSchema.optional(),
-    title_color_location: hexColorSchema.optional(),
   }),
 });
 
