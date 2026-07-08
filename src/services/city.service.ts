@@ -5,23 +5,10 @@ export class CityService {
   async getPublicCities(countryId?: number) {
     const targetCountryId = countryId || DEFAULT_COUNTRY_ID;
 
-    // Obtener ciudades únicas de eventos públicos activos
-    const events = await prisma.event.findMany({
-      where: {
-        status: { in: ['APPROVED', 'ACTIVE'] },
-        event_type: 'PUBLICO',
-        city: { not: '' },
-      },
-      select: { city: true },
-      distinct: ['city'],
-    });
-
-    const cityNames = events.map(e => e.city);
-
+    // Todas las ciudades del país habilitado
     const cities = await prisma.cities.findMany({
       where: {
         country_id: targetCountryId,
-        name_city: { in: cityNames },
       },
       select: {
         id: true,
