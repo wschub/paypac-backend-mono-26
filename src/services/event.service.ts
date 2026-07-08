@@ -480,6 +480,7 @@ async getAvailableEventsForPromoter(promoter_id: number) {
         cover: true,
         url_video: true,
         organizer_id: true,
+        commission_percentage: true,
         status: true,
         event_type: true,
         localities: {
@@ -528,6 +529,7 @@ async getAvailableEventsForPromoter(promoter_id: number) {
         cover: ev.cover,
         url_video: ev.url_video,
         organizer_id: ev.organizer_id,
+        commission_percentage: ev.commission_percentage,
         price_from: stage
           ? {
               name_locality: locality.name_locality,
