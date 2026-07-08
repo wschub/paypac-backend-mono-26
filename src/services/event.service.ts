@@ -297,6 +297,8 @@ async getAvailableEventsForPromoter(promoter_id: number) {
     date_to?: string;
     city?: string;
     category_id?: string;
+    subcategory_id?: string;
+    subgenre_id?: string;
     sort_by?: string;
     page?: string;
     limit?: string;
@@ -307,9 +309,18 @@ async getAvailableEventsForPromoter(promoter_id: number) {
     const limit = Math.min(parseInt(filters.limit || '20') || 20, 100);
     const skip = (page - 1) * limit;
 
-    const categoryIds = filters.category_id
-      ? filters.category_id.split(',').map(Number).filter(n => !isNaN(n))
-      : undefined;
+    const parseIds = (v?: string) => {
+      const ids = v ? v.split(',').map(Number).filter(n => !isNaN(n)) : [];
+      return ids.length > 0 ? ids : undefined;
+    };
+    const categoryIds = parseIds(filters.category_id);
+    const subcategoryIds = parseIds(filters.subcategory_id);
+    const subgenreIds = parseIds(filters.subgenre_id);
+
+    const dateEventFilter = {
+      ...(filters.date_from && { gte: new Date(filters.date_from) }),
+      ...(filters.date_to && { lte: new Date(filters.date_to) }),
+    };
 
     const where: any = {
       status: { in: ['APPROVED', 'ACTIVE'] },
@@ -332,10 +343,11 @@ async getAvailableEventsForPromoter(promoter_id: number) {
           { short_description: { contains: filters.search, mode: 'insensitive' } },
         ],
       }),
-      ...(filters.date_from && { date_event: { gte: new Date(filters.date_from) } }),
-      ...(filters.date_to && { date_event: { lte: new Date(filters.date_to) } }),
+      ...(Object.keys(dateEventFilter).length > 0 && { date_event: dateEventFilter }),
       ...(filters.city && { city: filters.city }),
-      ...(categoryIds && categoryIds.length > 0 && { category_id: { in: categoryIds } }),
+      ...(categoryIds && { category_id: { in: categoryIds } }),
+      ...(subcategoryIds && { subcategory_id: { in: subcategoryIds } }),
+      ...(subgenreIds && { subgenre_id: { in: subgenreIds } }),
     };
 
     const [events, total] = await Promise.all([
@@ -457,7 +469,13 @@ async getAvailableEventsForPromoter(promoter_id: number) {
         image: true,
         short_description: true,
         date_event: true,
+        date_end_event: true,
+        date_checkin_open: true,
         place_address: true,
+        city: true,
+        country: true,
+        latitude: true,
+        longitude: true,
         description: true,
         cover: true,
         url_video: true,
@@ -499,7 +517,13 @@ async getAvailableEventsForPromoter(promoter_id: number) {
         image: ev.image,
         short_description: ev.short_description,
         date_event: ev.date_event,
+        date_end_event: ev.date_end_event,
+        date_checkin_open: ev.date_checkin_open,
         place_address: ev.place_address,
+        city: ev.city,
+        country: ev.country,
+        latitude: ev.latitude,
+        longitude: ev.longitude,
         description: ev.description,
         cover: ev.cover,
         url_video: ev.url_video,

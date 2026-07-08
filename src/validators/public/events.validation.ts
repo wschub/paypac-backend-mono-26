@@ -7,6 +7,8 @@ export const getPublicEventsQuerySchema = z.object({
     date_to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
     city: z.string().optional(),
     category_id: z.string().optional(),
+    subcategory_id: z.string().optional(),
+    subgenre_id: z.string().optional(),
     sort_by: z.enum(['date_asc', 'popularity', 'price_asc', 'price_desc', 'name_asc']).optional(),
     page: z.string().optional(),
     limit: z.string().optional(),

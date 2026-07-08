@@ -95,6 +95,12 @@ export const getProfile = async (req: Request, res: Response): Promise<void> => 
       role: user.role,
       company_id: user.company_id,
       firebase_uid: user.firebase_uid,
+      verified_user: user.verified_user,
+      email_verified_at: user.email_verified_at,
+      phone_number_verified_at: user.phone_number_verified_at,
+      birth_date: user.birth_date,
+      gender: user.gender,
+      country_id: user.country_id,
     });
   } catch (err: any) {
     res.status(500).json({ message: 'Error al obtener perfil' });

@@ -174,12 +174,6 @@ export class SubgenreService {
       : undefined;
 
     const where: any = {
-      events: {
-        some: {
-          status: { in: ['APPROVED', 'ACTIVE'] },
-          event_type: 'PUBLICO',
-        },
-      },
       ...(filters.search && {
         subcategory_name: { contains: filters.search, mode: 'insensitive' },
       }),
@@ -193,8 +187,7 @@ export class SubgenreService {
         id: true,
         subcategory_id: true,
         subcategory_name: true,
-        createdAt: true,
-      } as any,
+      },
       orderBy: { subcategory_name: 'asc' },
     });
 

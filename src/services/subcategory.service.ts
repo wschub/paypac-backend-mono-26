@@ -171,19 +171,12 @@ export class SubCategoryService {
     const subcategories = await prisma.subCategory.findMany({
       where: {
         category_id: categoryId,
-        events: {
-          some: {
-            status: { in: ['APPROVED', 'ACTIVE'] },
-            event_type: 'PUBLICO',
-          },
-        },
       },
       select: {
         id: true,
         category_id: true,
         subcategory_name: true,
-        createdAt: true,
-      } as any,
+      },
       orderBy: { subcategory_name: 'asc' },
     });
 

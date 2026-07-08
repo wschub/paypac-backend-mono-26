@@ -2,6 +2,7 @@ import { CategoryRepository } from '../repositories/category.repository';
 import { CountriesRepository } from '../repositories/countries.repository';
 import { Prisma } from '@prisma/client';
 import { prisma } from '../prisma/client';
+import { DEFAULT_COUNTRY_ID } from '../config/constants';
 
 const categoryRepo = new CategoryRepository();
 const countriesRepo = new CountriesRepository();
@@ -162,15 +163,12 @@ export class CategoryService {
     return categoryRepo.getStats(country_id);
   }
 
-  async getPublicCategories(filters: { search?: string }) {
+  async getPublicCategories(filters: { search?: string; country_id?: string }) {
+    const countryId = filters.country_id ? parseInt(filters.country_id) : DEFAULT_COUNTRY_ID;
+
     const categories = await prisma.category.findMany({
       where: {
-        events: {
-          some: {
-            status: { in: ['APPROVED', 'ACTIVE'] },
-            event_type: 'PUBLICO',
-          },
-        },
+        country_id: countryId,
         ...(filters.search && {
           category_name: { contains: filters.search, mode: 'insensitive' },
         }),
@@ -180,8 +178,7 @@ export class CategoryService {
         category_name: true,
         category_icon: true,
         country_id: true,
-        createdAt: true,
-      } as any,
+      },
       orderBy: { category_name: 'asc' },
     });
 
