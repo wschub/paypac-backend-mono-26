@@ -1,4 +1,5 @@
-export const DEFAULT_COUNTRY_ID = parseInt(process.env.DEFAULT_COUNTRY_ID || '1');
+// Colombia (id 3 en la tabla countries)
+export const DEFAULT_COUNTRY_ID = parseInt(process.env.DEFAULT_COUNTRY_ID || '3');
 export const WEB_API_KEY = process.env.WEB_API_KEY;
 
 export const PUBLIC_EVENT_STATUSES = ['APPROVED', 'ACTIVE'] as const;
