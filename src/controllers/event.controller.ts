@@ -93,8 +93,16 @@ export const getEventById = async (
   res: Response
 ): Promise<void> => {
   try {
-    const id = Number(req.params.id);
-    const event = await eventService.getEventById(id);
+    const rawId = req.params.id as string;
+
+    // public_id (UUID) — usado por deep links de la app
+    if (!/^\d+$/.test(rawId)) {
+      const result = await eventService.getPublicEventById(rawId);
+      res.status(200).json(result.data);
+      return;
+    }
+
+    const event = await eventService.getEventById(Number(rawId));
 
     res.status(200).json(event);
   } catch (err: any) {

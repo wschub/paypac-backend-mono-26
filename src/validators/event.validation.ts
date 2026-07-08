@@ -78,7 +78,10 @@ export const updateEventSchema = z.object({
  */
 export const getEventByIdSchema = z.object({
   params: z.object({
-    id: z.string().regex(/^\d+$/, 'El id debe ser numérico'),
+    id: z.string().refine(
+      (val) => /^\d+$/.test(val) || /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val),
+      'El id debe ser numérico o un public_id UUID'
+    ),
   }),
 });
 

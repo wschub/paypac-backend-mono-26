@@ -8,6 +8,7 @@ import webBlocksRouter from './web_blocks.routes';
 import waitingListRouter from './event_waiting_list.routes';
 import countriesRouter from './countries.routes';
 import webSectionsRouter from './web_sections.routes';
+import discountsRouter from './discounts.routes';
 
 const publicRouter = Router();
 
@@ -20,5 +21,6 @@ publicRouter.use('/web-blocks', webBlocksRouter);
 publicRouter.use('/waiting-list', waitingListRouter);
 publicRouter.use('/countries', countriesRouter);
 publicRouter.use('/web-sections', webSectionsRouter);
+publicRouter.use('/discounts', discountsRouter);
 
 export default publicRouter;
