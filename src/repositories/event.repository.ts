@@ -263,7 +263,7 @@ async findAvailableForPromoters(promoter_id: number) {
   const events = await prisma.event.findMany({
     where: {
       allow_external_promoters: true,
-      status: { in: ['APPROVED', 'SCHEDULED', 'ACTIVE'] },
+      status: { in: ['APPROVED', 'ACTIVE'] },
     },
     include: {
       category: true,

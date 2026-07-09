@@ -103,7 +103,7 @@ router.get(
 router.get(
   '/promoter-available',
   authenticate,
-  authorizeRoles('PROMOTER', 'STAFF_PROMOTER'),
+  authorizeRoles('PROMOTER', 'STAFF_PROMOTER', 'ORGANIZER'),
   getAvailableEventsForPromoter
 );
 
