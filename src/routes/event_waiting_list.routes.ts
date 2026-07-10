@@ -5,14 +5,24 @@ import {
   getWaitingListByEvent,
   getWaitingListByLocality,
   removeFromWaitingList,
+  registerWaitingListAuthenticated,
 } from '../controllers/event_waiting_list.controller';
 import {
   eventIdParamSchema,
   localityIdParamSchema,
   waitingListIdParamSchema,
+  registerWaitingListAuthSchema,
 } from '../validators/event_waiting_list.validation';
 
 const router = Router();
+
+// POST /api/waiting-list — registro desde la app (usuario autenticado)
+router.post(
+  '/',
+  authenticate,
+  validateRequest(registerWaitingListAuthSchema),
+  registerWaitingListAuthenticated
+);
 
 // GET /api/waiting-list/event/:eventId
 router.get(

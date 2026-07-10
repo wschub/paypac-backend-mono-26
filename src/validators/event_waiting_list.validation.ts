@@ -12,6 +12,15 @@ export const registerWaitingListSchema = z.object({
   }),
 });
 
+/** Registro autenticado (app): datos personales salen del token */
+export const registerWaitingListAuthSchema = z.object({
+  body: z.object({
+    event_id:      z.number().int().positive({ message: 'event_id es requerido' }),
+    locality_id:   z.number().int().positive().nullable().optional(),
+    qty_requested: z.number().int().min(1).max(10).optional(),
+  }),
+});
+
 export const eventIdParamSchema = z.object({
   params: z.object({
     eventId: z.string().regex(/^\d+$/).transform(Number),
