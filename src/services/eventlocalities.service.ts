@@ -57,6 +57,11 @@ if (blockedStatuses.includes(event.status)) {
 
   /**
    * Obtener todas las localidades de un evento
+   *
+   * ⚠️ Compatibilidad: las builds de la app anteriores a jul/2026 parsean
+   * title_color/text_color/title_color_location como campos requeridos.
+   * Esas columnas fueron eliminadas de la DB — se devuelven como constantes
+   * para no romper las apps instaladas. Quitar cuando la base instalada migre.
    */
   async getLocalitiesByEventId(eventId: number) {
     const event = await eventRepo.findById(eventId);
@@ -64,7 +69,14 @@ if (blockedStatuses.includes(event.status)) {
       throw new Error('Evento no encontrado');
     }
 
-    return localitiesRepo.findByEventId(eventId);
+    const localities = await localitiesRepo.findByEventId(eventId);
+
+    return localities.map((loc) => ({
+      ...loc,
+      title_color: '#FFFFFF',
+      text_color: '#FFFFFF',
+      title_color_location: '#FFFFFF',
+    }));
   }
 
   /**
