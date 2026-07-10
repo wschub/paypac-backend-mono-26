@@ -9,16 +9,23 @@ export const setupNotificationSocketHandlers = (io: SocketIOServer) => {
 
     /**
      * Usuario se une a su room personal para recibir notificaciones
-     * El cliente debe enviar: socket.emit('user:join', { user_id: 123 })
+     * Payload opcional: { user_id } — si no viene, se usa el userId del
+     * middleware de auth del socket (la app emite 'user:join' sin payload).
      */
-    socket.on('user:join', (data: { user_id: number }) => {
-      const roomName = `user:${data.user_id}`;
+    socket.on('user:join', (data?: { user_id?: number }) => {
+      const userId = data?.user_id ?? (socket as any).userId;
+      if (!userId) {
+        console.warn('⚠️ user:join sin user_id ni socket.userId — ignorado');
+        return;
+      }
+
+      const roomName = `user:${userId}`;
       socket.join(roomName);
-      
-      console.log(`👤 Usuario ${data.user_id} unido a room: ${roomName}`);
-      
+
+      console.log(`👤 Usuario ${userId} unido a room: ${roomName}`);
+
       socket.emit('user:joined', {
-        user_id: data.user_id,
+        user_id: userId,
         room: roomName,
         message: 'Conectado a notificaciones en tiempo real',
         timestamp: new Date().toISOString(),
@@ -28,11 +35,14 @@ export const setupNotificationSocketHandlers = (io: SocketIOServer) => {
     /**
      * Usuario sale de su room personal
      */
-    socket.on('user:leave', (data: { user_id: number }) => {
-      const roomName = `user:${data.user_id}`;
+    socket.on('user:leave', (data?: { user_id?: number }) => {
+      const userId = data?.user_id ?? (socket as any).userId;
+      if (!userId) return;
+
+      const roomName = `user:${userId}`;
       socket.leave(roomName);
-      
-      console.log(`👤 Usuario ${data.user_id} salió del room: ${roomName}`);
+
+      console.log(`👤 Usuario ${userId} salió del room: ${roomName}`);
     });
 
     /**

@@ -251,6 +251,17 @@ server.listen({ port, host }, () => {
   console.log(`🔌 Socket.IO: ACTIVO en puerto ${port}`);
 });
 
+// ── Safety net: que una excepción en un handler (p.ej. sockets) no tumbe
+//    el proceso entero. Se loguea para diagnóstico; Railway no entra en
+//    crash-loop por payloads inesperados de clientes.
+process.on('uncaughtException', (err) => {
+  console.error('🚨 uncaughtException (proceso sigue vivo):', err.stack || err.message);
+});
+
+process.on('unhandledRejection', (reason: any) => {
+  console.error('🚨 unhandledRejection (proceso sigue vivo):', reason?.stack || reason);
+});
+
 
 
 
