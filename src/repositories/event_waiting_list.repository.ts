@@ -23,6 +23,7 @@ export class EventWaitingListRepository {
   async findByEventId(eventId: number) {
     return prisma.eventWaitingList.findMany({
       where: { event_id: eventId },
+      include: { locality: { select: { name_locality: true } } },
       orderBy: { createdAt: 'asc' },
     });
   }
