@@ -1080,6 +1080,83 @@ export const EMAIL_TEMPLATES: Record<string, EmailTemplate> = {
 </html>`,
   },
 
+  // Confirmación de registro en lista de espera (evento agotado)
+  WAITING_LIST_CONFIRM: {
+    subject: (vars) => `${vars.event_name} · ${vars.event_date} — Estás en la lista de espera`,
+    requiredVariables: ['user_name', 'event_name', 'event_date', 'qty_label'],
+    html: (vars) => `<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <title>Estás en la lista de espera</title>
+</head>
+<body style="margin:0;padding:0;background-color:#F5F5F7;font-family:'Inter','Helvetica Neue',Arial,sans-serif;-webkit-font-smoothing:antialiased;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="#F5F5F7">
+    <tr>
+      <td align="center" style="padding:48px 24px 0 24px;">
+
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"
+          style="max-width:600px;background-color:#ffffff;border-radius:8px;overflow:hidden;">
+
+          <tr>
+            <td style="padding:28px 32px 0 32px;text-align:center;">
+              <img src="https://fabritek.co/paypac/logos/logo_paypac.png" alt="PayPac"
+                height="24" style="display:inline-block;height:24px;" />
+            </td>
+          </tr>
+
+          <tr>
+            <td style="padding:32px;">
+              <h2 style="margin:0 0 16px 0;font-size:22px;font-weight:600;color:#1A1A2E;letter-spacing:-.01em;font-family:'Inter','Helvetica Neue',Arial,sans-serif;">
+                Hola, ${vars.user_name}
+              </h2>
+              <span style="display:block;width:32px;height:3px;background:#0031FB;background:linear-gradient(90deg,#0031FB,#00FFFB);border-radius:2px;margin:0 0 20px;"></span>
+
+              <p style="font-size:15px;color:#33333F;line-height:1.6;margin:0 0 16px;font-family:'Inter','Helvetica Neue',Arial,sans-serif;">
+                Quedaste en la <strong>lista de espera</strong> de:
+              </p>
+
+              <div style="background-color:#F5F5F7;border:1px solid #ECECF0;border-radius:8px;padding:20px 24px;margin:0 0 20px;">
+                <div style="font-size:17px;font-weight:700;color:#1A1A2E;font-family:'Inter','Helvetica Neue',Arial,sans-serif;">
+                  ${vars.event_name}
+                </div>
+                <div style="font-size:13.5px;color:#6E6E80;margin-top:6px;font-family:'Inter','Helvetica Neue',Arial,sans-serif;">
+                  📅 ${vars.event_date}${vars.locality_name ? ` &nbsp;·&nbsp; 📍 ${vars.locality_name}` : ''} &nbsp;·&nbsp; 🎟️ ${vars.qty_label}
+                </div>
+              </div>
+
+              <p style="font-size:15px;color:#33333F;line-height:1.6;margin:0 0 20px;font-family:'Inter','Helvetica Neue',Arial,sans-serif;">
+                Te notificaremos a este correo apenas haya boletas disponibles.
+              </p>
+
+              <div style="background-color:#FFF5E6;border:1px solid #F79009;border-radius:8px;padding:16px 20px;margin:0 0 8px;">
+                <div style="font-size:13.5px;font-weight:700;color:#B5660A;margin-bottom:6px;font-family:'Inter','Helvetica Neue',Arial,sans-serif;">
+                  ⚠️ Evita fraudes y revendedores
+                </div>
+                <p style="font-size:13px;color:#856404;line-height:1.6;margin:0;font-family:'Inter','Helvetica Neue',Arial,sans-serif;">
+                  Las boletas se venden <strong>únicamente</strong> por los canales oficiales de PayPac:
+                  <strong>paypac.co</strong> y nuestra <strong>app</strong>.
+                  <strong>Nunca</strong> te pediremos consignaciones, transferencias ni pagos por WhatsApp u otros medios.
+                </p>
+              </div>
+            </td>
+          </tr>
+
+        </table>
+
+        <p style="margin:16px 0 48px;text-align:center;font-size:12px;color:#6E6E80;font-family:'Inter','Helvetica Neue',Arial,sans-serif;">
+          &copy; ${new Date().getFullYear()} <strong style="color:#33333F;font-weight:600;">PayPac</strong>. Todos los derechos reservados.
+        </p>
+
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`,
+  },
+
 };
 
 export function renderSubject(subject: string, vars: Record<string, any>): string {
