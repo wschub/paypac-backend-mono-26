@@ -62,7 +62,7 @@ export class EventWaitingListService {
       const eventDateLabel = dateStr.charAt(0).toUpperCase() + dateStr.slice(1);
 
       const variables = {
-        user_name: `${entry.name} ${entry.last_name}`.trim(),
+        user_name: entry.name.trim(),
         event_name: eventName,
         event_date: eventDateLabel,
         qty_label: `${qty} ${qty === 1 ? 'boleta' : 'boletas'}`,
