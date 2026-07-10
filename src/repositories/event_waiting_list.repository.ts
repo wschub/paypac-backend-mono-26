@@ -9,6 +9,7 @@ export class EventWaitingListRepository {
     last_name: string;
     email: string;
     phone_number: string;
+    qty_requested?: number;
   }) {
     return prisma.eventWaitingList.create({ data });
   }

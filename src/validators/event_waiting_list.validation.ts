@@ -8,6 +8,7 @@ export const registerWaitingListSchema = z.object({
     last_name:    z.string().min(1).max(100),
     email:        z.string().email({ message: 'email inválido' }),
     phone_number: z.string().min(7).max(20),
+    qty_requested: z.number().int().min(1).max(10).optional(),
   }),
 });
 

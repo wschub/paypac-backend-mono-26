@@ -12,6 +12,7 @@ export class EventWaitingListService {
     last_name: string;
     email: string;
     phone_number: string;
+    qty_requested?: number;
   }) {
     const event = await prisma.event.findUnique({ where: { id: data.event_id } });
     if (!event) throw new Error('Evento no encontrado');
