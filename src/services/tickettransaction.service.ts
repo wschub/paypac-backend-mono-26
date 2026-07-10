@@ -5,7 +5,8 @@ import { TicketStatus } from '@prisma/client';
 import { NotificationMessageQueueService } from './notificationmessagequeue.service';
 import { io } from '../index';
 import { PushNotificationService } from './push-notification.service';
-import { prisma } from '../config/db'; 
+import { prisma } from '../config/db';
+import { generateTicketData } from '../utils/ticket.utils';
 
 
 const transactionRepo = new TicketTransactionRepository();
@@ -192,42 +193,123 @@ try {
     throw new Error('Debes completar el pago antes de aceptar esta transferencia');
   }
 
-    const completedTransaction = await transactionRepo.complete(transactionId);
+  // ── Traspaso real del ticket ─────────────────────────────────────
+  // El ticket original de A queda TRANSFERRED (auditoría, desaparece de
+  // su wallet) y se genera un ticket NUEVO para B con credenciales nuevas
+  // (reference/booking/token/totp) — invalida cualquier QR/TOTP que A
+  // tuviera guardado en su dispositivo.
+  const originalTicket = await ticketRepo.findById(transaction.ticket_id);
+  if (!originalTicket) throw new Error('Ticket no encontrado');
 
-    // 🔔 Socket.IO — notificar al remitente
-try {
-  io.to(`user:${transaction.from_customer_id}`).emit('ticket:transfer:accepted', {
-    transaction_id: transactionId,
-    ticket_id:      transaction.ticket_id,
-    accepted_by_id: userId,
-    timestamp:      new Date().toISOString(),
+  const recipientUser = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, firebase_uid: true, phone_number: true,
+              name: true, last_name: true, num_doc: true, type_doc: true },
   });
-   
-  // ✅ AGREGAR: FCM push notification
-  const senderFcmToken = await prisma.user.findUnique({
-    where: { id: transaction.from_customer_id },
-    select: { fcm_token: true },
-  });
-  
-  if (senderFcmToken?.fcm_token) {
-    const [recipient, ticket] = await Promise.all([
-      prisma.user.findUnique({ where: { id: userId }, select: { name: true, last_name: true } }),
-      prisma.ticket.findUnique({ where: { id: transaction.ticket_id }, select: { ev_name: true } }),
-    ]);
-    
-    await pushService.sendTicketTransferAcceptedNotification(
-      senderFcmToken.fcm_token,
-      {
-        recipientName: recipient ? `${recipient.name} ${recipient.last_name}` : 'El receptor',
-        eventName: ticket?.ev_name ?? 'tu evento',
-        transactionId,
-        ticketId: transaction.ticket_id,
-      }
-    );
+  if (!recipientUser) throw new Error('Receptor no encontrado');
+
+  const newTicketData = generateTicketData(recipientUser.phone_number ?? '');
+
+  const [, newTicket, completedTransaction] = await prisma.$transaction([
+    // 1. Ticket original → TRANSFERRED
+    prisma.ticket.update({
+      where: { id: originalTicket.id },
+      data: { status_ticket: TicketStatus.TRANSFERRED },
+    }),
+    // 2. Ticket nuevo para el receptor
+    prisma.ticket.create({
+      data: {
+        transaction_id:           originalTicket.transaction_id,
+        event_id:                 originalTicket.event_id,
+        customer_id:              recipientUser.id,
+        customer_uid:             recipientUser.firebase_uid ?? '',
+        customer_ID_phone:        recipientUser.phone_number ?? '',
+        reference_ticket:         newTicketData.reference_ticket,
+        booking_ticket:           newTicketData.booking_ticket,
+        token_ticket:             newTicketData.token_ticket,
+        totp_secret:              newTicketData.totp_secret,
+        ticket_first_time:        1,
+        status_ticket:            TicketStatus.ACTIVE,
+        first_name_user:          recipientUser.name,
+        last_name_user:           recipientUser.last_name,
+        user_num_doc:             recipientUser.num_doc,
+        user_type_doc:            recipientUser.type_doc,
+        // Snapshot del evento (copiado del original)
+        ev_name:                  originalTicket.ev_name,
+        ev_short_description:     originalTicket.ev_short_description,
+        ev_cover:                 originalTicket.ev_cover,
+        ev_date_event:            originalTicket.ev_date_event,
+        ev_place_address:         originalTicket.ev_place_address,
+        ev_event_type:            originalTicket.ev_event_type,
+        ev_type_venue:            originalTicket.ev_type_venue,
+        ev_place_seat:            originalTicket.ev_place_seat,
+        ev_organizer_id:          originalTicket.ev_organizer_id,
+        ev_status:                originalTicket.ev_status,
+        // Snapshot de localidad
+        loc_id_locality:          originalTicket.loc_id_locality,
+        loc_name_locality:        originalTicket.loc_name_locality,
+        loc_bkg_color:            originalTicket.loc_bkg_color,
+        loc_title_color:          originalTicket.loc_title_color,
+        loc_text_color:           originalTicket.loc_text_color,
+        loc_title_color_location: originalTicket.loc_title_color_location,
+        is_consumable:            originalTicket.is_consumable,
+        consumable_total:         originalTicket.consumable_total,
+        consumable_used:          originalTicket.consumable_used,
+        vip_access:               originalTicket.vip_access,
+      },
+    }),
+    // 3. Transacción → COMPLETED
+    prisma.ticketTransaction.update({
+      where: { id: transactionId },
+      data: { status_ticket: 'COMPLETED', completed_at: new Date() },
+    }),
+  ]);
+
+  console.log(`🎫 Transferencia ${transactionId}: ticket ${originalTicket.id} → TRANSFERRED, nuevo ticket ${newTicket.id} para user ${recipientUser.id}`);
+
+  // 🔔 Socket.IO — remitente (quitar ticket de su wallet) y receptor (refrescar)
+  try {
+    io.to(`user:${transaction.from_customer_id}`).emit('ticket:transfer:accepted', {
+      transaction_id: transactionId,
+      ticket_id:      transaction.ticket_id,
+      accepted_by_id: userId,
+      timestamp:      new Date().toISOString(),
+    });
+
+    io.to(`user:${userId}`).emit('ticket:transfer:completed', {
+      transaction_id: transactionId,
+      new_ticket_id:  newTicket.id,
+      event_name:     originalTicket.ev_name,
+      timestamp:      new Date().toISOString(),
+    });
+  } catch (socketError: any) {
+    console.error('⚠️ Error Socket.IO accept:', socketError.message);
   }
-} catch (socketError: any) {
-  console.error('⚠️ Error Socket.IO accept:', socketError.message);
-}
+
+  // 📲 FCM push al remitente — independiente del socket
+  try {
+    const senderFcmToken = await prisma.user.findUnique({
+      where: { id: transaction.from_customer_id },
+      select: { fcm_token: true },
+    });
+
+    if (senderFcmToken?.fcm_token) {
+      await pushService.sendTicketTransferAcceptedNotification(
+        senderFcmToken.fcm_token,
+        {
+          recipientName: `${recipientUser.name} ${recipientUser.last_name}`,
+          eventName: originalTicket.ev_name,
+          transactionId,
+          ticketId: transaction.ticket_id,
+        }
+      );
+      console.log('📲 Push de aceptación enviada al remitente');
+    } else {
+      console.log('ℹ️ Remitente sin fcm_token — push omitida');
+    }
+  } catch (pushError: any) {
+    console.error('⚠️ Error enviando push de aceptación:', pushError.message);
+  }
  
   // 📧 Notificar al remitente
   try {
@@ -256,7 +338,11 @@ try {
     console.error('⚠️ Error enviando notificación de aceptación:', emailError.message);
   }
  
-  return { transaction: completedTransaction, message: 'Transferencia aceptada exitosamente' };
+  return {
+    transaction: completedTransaction,
+    new_ticket_id: newTicket.id,
+    message: 'Transferencia aceptada exitosamente',
+  };
 }
 
   /**
