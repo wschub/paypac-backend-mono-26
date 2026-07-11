@@ -132,8 +132,16 @@ export class TicketSaleService {
     if (listing.sale_type !== 'AUCTION') throw new Error('Esta publicación no es una subasta');
     if (listing.seller_id === buyerId) throw new Error('No puedes ofertar en tu propia subasta');
     if (new Date() > listing.expires_at) throw new Error('Esta subasta ha expirado');
-    if (listing.min_price && amount < listing.min_price) {
-      throw new Error(`La oferta debe ser al menos $${listing.min_price}`);
+
+    // La oferta debe superar la mejor oferta vigente (no solo el precio base)
+    const currentTopOffer = listing.offers[0]?.amount ?? null;
+    const minRequired = Math.max(listing.min_price ?? 0, (currentTopOffer ?? 0) + 1);
+    if (amount < minRequired) {
+      throw new Error(
+        currentTopOffer
+          ? `Tu oferta debe superar la oferta actual de $${currentTopOffer.toLocaleString('es-CO')}`
+          : `La oferta debe ser al menos $${(listing.min_price ?? 0).toLocaleString('es-CO')}`
+      );
     }
 
     const existingOffer = await saleRepo.findOfferByBuyerAndListing(buyerId, listingId);
@@ -155,6 +163,21 @@ export class TicketSaleService {
     } catch (e: any) {
       console.error('⚠️ Socket oferta nueva:', e.message);
     }
+
+    // 🔔 Push al vendedor
+    (async () => {
+      const seller = await prisma.user.findUnique({
+        where: { id: listing.seller_id },
+        select: { fcm_token: true },
+      });
+      if (seller?.fcm_token) {
+        await pushService.sendResaleNewOfferToSeller(seller.fcm_token, {
+          eventName: listing.ticket.ev_name,
+          amount,
+          listingId,
+        }).catch(() => null);
+      }
+    })().catch((e) => console.error('⚠️ Error notificando nueva oferta al vendedor:', e.message));
 
     return offer;
   }
@@ -191,14 +214,20 @@ export class TicketSaleService {
       }
     }
 
+    // Capturar a los demás postores ANTES de rechazarlos, para avisarles que perdieron
+    const otherPendingOffers = await prisma.ticketSaleOffer.findMany({
+      where: { listing_id: listingId, status: 'PENDING', id: { not: offerId } },
+      select: { buyer_id: true },
+    });
+
     const notifiedAt = new Date();
     await saleRepo.updateOfferStatus(offerId, 'ACCEPTED', notifiedAt);
     await saleRepo.rejectOtherOffers(listingId, offerId);
 
     const paymentDeadline = getPaymentDeadline(notifiedAt);
 
-    // 🔔 Notificar al ganador: socket + push — tiene RESALE_PAYMENT_WINDOW_MIN para pagar
-    const notifyWinner = async () => {
+    // 🔔 Notificar al ganador (paga ya) y a los demás postores (ticket vendido a otro)
+    const notifyAll = async () => {
       const winner = await prisma.user.findUnique({
         where: { id: offer.buyer_id },
         select: { fcm_token: true },
@@ -220,6 +249,14 @@ export class TicketSaleService {
           listing_id: listingId,
           timestamp:  new Date().toISOString(),
         });
+        // A los demás postores: perdieron, el ticket ya se vendió a otro comprador
+        for (const other of otherPendingOffers) {
+          io.to(`user:${other.buyer_id}`).emit('listing:offer:rejected', {
+            listing_id: listingId,
+            event_name: listing.ticket.ev_name,
+            timestamp:  new Date().toISOString(),
+          });
+        }
       } catch (e: any) {
         console.error('⚠️ Socket oferta aceptada:', e.message);
       }
@@ -232,8 +269,23 @@ export class TicketSaleService {
           windowMinutes: RESALE_PAYMENT_WINDOW_MIN,
         }).catch(() => null);
       }
+
+      if (otherPendingOffers.length > 0) {
+        const losers = await prisma.user.findMany({
+          where: { id: { in: otherPendingOffers.map((o) => o.buyer_id) } },
+          select: { fcm_token: true },
+        });
+        for (const loser of losers) {
+          if (loser.fcm_token) {
+            await pushService.sendResaleOfferRejectedNotification(loser.fcm_token, {
+              eventName: listing.ticket.ev_name,
+              listingId,
+            }).catch(() => null);
+          }
+        }
+      }
     };
-    notifyWinner().catch((e) => console.error('⚠️ Error notificando ganador:', e.message));
+    notifyAll().catch((e) => console.error('⚠️ Error notificando resultado de subasta:', e.message));
 
     return {
       message: `Oferta aceptada. El comprador tiene ${RESALE_PAYMENT_WINDOW_MIN} minutos para pagar.`,

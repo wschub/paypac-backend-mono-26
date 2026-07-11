@@ -403,6 +403,72 @@ async sendResaleOfferAcceptedNotification(
 }
 
 /**
+ * Reventa — notificar al VENDEDOR que llegó una nueva oferta
+ */
+async sendResaleNewOfferToSeller(
+  fcmToken: string,
+  data: { eventName: string; amount: number; listingId: number }
+) {
+  try {
+    const message: admin.messaging.Message = {
+      token: fcmToken,
+      notification: {
+        title: '🔨 Nueva oferta por tu ticket',
+        body: `Te ofrecen $${data.amount.toLocaleString('es-CO')} por tu ticket de ${data.eventName}.`,
+      },
+      data: {
+        type: 'resale_new_offer',
+        listing_id: data.listingId.toString(),
+        route: '/wallet',
+      },
+      android: {
+        priority: 'high',
+        notification: { channelId: 'tickets', sound: 'default', color: '#0031FB' },
+      },
+    };
+    const response = await admin.messaging().send(message);
+    console.log('✅ Push nueva oferta (vendedor) enviada');
+    return { success: true, messageId: response };
+  } catch (error: any) {
+    console.error('❌ Error push nueva oferta vendedor:', error.message);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Reventa — notificar a los demás postores que el ticket ya se vendió a otro comprador
+ */
+async sendResaleOfferRejectedNotification(
+  fcmToken: string,
+  data: { eventName: string; listingId: number }
+) {
+  try {
+    const message: admin.messaging.Message = {
+      token: fcmToken,
+      notification: {
+        title: '🎟️ Subasta finalizada',
+        body: `El ticket de ${data.eventName} ya fue vendido a otro comprador. ¡Sigue explorando reventas verificadas!`,
+      },
+      data: {
+        type: 'resale_offer_rejected',
+        listing_id: data.listingId.toString(),
+        route: '/wallet',
+      },
+      android: {
+        priority: 'high',
+        notification: { channelId: 'tickets', sound: 'default', color: '#667085' },
+      },
+    };
+    const response = await admin.messaging().send(message);
+    console.log('✅ Push oferta rechazada enviada');
+    return { success: true, messageId: response };
+  } catch (error: any) {
+    console.error('❌ Error push oferta rechazada:', error.message);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
  * Enviar notificación de transferencia rechazada
  */
 async sendTicketTransferRejectedNotification(
