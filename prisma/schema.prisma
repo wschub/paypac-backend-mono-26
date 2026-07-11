@@ -797,6 +797,8 @@ model TicketConsumption {
 
 model TicketSaleListing {
   id           Int              @id @default(autoincrement())
+  /** Identificador público no secuencial — usado en URLs para evitar enumeración */
+  public_id    String?          @unique
   ticket_id    Int              @unique
   seller_id    Int
   sale_type    TicketSaleType

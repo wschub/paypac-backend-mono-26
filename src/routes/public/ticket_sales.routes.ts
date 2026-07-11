@@ -11,7 +11,7 @@ const router = Router();
 // GET /api/public/ticket-sales/event/:eventId → reventas activas del evento
 router.get('/event/:eventId', authenticatePublicWeb, publicCatalogLimiter, getPublicListingsByEvent);
 
-// GET /api/public/ticket-sales/:listingId → detalle de un listing
-router.get('/:listingId', authenticatePublicWeb, publicCatalogLimiter, getPublicListingDetail);
+// GET /api/public/ticket-sales/:publicId → detalle de un listing (por public_id, no enumerable)
+router.get('/:publicId', authenticatePublicWeb, publicCatalogLimiter, getPublicListingDetail);
 
 export default router;

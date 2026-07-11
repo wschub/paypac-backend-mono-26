@@ -24,17 +24,18 @@ export const getPublicListingsByEvent = async (req: Request, res: Response) => {
 };
 
 /**
- * GET /api/public/ticket-sales/:listingId
+ * GET /api/public/ticket-sales/:publicId
  * Detalle público de un listing (link directo compartible).
+ * Se busca por public_id (no el id secuencial) para no permitir enumeración.
  */
 export const getPublicListingDetail = async (req: Request, res: Response) => {
   try {
-    const listingId = parseInt(req.params.listingId as string);
-    if (!listingId) {
-      res.status(400).json({ message: 'listingId inválido' });
+    const publicId = req.params.publicId as string;
+    if (!publicId) {
+      res.status(400).json({ message: 'Identificador inválido' });
       return;
     }
-    const listing = await saleService.getListingPublicDetail(listingId);
+    const listing = await saleService.getListingPublicDetail(publicId);
     res.status(200).json({ listing });
   } catch (error: any) {
     if (error.message.includes('no encontrada')) {

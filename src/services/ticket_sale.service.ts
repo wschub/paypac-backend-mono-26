@@ -10,6 +10,7 @@ import { RESALE_COMMISSION_PCT, RESALE_PAYMENT_WINDOW_MIN } from '../config/cons
 import { prisma } from '../prisma/client';
 import { generateTicketData } from '../utils/ticket.utils';
 import { TicketSaleType, InvoiceStatus, TicketStatus } from '@prisma/client';
+import { v4 as uuidv4 } from 'uuid';
 
 const saleRepo     = new TicketSaleRepository();
 const ticketRepo   = new TicketRepository();
@@ -97,6 +98,7 @@ export class TicketSaleService {
           asking_price: data.asking_price ?? null,
           min_price:    data.min_price ?? null,
           expires_at:   getSaleExpiresAt(),
+          public_id:    uuidv4(),
         },
         include: { ticket: true },
       }),
@@ -560,6 +562,7 @@ export class TicketSaleService {
       },
       select: {
         id: true,
+        public_id: true,
         sale_type: true,
         asking_price: true,
         min_price: true,
@@ -587,12 +590,20 @@ export class TicketSaleService {
   /**
    * Detalle público de un listing (link directo) — sin identidad del vendedor.
    * Incluye la mejor oferta actual si es subasta.
+   *
+   * Acepta el id numérico interno (apps ya autenticadas) o el public_id
+   * (usado en las URLs de la web, para no exponer el id secuencial).
    */
-  async getListingPublicDetail(listingId: number) {
+  async getListingPublicDetail(listingIdOrPublicId: number | string) {
+    const where = typeof listingIdOrPublicId === 'number'
+      ? { id: listingIdOrPublicId }
+      : { public_id: listingIdOrPublicId };
+
     const listing = await prisma.ticketSaleListing.findUnique({
-      where: { id: listingId },
+      where,
       select: {
         id: true,
+        public_id: true,
         status: true,
         sale_type: true,
         asking_price: true,
@@ -620,13 +631,13 @@ export class TicketSaleService {
     let offerCount = 0;
     if (listing.sale_type === 'AUCTION') {
       const best = await prisma.ticketSaleOffer.findFirst({
-        where: { listing_id: listingId, status: 'PENDING' },
+        where: { listing_id: listing.id, status: 'PENDING' },
         orderBy: { amount: 'desc' },
         select: { amount: true },
       });
       topOffer = best?.amount ?? null;
       offerCount = await prisma.ticketSaleOffer.count({
-        where: { listing_id: listingId, status: 'PENDING' },
+        where: { listing_id: listing.id, status: 'PENDING' },
       });
     }
 
