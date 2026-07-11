@@ -144,10 +144,18 @@ export class TicketSaleService {
       );
     }
 
-    const existingOffer = await saleRepo.findOfferByBuyerAndListing(buyerId, listingId);
-    if (existingOffer) throw new Error('Ya tienes una oferta activa en esta subasta');
+    // Otros postores vigentes — para poder notificarles que los superaron
+    const otherPendingOffers = await prisma.ticketSaleOffer.findMany({
+      where: { listing_id: listingId, status: 'PENDING', buyer_id: { not: buyerId } },
+      select: { buyer_id: true },
+    });
 
-    const offer = await saleRepo.createOffer({ listing_id: listingId, buyer_id: buyerId, amount });
+    // Si el comprador ya tenía una oferta pendiente, la actualiza (sube su puja)
+    // en vez de quedar bloqueado para siempre tras su primer intento.
+    const existingOffer = await saleRepo.findOfferByBuyerAndListing(buyerId, listingId);
+    const offer = existingOffer
+      ? await prisma.ticketSaleOffer.update({ where: { id: existingOffer.id }, data: { amount } })
+      : await saleRepo.createOffer({ listing_id: listingId, buyer_id: buyerId, amount });
 
     // 🔔 Sockets en vivo: al vendedor y a quienes miran la subasta (solo monto, sin identidad)
     try {
@@ -160,11 +168,19 @@ export class TicketSaleService {
       };
       io.to(`user:${listing.seller_id}`).emit('listing:offer:new', payload);
       io.to(`listing:${listingId}`).emit('listing:offer:new', payload);
+      // A los demás postores: los superaron, para que sepan el estado real y puedan ofertar de nuevo
+      for (const other of otherPendingOffers) {
+        io.to(`user:${other.buyer_id}`).emit('listing:offer:outbid', {
+          listing_id: listingId,
+          top_offer:  amount,
+          timestamp:  new Date().toISOString(),
+        });
+      }
     } catch (e: any) {
       console.error('⚠️ Socket oferta nueva:', e.message);
     }
 
-    // 🔔 Push al vendedor
+    // 🔔 Push al vendedor y a los demás postores
     (async () => {
       const seller = await prisma.user.findUnique({
         where: { id: listing.seller_id },
@@ -177,7 +193,23 @@ export class TicketSaleService {
           listingId,
         }).catch(() => null);
       }
-    })().catch((e) => console.error('⚠️ Error notificando nueva oferta al vendedor:', e.message));
+
+      if (otherPendingOffers.length > 0) {
+        const outbid = await prisma.user.findMany({
+          where: { id: { in: otherPendingOffers.map((o) => o.buyer_id) } },
+          select: { fcm_token: true },
+        });
+        for (const u of outbid) {
+          if (u.fcm_token) {
+            await pushService.sendResaleOutbidNotification(u.fcm_token, {
+              eventName: listing.ticket.ev_name,
+              topOffer:  amount,
+              listingId,
+            }).catch(() => null);
+          }
+        }
+      }
+    })().catch((e) => console.error('⚠️ Error notificando nueva oferta:', e.message));
 
     return offer;
   }

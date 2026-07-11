@@ -403,6 +403,39 @@ async sendResaleOfferAcceptedNotification(
 }
 
 /**
+ * Reventa — notificar a los demás postores que alguien superó su oferta
+ */
+async sendResaleOutbidNotification(
+  fcmToken: string,
+  data: { eventName: string; topOffer: number; listingId: number }
+) {
+  try {
+    const message: admin.messaging.Message = {
+      token: fcmToken,
+      notification: {
+        title: '📈 Superaron tu oferta',
+        body: `La nueva mejor oferta por el ticket de ${data.eventName} es $${data.topOffer.toLocaleString('es-CO')}. ¿Quieres ofertar de nuevo?`,
+      },
+      data: {
+        type: 'resale_outbid',
+        listing_id: data.listingId.toString(),
+        route: '/wallet',
+      },
+      android: {
+        priority: 'high',
+        notification: { channelId: 'tickets', sound: 'default', color: '#F79009' },
+      },
+    };
+    const response = await admin.messaging().send(message);
+    console.log('✅ Push superado en subasta enviada');
+    return { success: true, messageId: response };
+  } catch (error: any) {
+    console.error('❌ Error push superado en subasta:', error.message);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
  * Reventa — notificar al VENDEDOR que llegó una nueva oferta
  */
 async sendResaleNewOfferToSeller(
