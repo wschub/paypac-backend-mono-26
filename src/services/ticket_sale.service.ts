@@ -632,11 +632,23 @@ export class TicketSaleService {
           },
         },
         _count: { select: { offers: { where: { status: 'PENDING' } } } },
+        offers: {
+          where: { status: 'PENDING' },
+          orderBy: { amount: 'desc' },
+          take: 1,
+          select: { amount: true },
+        },
       },
       orderBy: { createdAt: 'desc' },
     });
 
-    return { data: listings, total: listings.length };
+    // La oferta más alta vigente (no solo el precio base) — para mostrar/validar la puja mínima
+    const data = listings.map(({ offers, ...listing }) => ({
+      ...listing,
+      top_offer: offers[0]?.amount ?? null,
+    }));
+
+    return { data, total: data.length };
   }
 
   /**
