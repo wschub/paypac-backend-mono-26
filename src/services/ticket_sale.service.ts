@@ -83,16 +83,24 @@ export class TicketSaleService {
       throw new Error('Para vender necesitas registrar tus datos de dispersión: llave Bre-B, o banco/billetera y número de cuenta');
     }
 
-    await ticketRepo.updateStatus(ticketId, 'ON_SALE');
-
-    const listing = await saleRepo.createListing({
-      ticket_id:    ticketId,
-      seller_id:    sellerId,
-      sale_type:    data.sale_type,
-      asking_price: data.asking_price ?? null,
-      min_price:    data.min_price ?? null,
-      expires_at:   getSaleExpiresAt(),
-    });
+    // Atómico: si el create del listing falla, el ticket NO queda en ON_SALE
+    const [, listing] = await prisma.$transaction([
+      prisma.ticket.update({
+        where: { id: ticketId },
+        data: { status_ticket: TicketStatus.ON_SALE },
+      }),
+      prisma.ticketSaleListing.create({
+        data: {
+          ticket_id:    ticketId,
+          seller_id:    sellerId,
+          sale_type:    data.sale_type,
+          asking_price: data.asking_price ?? null,
+          min_price:    data.min_price ?? null,
+          expires_at:   getSaleExpiresAt(),
+        },
+        include: { ticket: true },
+      }),
+    ]);
 
     // Notificar a la lista de espera del evento — siempre (FIXED y AUCTION)
     this._notifyWaitingList(ticket.event_id, listing.id, ticket.ev_name, ticket.loc_name_locality, data.sale_type).catch(
