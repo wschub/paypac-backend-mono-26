@@ -1,0 +1,11 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const authenticatePublicWeb_1 = require("../../middlewares/authenticatePublicWeb");
+const rateLimiters_1 = require("../../middlewares/rateLimiters");
+const validate_middleware_1 = require("../../middlewares/validate.middleware");
+const cities_validation_1 = require("../../validators/public/cities.validation");
+const cities_controller_1 = require("../../controllers/public/cities.controller");
+const router = (0, express_1.Router)();
+router.get('/', authenticatePublicWeb_1.authenticatePublicWeb, rateLimiters_1.publicCitiesLimiter, (0, validate_middleware_1.validateRequest)(cities_validation_1.getPublicCitiesQuerySchema), cities_controller_1.getPublicCities);
+exports.default = router;

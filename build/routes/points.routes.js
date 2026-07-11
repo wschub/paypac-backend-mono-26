@@ -1,0 +1,17 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const points_controller_1 = require("../controllers/points.controller");
+const auth_middleware_1 = require("../middlewares/auth.middleware");
+const role_middleware_1 = require("../middlewares/role.middleware");
+const validate_middleware_1 = require("../middlewares/validate.middleware");
+const points_validation_1 = require("../validators/points.validation");
+const router = (0, express_1.Router)();
+const pointsController = new points_controller_1.PointsController();
+router.use(auth_middleware_1.authenticate);
+router.use((0, role_middleware_1.authorizeRoles)('CUSTOMER'));
+router.get('/balance', pointsController.getBalance.bind(pointsController));
+router.get('/history', (0, validate_middleware_1.validateRequest)(points_validation_1.getHistorySchema), pointsController.getHistory.bind(pointsController));
+router.post('/transfer', (0, validate_middleware_1.validateRequest)(points_validation_1.transferPointsSchema), pointsController.transferPoints.bind(pointsController));
+router.get('/expiring', pointsController.getExpiringPoints.bind(pointsController));
+exports.default = router;

@@ -1157,6 +1157,189 @@ export const EMAIL_TEMPLATES: Record<string, EmailTemplate> = {
 </html>`,
   },
 
+  // Reventa — aviso a lista de espera: hay un ticket disponible
+  RESALE_AVAILABLE: {
+    subject: (vars) => `🎟️ ${vars.event_name} — ¡Se liberó una boleta!`,
+    requiredVariables: ['user_name', 'event_name', 'locality_name', 'sale_mode', 'event_link'],
+    html: (vars) => `<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <title>Se liberó una boleta</title>
+</head>
+<body style="margin:0;padding:0;background-color:#F5F5F7;font-family:'Inter','Helvetica Neue',Arial,sans-serif;-webkit-font-smoothing:antialiased;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="#F5F5F7">
+    <tr>
+      <td align="center" style="padding:48px 24px 0 24px;">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"
+          style="max-width:600px;background-color:#ffffff;border-radius:8px;overflow:hidden;">
+          <tr>
+            <td style="padding:28px 32px 0 32px;text-align:center;">
+              <img src="https://fabritek.co/paypac/logos/logo_paypac.png" alt="PayPac" height="24" style="display:inline-block;height:24px;" />
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:32px;">
+              <h2 style="margin:0 0 16px 0;font-size:22px;font-weight:600;color:#1A1A2E;letter-spacing:-.01em;">
+                Hola, ${vars.user_name}
+              </h2>
+              <span style="display:block;width:32px;height:3px;background:linear-gradient(90deg,#0031FB,#00FFFB);border-radius:2px;margin:0 0 20px;"></span>
+
+              <p style="font-size:15px;color:#33333F;line-height:1.6;margin:0 0 16px;">
+                Estás en la lista de espera de <strong>${vars.event_name}</strong> y acaba de publicarse
+                una boleta en <strong>reventa verificada</strong> (${vars.sale_mode})${vars.locality_name ? ` — localidad <strong>${vars.locality_name}</strong>` : ''}.
+              </p>
+
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:24px auto;">
+                <tr>
+                  <td style="background:#0031FB;border-radius:8px;">
+                    <a href="${vars.event_link}" target="_blank"
+                      style="display:inline-block;padding:14px 32px;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;">
+                      Ver disponibilidad
+                    </a>
+                  </td>
+                </tr>
+              </table>
+
+              <p style="font-size:13px;color:#6E6E80;line-height:1.5;margin:0;">
+                ⚡ Las boletas en reventa se venden por orden de llegada. Compra únicamente por
+                <strong>paypac.co</strong> o la app — nunca por fuera de los canales oficiales.
+              </p>
+            </td>
+          </tr>
+        </table>
+        <p style="margin:16px 0 48px;text-align:center;font-size:12px;color:#6E6E80;">
+          &copy; ${new Date().getFullYear()} <strong style="color:#33333F;font-weight:600;">PayPac</strong>. Todos los derechos reservados.
+        </p>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`,
+  },
+
+  // Reventa — al VENDEDOR: tu ticket fue pagado y vendido
+  RESALE_SOLD_SELLER: {
+    subject: (vars) => `💰 Tu ticket de ${vars.event_name} fue vendido`,
+    requiredVariables: ['user_name', 'event_name', 'sold_price', 'payout'],
+    html: (vars) => `<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <title>Tu ticket fue vendido</title>
+</head>
+<body style="margin:0;padding:0;background-color:#F5F5F7;font-family:'Inter','Helvetica Neue',Arial,sans-serif;-webkit-font-smoothing:antialiased;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="#F5F5F7">
+    <tr>
+      <td align="center" style="padding:48px 24px 0 24px;">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"
+          style="max-width:600px;background-color:#ffffff;border-radius:8px;overflow:hidden;">
+          <tr>
+            <td style="padding:28px 32px 0 32px;text-align:center;">
+              <img src="https://fabritek.co/paypac/logos/logo_paypac.png" alt="PayPac" height="24" style="display:inline-block;height:24px;" />
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:32px;">
+              <h2 style="margin:0 0 16px 0;font-size:22px;font-weight:600;color:#1A1A2E;letter-spacing:-.01em;">
+                ¡Vendido, ${vars.user_name}! 💰
+              </h2>
+              <span style="display:block;width:32px;height:3px;background:linear-gradient(90deg,#0031FB,#00FFFB);border-radius:2px;margin:0 0 20px;"></span>
+
+              <p style="font-size:15px;color:#33333F;line-height:1.6;margin:0 0 16px;">
+                Tu ticket de <strong>${vars.event_name}</strong> fue <strong>pagado y vendido</strong>.
+                Ya fue transferido al nuevo dueño y salió de tu wallet.
+              </p>
+
+              <div style="background-color:#F5F5F7;border:1px solid #ECECF0;border-radius:8px;padding:20px 24px;margin:0 0 20px;">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="font-size:14px;color:#33333F;">
+                  <tr>
+                    <td style="padding:4px 0;color:#6E6E80;">Precio de venta</td>
+                    <td style="padding:4px 0;text-align:right;font-weight:600;">${vars.sold_price}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding:4px 0;color:#6E6E80;">Recibirás (menos comisión de servicio)</td>
+                    <td style="padding:4px 0;text-align:right;font-weight:700;color:#12B76A;">${vars.payout}</td>
+                  </tr>
+                </table>
+              </div>
+
+              <p style="font-size:13px;color:#6E6E80;line-height:1.5;margin:0;">
+                La dispersión se realizará a los datos bancarios registrados en tu cuenta.
+              </p>
+            </td>
+          </tr>
+        </table>
+        <p style="margin:16px 0 48px;text-align:center;font-size:12px;color:#6E6E80;">
+          &copy; ${new Date().getFullYear()} <strong style="color:#33333F;font-weight:600;">PayPac</strong>. Todos los derechos reservados.
+        </p>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`,
+  },
+
+  // Reventa — al COMPRADOR: ya tienes tu ticket
+  RESALE_TICKET_BUYER: {
+    subject: (vars) => `🎟️ ¡Ya tienes tu ticket de ${vars.event_name}!`,
+    requiredVariables: ['user_name', 'event_name'],
+    html: (vars) => `<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <title>Ya tienes tu ticket</title>
+</head>
+<body style="margin:0;padding:0;background-color:#F5F5F7;font-family:'Inter','Helvetica Neue',Arial,sans-serif;-webkit-font-smoothing:antialiased;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="#F5F5F7">
+    <tr>
+      <td align="center" style="padding:48px 24px 0 24px;">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"
+          style="max-width:600px;background-color:#ffffff;border-radius:8px;overflow:hidden;">
+          <tr>
+            <td style="padding:28px 32px 0 32px;text-align:center;">
+              <img src="https://fabritek.co/paypac/logos/logo_paypac.png" alt="PayPac" height="24" style="display:inline-block;height:24px;" />
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:32px;">
+              <h2 style="margin:0 0 16px 0;font-size:22px;font-weight:600;color:#1A1A2E;letter-spacing:-.01em;">
+                ¡Listo, ${vars.user_name}! 🎟️
+              </h2>
+              <span style="display:block;width:32px;height:3px;background:linear-gradient(90deg,#0031FB,#00FFFB);border-radius:2px;margin:0 0 20px;"></span>
+
+              <p style="font-size:15px;color:#33333F;line-height:1.6;margin:0 0 16px;">
+                Tu pago fue confirmado y tu ticket de <strong>${vars.event_name}</strong> ya está
+                en tu wallet, con credenciales nuevas y a tu nombre.
+              </p>
+
+              <p style="font-size:15px;color:#33333F;line-height:1.6;margin:0 0 20px;">
+                Ábrelo en la <strong>app de PayPac</strong> — allí estará disponible el día del evento,
+                incluso sin conexión.
+              </p>
+
+              <p style="font-size:13px;color:#6E6E80;line-height:1.5;margin:0;">
+                El QR anterior de este ticket quedó invalidado: el tuyo es el único válido para el ingreso.
+              </p>
+            </td>
+          </tr>
+        </table>
+        <p style="margin:16px 0 48px;text-align:center;font-size:12px;color:#6E6E80;">
+          &copy; ${new Date().getFullYear()} <strong style="color:#33333F;font-weight:600;">PayPac</strong>. Todos los derechos reservados.
+        </p>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`,
+  },
+
 };
 
 export function renderSubject(subject: string, vars: Record<string, any>): string {

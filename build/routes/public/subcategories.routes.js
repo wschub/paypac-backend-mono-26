@@ -1,0 +1,11 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const authenticatePublicWeb_1 = require("../../middlewares/authenticatePublicWeb");
+const rateLimiters_1 = require("../../middlewares/rateLimiters");
+const validate_middleware_1 = require("../../middlewares/validate.middleware");
+const subcategories_validation_1 = require("../../validators/public/subcategories.validation");
+const subcategories_controller_1 = require("../../controllers/public/subcategories.controller");
+const router = (0, express_1.Router)();
+router.get('/by-category/:categoryId', authenticatePublicWeb_1.authenticatePublicWeb, rateLimiters_1.publicCatalogLimiter, (0, validate_middleware_1.validateRequest)(subcategories_validation_1.getPublicSubcategoriesParamsSchema), subcategories_controller_1.getPublicSubcategories);
+exports.default = router;

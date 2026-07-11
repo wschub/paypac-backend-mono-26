@@ -1,0 +1,28 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const events_routes_1 = __importDefault(require("./events.routes"));
+const categories_routes_1 = __importDefault(require("./categories.routes"));
+const subcategories_routes_1 = __importDefault(require("./subcategories.routes"));
+const subgenres_routes_1 = __importDefault(require("./subgenres.routes"));
+const cities_routes_1 = __importDefault(require("./cities.routes"));
+const web_blocks_routes_1 = __importDefault(require("./web_blocks.routes"));
+const event_waiting_list_routes_1 = __importDefault(require("./event_waiting_list.routes"));
+const countries_routes_1 = __importDefault(require("./countries.routes"));
+const web_sections_routes_1 = __importDefault(require("./web_sections.routes"));
+const discounts_routes_1 = __importDefault(require("./discounts.routes"));
+const publicRouter = (0, express_1.Router)();
+publicRouter.use('/events', events_routes_1.default);
+publicRouter.use('/categories', categories_routes_1.default);
+publicRouter.use('/subcategories', subcategories_routes_1.default);
+publicRouter.use('/subgenres', subgenres_routes_1.default);
+publicRouter.use('/cities', cities_routes_1.default);
+publicRouter.use('/web-blocks', web_blocks_routes_1.default);
+publicRouter.use('/waiting-list', event_waiting_list_routes_1.default);
+publicRouter.use('/countries', countries_routes_1.default);
+publicRouter.use('/web-sections', web_sections_routes_1.default);
+publicRouter.use('/discounts', discounts_routes_1.default);
+exports.default = publicRouter;

@@ -45,6 +45,10 @@ model User {
   fcm_updated              DateTime?
   birth_date               DateTime?
   city                     String?
+  // Datos de dispersión — reventa de tickets y comisiones de promotores
+  bank_name                String?
+  bank_account             String?
+  breb_key                 String?
   country_id               Int?
   gender                   Gender?
   country                  Countries?            @relation(fields: [country_id], references: [id])
@@ -693,8 +697,14 @@ model Invoice {
   sale_channel               SaleChannel      @default(WEB)
   points_used                Int              @default(0)
   points_discount            Int              @default(0)
+  // Reventa (num_invoice con prefijo RSL-): listing y tipo (FIXED = venta directa, AUCTION = subasta)
+  resale_listing_id          Int?
+  resale_type                TicketSaleType?
   promoterCode               PromoterCode?    @relation(fields: [promoter_code_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  resale_listing             TicketSaleListing? @relation(fields: [resale_listing_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   invoiceTickets             InvoiceTickets[]
+
+  @@index([resale_listing_id])
 }
 
 model InvoiceTickets {
@@ -796,6 +806,8 @@ model TicketSaleListing {
   expires_at   DateTime
   buyer_id     Int?
   sold_price   Int?
+  /** Comisión PayPac sobre la reventa (cubre fee bancario + dispersión al vendedor) */
+  resale_commission Int?
   sold_at      DateTime?
   createdAt    DateTime         @default(now())
   updatedAt    DateTime         @updatedAt
@@ -804,6 +816,7 @@ model TicketSaleListing {
   seller       User             @relation("TicketListingsSeller", fields: [seller_id], references: [id])
   buyer        User?            @relation("TicketListingsBuyer", fields: [buyer_id], references: [id])
   offers       TicketSaleOffer[]
+  invoices     Invoice[]
 
   @@index([seller_id])
   @@index([status])

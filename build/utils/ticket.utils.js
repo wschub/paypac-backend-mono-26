@@ -1,0 +1,188 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.generateReferenceTicket = generateReferenceTicket;
+exports.generateBookingTicket = generateBookingTicket;
+exports.generateTicketToken = generateTicketToken;
+exports.validateTicketToken = validateTicketToken;
+exports.generateTicketData = generateTicketData;
+exports.regenerateTokenOnTransfer = regenerateTokenOnTransfer;
+exports.encryptQRData = encryptQRData;
+exports.decryptQRData = decryptQRData;
+exports.generateTotpSecret = generateTotpSecret;
+exports.generateTOTPCode = generateTOTPCode;
+exports.validateTOTPCode = validateTOTPCode;
+exports.generateRSAKeyPair = generateRSAKeyPair;
+exports.verifyRSASignature = verifyRSASignature;
+exports.generateNFCChallenge = generateNFCChallenge;
+const crypto_1 = __importDefault(require("crypto"));
+const crypto_2 = require("crypto");
+/**
+ * Generar reference_ticket único (token alfanumérico)
+ * Formato: TKT-{timestamp}-{random}
+ */
+function generateReferenceTicket() {
+    const timestamp = Date.now().toString(36).toUpperCase(); // Base36 timestamp
+    const random = crypto_1.default.randomBytes(4).toString('hex').toUpperCase(); // 8 caracteres hex
+    return `PYC-${timestamp}-${random}`;
+}
+/**
+ * Generar booking_ticket (número de factura)
+ * Formato: PYC-{random4}-{timestamp2}
+ */
+function generateBookingTicket() {
+    const random = Math.floor(1000 + Math.random() * 9000); // 4 dígitos
+    const timestamp = Date.now().toString().slice(-2); // Últimos 2 dígitos del timestamp
+    return `EVP-${random}-${timestamp}`;
+}
+/**
+ * Generar token_ticket seguro (hash SHA-256)
+ * token = SHA256(reference_ticket + booking_ticket + customer_ID_phone)
+ *
+ * @param referenceTicket - Token único del ticket
+ * @param bookingTicket - Número de factura
+ * @param customerIdPhone - ID del teléfono del dueño actual
+ * @returns Token hash de 32 caracteres
+ */
+function generateTicketToken(referenceTicket, bookingTicket, customerIdPhone) {
+    const raw = `${referenceTicket}-${bookingTicket}-${customerIdPhone}`;
+    // Hash SHA-256
+    const hash = crypto_1.default
+        .createHash('sha256')
+        .update(raw)
+        .digest('hex')
+        .substring(0, 32); // Primeros 32 caracteres
+    return hash.toUpperCase();
+}
+/**
+ * Validar token_ticket
+ * Compara el token del QR con el token esperado
+ *
+ * @param qrToken - Token leído del QR
+ * @param ticket - Datos del ticket desde la BD
+ * @returns true si el token es válido
+ */
+function validateTicketToken(qrToken, ticket) {
+    const expectedToken = generateTicketToken(ticket.reference_ticket, ticket.booking_ticket, ticket.customer_ID_phone);
+    return qrToken === expectedToken;
+}
+/**
+ * Generar datos completos para un nuevo ticket
+ */
+function generateTicketData(customerIdPhone) {
+    const referenceTicket = generateReferenceTicket();
+    const bookingTicket = generateBookingTicket();
+    const tokenTicket = generateTicketToken(referenceTicket, bookingTicket, customerIdPhone);
+    const totpSecret = generateTotpSecret();
+    return {
+        reference_ticket: referenceTicket,
+        booking_ticket: bookingTicket,
+        token_ticket: tokenTicket,
+        totp_secret: totpSecret,
+    };
+}
+/**
+ * Regenerar token al transferir ticket
+ * Solo cambia el customer_ID_phone, reference_ticket y booking_ticket se mantienen
+ */
+function regenerateTokenOnTransfer(referenceTicket, bookingTicket, newCustomerIdPhone) {
+    return generateTicketToken(referenceTicket, bookingTicket, newCustomerIdPhone);
+}
+/**
+ * Encriptar datos sensibles (opcional, para QR)
+ */
+function encryptQRData(data, secret) {
+    //const cipher = crypto.createCipher('aes-256-cbc', secret);
+    const cipher = crypto_1.default.createCipheriv('aes-256-cbc', crypto_1.default.scryptSync(secret, 'salt', 32), Buffer.alloc(16, 0));
+    let encrypted = cipher.update(data, 'utf8', 'hex');
+    encrypted += cipher.final('hex');
+    return encrypted;
+}
+/**
+ * Desencriptar datos del QR (opcional)
+ */
+function decryptQRData(encryptedData, secret) {
+    //const decipher = crypto.createDecipher('aes-256-cbc', secret);
+    const decipher = crypto_1.default.createDecipheriv('aes-256-cbc', crypto_1.default.scryptSync(secret, 'salt', 32), Buffer.alloc(16, 0));
+    let decrypted = decipher.update(encryptedData, 'hex', 'utf8');
+    decrypted += decipher.final('utf8');
+    return decrypted;
+}
+/**
+ * Generar secreto TOTP único por ticket
+ * Base32 de 16 caracteres — compatible con Google Authenticator
+ */
+function generateTotpSecret() {
+    const base32Chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+    const bytes = crypto_1.default.randomBytes(16);
+    let secret = '';
+    for (const byte of bytes) {
+        secret += base32Chars[byte % 32];
+    }
+    return secret;
+}
+/**
+ * Generar código TOTP de 6 dígitos
+ * Compatible con ventana de 30 segundos
+ */
+function generateTOTPCode(secret, timeWindow) {
+    const window = timeWindow !== null && timeWindow !== void 0 ? timeWindow : Math.floor(Date.now() / 30000);
+    const hmac = crypto_1.default.createHmac('sha1', secret);
+    hmac.update(window.toString());
+    const hash = hmac.digest();
+    const offset = hash[hash.length - 1] & 0x0f;
+    const code = ((hash[offset] & 0x7f) << 24) |
+        ((hash[offset + 1] & 0xff) << 16) |
+        ((hash[offset + 2] & 0xff) << 8) |
+        (hash[offset + 3] & 0xff);
+    return (code % 1000000).toString().padStart(6, '0');
+}
+/**
+ * Validar código TOTP con tolerancia ±1 ventana (90s total)
+ * Para compensar desfase de reloj entre customer y backend
+ */
+function validateTOTPCode(code, secret) {
+    const currentWindow = Math.floor(Date.now() / 30000);
+    for (let i = -1; i <= 1; i++) {
+        if (generateTOTPCode(secret, currentWindow + i) === code) {
+            return true;
+        }
+    }
+    return false;
+}
+//NFC
+/**
+ * Generar par de claves RSA para NFC challenge-response
+ * Se llama desde la app al registrarse o al recibir un ticket
+ */
+function generateRSAKeyPair() {
+    const { publicKey, privateKey } = (0, crypto_2.generateKeyPairSync)('rsa', {
+        modulusLength: 2048,
+        publicKeyEncoding: { type: 'spki', format: 'pem' },
+        privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
+    });
+    return { publicKey, privateKey };
+}
+/**
+ * Verificar firma RSA del challenge
+ * Backend verifica que el customer firmó con su private key
+ */
+function verifyRSASignature(challenge, signature, publicKey) {
+    try {
+        const verify = (0, crypto_2.createVerify)('SHA256');
+        verify.update(challenge);
+        verify.end();
+        return verify.verify(publicKey, signature, 'base64');
+    }
+    catch (_a) {
+        return false;
+    }
+}
+/**
+ * Generar challenge NFC — random 32 bytes
+ */
+function generateNFCChallenge() {
+    return crypto_1.default.randomBytes(32).toString('hex');
+}

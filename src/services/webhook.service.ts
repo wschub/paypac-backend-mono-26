@@ -1,5 +1,6 @@
 import { prisma } from '../config/db';
 import { InvoiceService } from '../services/invoice.service';
+import { TicketSaleService } from '../services/ticket_sale.service';
 import { TransactionRepository } from '../repositories/transaction.repository';
 import { PushNotificationService } from '../services/push-notification.service';
 import { NotificationMessageQueueService } from '../services/notificationmessagequeue.service';
@@ -7,6 +8,7 @@ import { emitPaymentCompleted } from '../sockets/notification.socket';
 import { io } from '../index';
 
 const invoiceService  = new InvoiceService();
+const ticketSaleService = new TicketSaleService();
 const transactionRepo = new TransactionRepository();
 const pushService     = new PushNotificationService();
 const emailService    = new NotificationMessageQueueService(); // ← agregar
@@ -178,6 +180,37 @@ export class WebhookService {
         customer_data?.phone_number ||
         customer_data?.legal_id ||
         'UNKNOWN';
+
+      // ── 🔁 REVENTA (invoice RSL-) — flujo aparte del checkout normal ──
+      if (invoice.resale_listing_id) {
+        console.log(`🔁 REVENTA detectada: ${invoice.num_invoice} — listing ${invoice.resale_listing_id} (${invoice.resale_type})`);
+        try {
+          await prisma.invoice.update({
+            where: { id: invoice.id },
+            data: { status: 'PAID' },
+          });
+
+          await ticketSaleService.confirmSalePayment(
+            invoice.resale_listing_id,
+            invoice.user_id,
+            invoice.total
+          );
+
+          emitPaymentCompleted(io, invoice.user_id, {
+            invoice_id: invoice.id,
+            num_invoice: invoice.num_invoice,
+            transaction_id: transactionRecord.id,
+            status: 'APPROVED',
+            status_message: 'Pago aprobado — tu ticket fue transferido',
+            can_continue: true,
+          });
+
+          console.log('✅ REVENTA procesada exitosamente\n');
+        } catch (resaleError: any) {
+          console.error('❌ ERROR procesando reventa:', resaleError.message);
+        }
+        return; // no continuar con el flujo normal (tickets de evento, promotores, etc.)
+      }
 
       try {
         await invoiceService.updateInvoiceStatus(

@@ -227,6 +227,23 @@ export const setupTicketSocketHandlers = (io: SocketIOServer) => {
       console.log(`👤 Usuario ${socket.userId} unido a su room personal`);
     });
 
+    /**
+     * Reventa/subasta en vivo: unirse al room de un listing para recibir
+     * listing:offer:new / listing:offer:accepted / listing:sold en tiempo real
+     */
+    socket.on('listing:join', (data?: { listing_id?: number }) => {
+      const listingId = data?.listing_id;
+      if (!listingId) return;
+      socket.join(`listing:${listingId}`);
+      console.log(`👁️ Usuario ${socket.userId} viendo listing ${listingId}`);
+    });
+
+    socket.on('listing:leave', (data?: { listing_id?: number }) => {
+      const listingId = data?.listing_id;
+      if (!listingId) return;
+      socket.leave(`listing:${listingId}`);
+    });
+
     // ============================================
     // 🔔 NOTIFICACIONES GENERALES
     // ============================================

@@ -9,6 +9,7 @@ import waitingListRouter from './event_waiting_list.routes';
 import countriesRouter from './countries.routes';
 import webSectionsRouter from './web_sections.routes';
 import discountsRouter from './discounts.routes';
+import ticketSalesRouter from './ticket_sales.routes';
 
 const publicRouter = Router();
 
@@ -22,5 +23,6 @@ publicRouter.use('/waiting-list', waitingListRouter);
 publicRouter.use('/countries', countriesRouter);
 publicRouter.use('/web-sections', webSectionsRouter);
 publicRouter.use('/discounts', discountsRouter);
+publicRouter.use('/ticket-sales', ticketSalesRouter);
 
 export default publicRouter;

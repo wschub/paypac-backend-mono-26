@@ -70,6 +70,52 @@ export const acceptOffer = async (req: Request, res: Response) => {
   }
 };
 
+/**
+ * POST /api/ticket-sales/:listingId/purchase
+ * Crea la Invoice de reventa (RSL-). El cliente luego paga con
+ * POST /api/transactions/process usando el invoice_id retornado.
+ */
+export const purchaseListing = async (req: Request, res: Response) => {
+  try {
+    const listingId = parseInt(req.params.listingId as string);
+    const buyerId   = (req as any).user.id;
+    const result = await saleService.purchaseListing(listingId, buyerId, req.body);
+    res.status(201).json({
+      invoice: result.invoice,
+      price:   result.price,
+      message: 'Invoice de reventa creada. Procede al pago.',
+    });
+  } catch (error: any) {
+    _handleError(res, error);
+  }
+};
+
+/**
+ * GET /api/ticket-sales/event/:eventId — listings activos del evento (autenticado)
+ */
+export const getListingsByEvent = async (req: Request, res: Response) => {
+  try {
+    const eventId = parseInt(req.params.eventId as string);
+    const result = await saleService.getActiveListingsByEvent(eventId);
+    res.status(200).json(result);
+  } catch (error: any) {
+    _handleError(res, error);
+  }
+};
+
+/**
+ * GET /api/ticket-sales/:listingId — detalle de un listing (autenticado)
+ */
+export const getListingDetail = async (req: Request, res: Response) => {
+  try {
+    const listingId = parseInt(req.params.listingId as string);
+    const listing = await saleService.getListingPublicDetail(listingId);
+    res.status(200).json({ listing });
+  } catch (error: any) {
+    _handleError(res, error);
+  }
+};
+
 function _handleError(res: Response, error: any) {
   console.error('TicketSale error:', error);
   const msg: string = error.message ?? '';

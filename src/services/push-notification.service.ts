@@ -304,6 +304,105 @@ async sendTicketTransferAcceptedNotification(
 }
 
 /**
+ * Reventa — notificar al VENDEDOR que su ticket fue pagado y vendido
+ */
+async sendResaleSoldToSeller(
+  fcmToken: string,
+  data: { eventName: string; soldPrice: number; listingId: number }
+) {
+  try {
+    const message: admin.messaging.Message = {
+      token: fcmToken,
+      notification: {
+        title: '💰 ¡Tu ticket fue vendido!',
+        body: `Tu ticket de ${data.eventName} fue pagado por $${data.soldPrice.toLocaleString('es-CO')}. Pronto recibirás tu dispersión.`,
+      },
+      data: {
+        type: 'resale_sold_seller',
+        listing_id: data.listingId.toString(),
+        route: '/wallet',
+      },
+      android: {
+        priority: 'high',
+        notification: { channelId: 'tickets', sound: 'default', color: '#12B76A' },
+      },
+    };
+    const response = await admin.messaging().send(message);
+    console.log('✅ Push reventa (vendedor) enviada');
+    return { success: true, messageId: response };
+  } catch (error: any) {
+    console.error('❌ Error push reventa vendedor:', error.message);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Reventa — notificar al COMPRADOR que ya tiene su ticket
+ */
+async sendResaleTicketToBuyer(
+  fcmToken: string,
+  data: { eventName: string; ticketId: number }
+) {
+  try {
+    const message: admin.messaging.Message = {
+      token: fcmToken,
+      notification: {
+        title: '🎟️ ¡Ya tienes tu ticket!',
+        body: `Tu compra fue confirmada. El ticket de ${data.eventName} ya está en tu wallet.`,
+      },
+      data: {
+        type: 'resale_ticket_buyer',
+        ticket_id: data.ticketId.toString(),
+        route: '/wallet',
+      },
+      android: {
+        priority: 'high',
+        notification: { channelId: 'tickets', sound: 'default', color: '#0031FB' },
+      },
+    };
+    const response = await admin.messaging().send(message);
+    console.log('✅ Push reventa (comprador) enviada');
+    return { success: true, messageId: response };
+  } catch (error: any) {
+    console.error('❌ Error push reventa comprador:', error.message);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Reventa — notificar al ganador de la subasta que debe pagar
+ */
+async sendResaleOfferAcceptedNotification(
+  fcmToken: string,
+  data: { eventName: string; amount: number; listingId: number; windowMinutes: number }
+) {
+  try {
+    const message: admin.messaging.Message = {
+      token: fcmToken,
+      notification: {
+        title: '🏆 ¡Tu oferta fue aceptada!',
+        body: `Tienes ${data.windowMinutes} min para pagar $${data.amount.toLocaleString('es-CO')} por el ticket de ${data.eventName}.`,
+      },
+      data: {
+        type: 'resale_offer_accepted',
+        listing_id: data.listingId.toString(),
+        route: '/wallet',
+      },
+      android: {
+        priority: 'high',
+        notification: { channelId: 'tickets', sound: 'default', color: '#F79009' },
+      },
+    };
+    const response = await admin.messaging().send(message);
+    console.log('✅ Push oferta aceptada enviada');
+    return { success: true, messageId: response };
+  } catch (error: any) {
+    console.error('❌ Error push oferta aceptada:', error.message);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
  * Enviar notificación de transferencia rechazada
  */
 async sendTicketTransferRejectedNotification(

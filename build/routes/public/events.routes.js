@@ -1,0 +1,21 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const authenticatePublicWeb_1 = require("../../middlewares/authenticatePublicWeb");
+const rateLimiters_1 = require("../../middlewares/rateLimiters");
+const validate_middleware_1 = require("../../middlewares/validate.middleware");
+const events_validation_1 = require("../../validators/public/events.validation");
+const eventViews_validation_1 = require("../../validators/public/eventViews.validation");
+const events_controller_1 = require("../../controllers/public/events.controller");
+const localities_controller_1 = require("../../controllers/public/localities.controller");
+const eventViews_controller_1 = require("../../controllers/public/eventViews.controller");
+const router = (0, express_1.Router)();
+router.get('/', authenticatePublicWeb_1.authenticatePublicWeb, rateLimiters_1.publicEventsLimiter, (0, validate_middleware_1.validateRequest)(events_validation_1.getPublicEventsQuerySchema), events_controller_1.getPublicEvents);
+// Rutas estáticas ANTES de /:id para evitar conflictos
+router.get('/featured', authenticatePublicWeb_1.authenticatePublicWeb, rateLimiters_1.publicEventsLimiter, events_controller_1.getFeaturedEvents);
+router.get('/slug/:publicUrl', authenticatePublicWeb_1.authenticatePublicWeb, rateLimiters_1.publicEventDetailLimiter, events_controller_1.getPublicEventBySlug);
+router.get('/:id', authenticatePublicWeb_1.authenticatePublicWeb, rateLimiters_1.publicEventDetailLimiter, (0, validate_middleware_1.validateRequest)(events_validation_1.getPublicEventByIdParamsSchema), events_controller_1.getPublicEventById);
+router.get('/:eventId/localities', authenticatePublicWeb_1.authenticatePublicWeb, rateLimiters_1.publicLocalitiesLimiter, (0, validate_middleware_1.validateRequest)(events_validation_1.getPublicLocalitiesParamsSchema), localities_controller_1.getPublicLocalities);
+router.post('/:id/view', authenticatePublicWeb_1.authenticatePublicWeb, rateLimiters_1.publicViewLimiter, (0, validate_middleware_1.validateRequest)(eventViews_validation_1.createEventViewSchema), eventViews_controller_1.createEventView);
+router.patch('/:id/view/:sessionToken', authenticatePublicWeb_1.authenticatePublicWeb, rateLimiters_1.publicViewUpdateLimiter, (0, validate_middleware_1.validateRequest)(eventViews_validation_1.updateEventViewSchema), eventViews_controller_1.updateEventViewDuration);
+exports.default = router;

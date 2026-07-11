@@ -1,0 +1,69 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.getStatesStatsSchema = exports.getStatesQuerySchema = exports.getStatesByCountrySchema = exports.getStateByIdSchema = exports.updateStateSchema = exports.createStateSchema = void 0;
+const zod_1 = require("zod");
+/**
+ * Schema para crear un estado
+ */
+exports.createStateSchema = zod_1.z.object({
+    body: zod_1.z.object({
+        name_state: zod_1.z.string().min(2, 'El nombre del estado debe tener al menos 2 caracteres'),
+        country_id: zod_1.z
+            .number({ message: 'El country_id es requerido y debe ser un número' })
+            .int('El country_id debe ser un número entero')
+            .positive('El country_id debe ser un número positivo'),
+    }),
+});
+/**
+ * Schema para actualizar un estado
+ */
+exports.updateStateSchema = zod_1.z.object({
+    params: zod_1.z.object({
+        id: zod_1.z.string().regex(/^\d+$/, 'El id debe ser numérico'),
+    }),
+    body: zod_1.z
+        .object({
+        name_state: zod_1.z.string().min(2, 'El nombre debe tener al menos 2 caracteres').optional(),
+        country_id: zod_1.z.number().int().positive('El country_id debe ser un número positivo').optional(),
+    })
+        .refine((data) => Object.keys(data).length > 0, {
+        message: 'Debes enviar al menos un campo para actualizar',
+    }),
+});
+/**
+ * Schema para obtener estado por ID
+ */
+exports.getStateByIdSchema = zod_1.z.object({
+    params: zod_1.z.object({
+        id: zod_1.z.string().regex(/^\d+$/, 'El id debe ser numérico'),
+    }),
+});
+/**
+ * Schema para obtener estados por país
+ */
+exports.getStatesByCountrySchema = zod_1.z.object({
+    params: zod_1.z.object({
+        country_id: zod_1.z.string().regex(/^\d+$/, 'El country_id debe ser numérico'),
+    }),
+});
+/**
+ * Schema para filtrar estados (query params)
+ */
+exports.getStatesQuerySchema = zod_1.z.object({
+    query: zod_1.z
+        .object({
+        search: zod_1.z.string().optional(),
+        country_id: zod_1.z.string().regex(/^\d+$/, 'El country_id debe ser numérico').optional(),
+    })
+        .optional(),
+});
+/**
+ * Schema para stats (query params opcionales)
+ */
+exports.getStatesStatsSchema = zod_1.z.object({
+    query: zod_1.z
+        .object({
+        country_id: zod_1.z.string().regex(/^\d+$/, 'El country_id debe ser numérico').optional(),
+    })
+        .optional(),
+});
