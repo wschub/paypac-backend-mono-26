@@ -3,8 +3,8 @@ import { TicketSaleStatus, TicketSaleType, TicketOfferStatus } from '@prisma/cli
 
 const listingInclude = {
   ticket: true,
-  seller: { select: { id: true, name: true, lastname: true } },
-  buyer:  { select: { id: true, name: true, lastname: true } },
+  seller: { select: { id: true, name: true, last_name: true } },
+  buyer:  { select: { id: true, name: true, last_name: true } },
   offers: {
     where: { status: 'PENDING' as TicketOfferStatus },
     select: { id: true, amount: true, createdAt: true }, // no expone buyer_id
