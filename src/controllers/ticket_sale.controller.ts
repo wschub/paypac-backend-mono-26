@@ -58,6 +58,21 @@ export const getOffers = async (req: Request, res: Response) => {
   }
 };
 
+/**
+ * GET /api/ticket-sales/:listingId/my-offer
+ * Mi oferta más reciente en la subasta (para reconstruir el estado tras un refresh).
+ */
+export const getMyOffer = async (req: Request, res: Response) => {
+  try {
+    const listingId = parseInt(req.params.listingId as string);
+    const buyerId   = (req as any).user.id;
+    const result = await saleService.getMyOffer(listingId, buyerId);
+    res.status(200).json(result);
+  } catch (error: any) {
+    _handleError(res, error);
+  }
+};
+
 export const acceptOffer = async (req: Request, res: Response) => {
   try {
     const listingId = parseInt(req.params.listingId as string);

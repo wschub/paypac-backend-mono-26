@@ -241,6 +241,28 @@ export class TicketSaleService {
     };
   }
 
+  // 3.2 AUCTION — Mi oferta más reciente en un listing (para reconstruir estado tras un refresh)
+  async getMyOffer(listingId: number, buyerId: number) {
+    const offer = await prisma.ticketSaleOffer.findFirst({
+      where: { listing_id: listingId, buyer_id: buyerId },
+      orderBy: { createdAt: 'desc' },
+    });
+    if (!offer) return { offer: null };
+
+    const paymentDeadline = offer.status === 'ACCEPTED'
+      ? getPaymentDeadline(offer.notified_to_pay_at ?? offer.updatedAt).toISOString()
+      : null;
+
+    return {
+      offer: {
+        id: offer.id,
+        amount: offer.amount,
+        status: offer.status,
+        payment_deadline: paymentDeadline,
+      },
+    };
+  }
+
   /**
    * Comprar un listing — crea la Invoice de reventa (num_invoice RSL-...).
    * El comprador paga con los rieles existentes: POST /api/transactions/process
@@ -595,6 +617,7 @@ export class TicketSaleService {
     if (!listing) throw new Error('Publicación no encontrada');
 
     let topOffer: number | null = null;
+    let offerCount = 0;
     if (listing.sale_type === 'AUCTION') {
       const best = await prisma.ticketSaleOffer.findFirst({
         where: { listing_id: listingId, status: 'PENDING' },
@@ -602,9 +625,12 @@ export class TicketSaleService {
         select: { amount: true },
       });
       topOffer = best?.amount ?? null;
+      offerCount = await prisma.ticketSaleOffer.count({
+        where: { listing_id: listingId, status: 'PENDING' },
+      });
     }
 
-    return { ...listing, top_offer: topOffer };
+    return { ...listing, top_offer: topOffer, offer_count: offerCount };
   }
 
   // Revisar y expirar listings vencidos (puede llamarse desde un job o endpoint admin)

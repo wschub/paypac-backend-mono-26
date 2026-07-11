@@ -7,6 +7,7 @@ import {
   getMyListings,
   placeOffer,
   getOffers,
+  getMyOffer,
   acceptOffer,
   purchaseListing,
   getListingsByEvent,
@@ -23,6 +24,7 @@ const customer = authorizeRoles('PAYPAC', 'ORGANIZER', 'STAFF', 'STAFF_PROMOTER'
 // PATCH  /api/ticket-sales/:listingId/cancel                      → cancelar publicación
 // POST   /api/ticket-sales/:listingId/offer                       → hacer oferta (solo AUCTION)
 // GET    /api/ticket-sales/:listingId/offers                      → ver ofertas (solo vendedor)
+// GET    /api/ticket-sales/:listingId/my-offer                    → mi oferta más reciente (comprador)
 // PATCH  /api/ticket-sales/:listingId/offers/:offerId/accept      → aceptar oferta
 // POST   /api/ticket-sales/:listingId/purchase                    → comprar (crea invoice RSL)
 // GET    /api/ticket-sales/:listingId                             → detalle de un listing
@@ -33,6 +35,7 @@ router.get('/ticket-sales/event/:eventId',                      authenticate, cu
 router.patch('/ticket-sales/:listingId/cancel',                 authenticate, customer, cancelListing);
 router.post('/ticket-sales/:listingId/offer',                   authenticate, customer, placeOffer);
 router.get('/ticket-sales/:listingId/offers',                   authenticate, customer, getOffers);
+router.get('/ticket-sales/:listingId/my-offer',                 authenticate, customer, getMyOffer);
 router.patch('/ticket-sales/:listingId/offers/:offerId/accept', authenticate, customer, acceptOffer);
 router.post('/ticket-sales/:listingId/purchase',                authenticate, customer, purchaseListing);
 router.get('/ticket-sales/:listingId',                          authenticate, customer, getListingDetail);
