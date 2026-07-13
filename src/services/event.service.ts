@@ -331,6 +331,7 @@ async getAvailableEventsForPromoter(promoter_id: number) {
       status: { in: ['APPROVED', 'ACTIVE'] },
       event_type: 'PUBLICO',
       ...(filters.featured === 'true' && { featured: true }),
+      ...(filters.featured === 'false' && { featured: false }),
       ...(idList
         ? { id: { in: idList } }
         : {
