@@ -1071,8 +1071,8 @@ model WebBlockIndex {
   banner_text       String?
   banner_link       String?
   /** Color(es) de fondo base del bloque: uno o varios hex separados por coma (1=sólido, 2+=gradiente).
-   *  Default = navy del index; el hero le sobrepone el gradiente diagonal al 15%. */
-  bkg_color         String?             @default("#1A1A2E")
+   *  Default = gradiente de marca (placeholder; al conectar con la web se ajustará). */
+  bkg_color         String?             @default("#0031FB,#0088FF,#00FFFB")
   createdAt         DateTime            @default(now())
   updatedAt         DateTime            @updatedAt
   country           Countries           @relation(fields: [country_id], references: [id])
