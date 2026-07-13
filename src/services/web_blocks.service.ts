@@ -29,6 +29,7 @@ export class WebBlocksService {
     banner_img?: string;
     banner_text?: string;
     banner_link?: string;
+    bkg_color?: string | null;
   }) {
     const country = await prisma.countries.findUnique({ where: { id: data.country_id } });
     if (!country) throw new Error('País no encontrado');
@@ -54,6 +55,7 @@ export class WebBlocksService {
       banner_img?: string | null;
       banner_text?: string | null;
       banner_link?: string | null;
+      bkg_color?: string | null;
     }
   ) {
     const block = await repo.findById(id);

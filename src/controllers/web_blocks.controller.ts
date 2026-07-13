@@ -56,7 +56,7 @@ export const createBlock = async (req: Request, res: Response): Promise<void> =>
   try {
     const {
       title, block_order, block_active, type, block_identifier, country_id,
-      banner_img, banner_text, banner_link, block_config,
+      banner_img, banner_text, banner_link, block_config, bkg_color,
     } = req.body;
 
     if (!title) { res.status(400).json({ message: 'title es requerido' }); return; }
@@ -69,7 +69,7 @@ export const createBlock = async (req: Request, res: Response): Promise<void> =>
       block_order:      block_order ?? 1,
       block_identifier: block_identifier?.trim() || generateIdentifier(title),
       block_active:     block_active ?? 1,
-      banner_img, banner_text, banner_link, block_config,
+      banner_img, banner_text, banner_link, block_config, bkg_color,
     });
     res.status(201).json({ block });
   } catch (e: any) { handle(res, e, 'createBlock'); }

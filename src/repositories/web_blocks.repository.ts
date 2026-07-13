@@ -72,6 +72,7 @@ export class WebBlocksRepository {
     banner_img?: string;
     banner_text?: string;
     banner_link?: string;
+    bkg_color?: string | null;
   }) {
     return prisma.webBlockIndex.create({
       data,
@@ -92,6 +93,7 @@ export class WebBlocksRepository {
       banner_img?: string | null;
       banner_text?: string | null;
       banner_link?: string | null;
+      bkg_color?: string | null;
     }
   ) {
     return prisma.webBlockIndex.update({
