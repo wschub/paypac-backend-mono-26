@@ -2,6 +2,7 @@ import { Router } from 'express';
 import {
   getBlocks,
   getBlocksFull,
+  createBlock,
   updateBlock,
   getSlides,
   addSlide,
@@ -24,6 +25,7 @@ const paypacOnly = [authenticate, authorizeRoles('PAYPAC')];
 // PUT /api/web-blocks/:id        → actualizar campos del bloque
 router.get('/', ...paypacOnly, getBlocks);
 router.get('/full', ...paypacOnly, getBlocksFull);
+router.post('/', ...paypacOnly, createBlock);
 
 // ── Slides ───────────────────────────────────────────────────────────────────────
 // GET    /api/web-blocks/slides                      → todos los slides (plano)

@@ -1,5 +1,22 @@
 import { Request, Response } from 'express';
+import { WebBlockType } from '@prisma/client';
 import { WebBlocksService } from '../services/web_blocks.service';
+
+// País por defecto para bloques nuevos (Colombia)
+const DEFAULT_BLOCK_COUNTRY_ID = 3;
+
+// Genera un identificador único a partir del título (o 'bloque') + sufijo temporal
+function generateIdentifier(title: string): string {
+  const slug = String(title)
+    .replace(/<[^>]+>/g, ' ')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 40) || 'bloque';
+  return `${slug}-${Date.now().toString(36)}`;
+}
 
 /**
  * Controlador de dashboard (PAYPAC) para bloques del index y sus slides.
@@ -33,6 +50,29 @@ export const getBlocksFull = async (_req: Request, res: Response): Promise<void>
   try {
     res.status(200).json({ blocks: await service.getAllFull() });
   } catch (e: any) { handle(res, e, 'getBlocksFull'); }
+};
+
+export const createBlock = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const {
+      title, block_order, block_active, type, block_identifier, country_id,
+      banner_img, banner_text, banner_link, block_config,
+    } = req.body;
+
+    if (!title) { res.status(400).json({ message: 'title es requerido' }); return; }
+
+    // Campos que la tabla exige pero el form mínimo no pide: se resuelven con defaults
+    const block = await service.create({
+      country_id:       country_id ? +country_id : DEFAULT_BLOCK_COUNTRY_ID,
+      title,
+      type:             (type || 'CUSTOM') as WebBlockType,
+      block_order:      block_order ?? 1,
+      block_identifier: block_identifier?.trim() || generateIdentifier(title),
+      block_active:     block_active ?? 1,
+      banner_img, banner_text, banner_link, block_config,
+    });
+    res.status(201).json({ block });
+  } catch (e: any) { handle(res, e, 'createBlock'); }
 };
 
 export const updateBlock = async (req: Request, res: Response): Promise<void> => {
