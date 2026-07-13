@@ -138,7 +138,7 @@ export class WebBlocksRepository {
 
   // ── WebBlockSlideImgs ──────────────────────────────────────────────────────
 
-  async addSlide(data: { block_id: number; image_url: string; event_id?: number | null }) {
+  async addSlide(data: { block_id: number; image_url: string; event_id?: number | null; link_url?: string | null }) {
     return prisma.webBlockSlideImgs.create({
       data,
       include: {
@@ -147,7 +147,7 @@ export class WebBlocksRepository {
     });
   }
 
-  async updateSlide(slideId: number, data: { image_url?: string; event_id?: number | null }) {
+  async updateSlide(slideId: number, data: { image_url?: string; event_id?: number | null; link_url?: string | null }) {
     return prisma.webBlockSlideImgs.update({
       where: { id: slideId },
       data,

@@ -42,6 +42,7 @@ export const addSlideSchema = z.object({
   body: z.object({
     image_url: z.string().url({ message: 'image_url debe ser una URL válida' }),
     event_id:  z.number().int().positive().nullable().optional(),
+    link_url:  z.string().url({ message: 'link_url debe ser una URL válida' }).nullable().optional(),
   }),
 });
 
@@ -49,6 +50,7 @@ export const updateSlideSchema = z.object({
   body: z.object({
     image_url: z.string().url().optional(),
     event_id:  z.number().int().positive().nullable().optional(),
+    link_url:  z.string().url({ message: 'link_url debe ser una URL válida' }).nullable().optional(),
   }),
 });
 

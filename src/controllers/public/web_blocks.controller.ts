@@ -117,8 +117,8 @@ export const removeEventFromBlock = async (req: Request, res: Response) => {
 export const addSlideToBlock = async (req: Request, res: Response) => {
   try {
     const blockId = parseInt(req.params.id as string);
-    const { image_url, event_id } = req.body;
-    const slide = await service.addSlide(blockId, image_url, event_id ?? null);
+    const { image_url, event_id, link_url } = req.body;
+    const slide = await service.addSlide(blockId, image_url, event_id ?? null, link_url ?? null);
     res.status(201).json({ slide });
   } catch (error: any) {
     console.error('Error in addSlideToBlock:', error);

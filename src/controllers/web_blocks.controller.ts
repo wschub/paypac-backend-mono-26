@@ -115,9 +115,9 @@ export const getSlides = async (_req: Request, res: Response): Promise<void> => 
 export const addSlide = async (req: Request, res: Response): Promise<void> => {
   try {
     const blockId = parseInt(req.params.id as string);
-    const { image_url, event_id } = req.body;
+    const { image_url, event_id, link_url } = req.body;
     if (!image_url) { res.status(400).json({ message: 'image_url es requerido' }); return; }
-    const slide = await service.addSlide(blockId, image_url, event_id ?? null);
+    const slide = await service.addSlide(blockId, image_url, event_id ?? null, link_url ?? null);
     res.status(201).json({ slide });
   } catch (e: any) { handle(res, e, 'addSlide'); }
 };

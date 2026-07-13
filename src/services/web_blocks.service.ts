@@ -109,7 +109,7 @@ export class WebBlocksService {
 
   // ── WebBlockSlideImgs ──────────────────────────────────────────────────────
 
-  async addSlide(blockId: number, imageUrl: string, eventId?: number | null) {
+  async addSlide(blockId: number, imageUrl: string, eventId?: number | null, linkUrl?: string | null) {
     const block = await repo.findById(blockId);
     if (!block) throw new Error('Bloque no encontrado');
 
@@ -118,10 +118,10 @@ export class WebBlocksService {
       if (!event) throw new Error('Evento no encontrado');
     }
 
-    return repo.addSlide({ block_id: blockId, image_url: imageUrl, event_id: eventId ?? null });
+    return repo.addSlide({ block_id: blockId, image_url: imageUrl, event_id: eventId ?? null, link_url: linkUrl ?? null });
   }
 
-  async updateSlide(blockId: number, slideId: number, data: { image_url?: string; event_id?: number | null }) {
+  async updateSlide(blockId: number, slideId: number, data: { image_url?: string; event_id?: number | null; link_url?: string | null }) {
     const slide = await repo.findSlide(slideId);
     if (!slide || slide.block_id !== blockId) throw new Error('Slide no encontrado en este bloque');
 

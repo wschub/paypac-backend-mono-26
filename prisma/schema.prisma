@@ -1099,6 +1099,8 @@ model WebBlockSlideImgs {
   block_id  Int
   event_id  Int?
   image_url String
+  /** URL de destino al hacer clic en la imagen (opcional) */
+  link_url  String?
   block     WebBlockIndex @relation(fields: [block_id], references: [id], onDelete: Cascade)
   event     Event?        @relation(fields: [event_id], references: [id], onDelete: SetNull)
 
