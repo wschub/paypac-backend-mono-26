@@ -217,6 +217,9 @@ model Category {
   category_name String
   country_id    Int
   category_icon String?
+  /** Slug amigable (minúsculas, sin tildes/ñ, guiones) — se genera y actualiza
+   *  automáticamente al crear/editar la categoría; usado para /events/{slug}. */
+  public_url    String?       @unique
   country       Countries     @relation(fields: [country_id], references: [id])
   events        Event[]
   subcategories SubCategory[]

@@ -36,3 +36,27 @@ export async function generateUniqueSlug(baseText: string, excludeEventId?: numb
 
   return slug;
 }
+
+export async function generateUniqueCategorySlug(baseText: string, excludeCategoryId?: number): Promise<string> {
+  let slug = generateSlug(baseText);
+  let counter = 1;
+  let isUnique = false;
+
+  while (!isUnique) {
+    const existing = await prisma.category.findFirst({
+      where: {
+        public_url: slug,
+        ...(excludeCategoryId && { id: { not: excludeCategoryId } }),
+      },
+    });
+
+    if (!existing) {
+      isUnique = true;
+    } else {
+      slug = `${generateSlug(baseText)}-${counter}`;
+      counter++;
+    }
+  }
+
+  return slug;
+}

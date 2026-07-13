@@ -3,6 +3,7 @@ import { CountriesRepository } from '../repositories/countries.repository';
 import { Prisma } from '@prisma/client';
 import { prisma } from '../prisma/client';
 import { DEFAULT_COUNTRY_ID } from '../config/constants';
+import { generateUniqueCategorySlug } from '../utils/slug';
 
 const categoryRepo = new CategoryRepository();
 const countriesRepo = new CountriesRepository();
@@ -36,9 +37,12 @@ export class CategoryService {
       );
     }
 
+    const public_url = await generateUniqueCategorySlug(data.category_name);
+
     return categoryRepo.create({
       category_name: data.category_name,
       category_icon: data.category_icon,
+      public_url,
       country: { connect: { id: data.country_id } },
     });
   }
@@ -114,7 +118,10 @@ export class CategoryService {
     }
 
     const updateData: Prisma.CategoryUpdateInput = {};
-    if (data.category_name) updateData.category_name = data.category_name;
+    if (data.category_name) {
+      updateData.category_name = data.category_name;
+      updateData.public_url = await generateUniqueCategorySlug(data.category_name, id);
+    }
     if (data.category_icon !== undefined) updateData.category_icon = data.category_icon;
     if (data.country_id) updateData.country = { connect: { id: data.country_id } };
 
@@ -178,6 +185,7 @@ export class CategoryService {
         category_name: true,
         category_icon: true,
         country_id: true,
+        public_url: true,
         _count: {
           select: {
             events: { where: { status: { in: ['APPROVED', 'ACTIVE'] }, event_type: 'PUBLICO' } },
@@ -188,5 +196,16 @@ export class CategoryService {
     });
 
     return { data: categories, total: categories.length };
+  }
+
+  /**
+   * Categoría por su slug público — usada por /events/{slug} en la web
+   * para preseleccionar el filtro de categoría.
+   */
+  async getPublicCategoryBySlug(publicUrl: string) {
+    return prisma.category.findUnique({
+      where: { public_url: publicUrl },
+      select: { id: true, category_name: true, category_icon: true, country_id: true, public_url: true },
+    });
   }
 }
