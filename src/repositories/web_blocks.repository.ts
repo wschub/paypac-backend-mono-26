@@ -162,4 +162,30 @@ export class WebBlocksRepository {
   async findSlide(slideId: number) {
     return prisma.webBlockSlideImgs.findUnique({ where: { id: slideId } });
   }
+
+  // Todos los slides en plano (para el dashboard), con su bloque y evento
+  async findAllSlides() {
+    return prisma.webBlockSlideImgs.findMany({
+      include: {
+        block: { select: { id: true, title: true, block_identifier: true } },
+        event: { select: { id: true, public_id: true, public_url: true, name: true } },
+      },
+      orderBy: { id: 'desc' },
+    });
+  }
+
+  // Todos los bloques (sin filtro de activo) — datos básicos para selects del dashboard
+  async findAllBlocksBasic() {
+    return prisma.webBlockIndex.findMany({
+      select: {
+        id: true,
+        title: true,
+        block_identifier: true,
+        type: true,
+        block_active: true,
+        country_id: true,
+      },
+      orderBy: { block_order: 'asc' },
+    });
+  }
 }

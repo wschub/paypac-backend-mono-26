@@ -136,4 +136,16 @@ export class WebBlocksService {
     if (!slide || slide.block_id !== blockId) throw new Error('Slide no encontrado en este bloque');
     await repo.removeSlide(slideId);
   }
+
+  // ── Dashboard (PAYPAC) ─────────────────────────────────────────────────────
+
+  // Todos los slides en plano, con su bloque y evento
+  async getAllSlides() {
+    return repo.findAllSlides();
+  }
+
+  // Bloques (datos básicos) para poblar el selector del formulario de slides
+  async getAllBlocksBasic() {
+    return repo.findAllBlocksBasic();
+  }
 }
