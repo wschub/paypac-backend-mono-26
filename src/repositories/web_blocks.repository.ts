@@ -174,6 +174,14 @@ export class WebBlocksRepository {
     });
   }
 
+  // Todos los bloques (sin filtro de activo) con eventos y slides — para el dashboard, id asc
+  async findAllFull() {
+    return prisma.webBlockIndex.findMany({
+      include: this.fullInclude,
+      orderBy: { id: 'asc' },
+    });
+  }
+
   // Todos los bloques (sin filtro de activo) — datos básicos para selects del dashboard
   async findAllBlocksBasic() {
     return prisma.webBlockIndex.findMany({

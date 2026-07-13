@@ -19,12 +19,49 @@ const handle = (res: Response, e: any, ctx: string) => {
   return res.status(500).json({ message: e.message || 'Error interno' });
 };
 
-// ── Bloques (lectura para selects del dashboard) ────────────────────────────────
+// ── Bloques ─────────────────────────────────────────────────────────────────────
 
+// Datos básicos (para selects, p.ej. el formulario de slides)
 export const getBlocks = async (_req: Request, res: Response): Promise<void> => {
   try {
     res.status(200).json({ blocks: await service.getAllBlocksBasic() });
   } catch (e: any) { handle(res, e, 'getBlocks'); }
+};
+
+// Bloques completos (con eventos y slides), id asc — para la página "Bloques del Index"
+export const getBlocksFull = async (_req: Request, res: Response): Promise<void> => {
+  try {
+    res.status(200).json({ blocks: await service.getAllFull() });
+  } catch (e: any) { handle(res, e, 'getBlocksFull'); }
+};
+
+export const updateBlock = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const id = parseInt(req.params.id as string);
+    const block = await service.update(id, req.body);
+    res.status(200).json({ block });
+  } catch (e: any) { handle(res, e, 'updateBlock'); }
+};
+
+// ── Eventos del bloque ────────────────────────────────────────────────────────
+
+export const addEvent = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const blockId = parseInt(req.params.id as string);
+    const { event_id } = req.body;
+    if (!event_id) { res.status(400).json({ message: 'event_id es requerido' }); return; }
+    const link = await service.addEvent(blockId, +event_id);
+    res.status(201).json({ event: link });
+  } catch (e: any) { handle(res, e, 'addEvent'); }
+};
+
+export const removeEvent = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const blockId = parseInt(req.params.id as string);
+    const eventId = parseInt(req.params.eventId as string);
+    await service.removeEvent(blockId, eventId);
+    res.status(200).json({ message: 'Evento quitado del bloque' });
+  } catch (e: any) { handle(res, e, 'removeEvent'); }
 };
 
 // ── Slides ──────────────────────────────────────────────────────────────────────

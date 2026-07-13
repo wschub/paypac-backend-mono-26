@@ -139,6 +139,11 @@ export class WebBlocksService {
 
   // ── Dashboard (PAYPAC) ─────────────────────────────────────────────────────
 
+  // Todos los bloques (activos e inactivos) con eventos y slides, id asc — para el dashboard
+  async getAllFull() {
+    return repo.findAllFull();
+  }
+
   // Todos los slides en plano, con su bloque y evento
   async getAllSlides() {
     return repo.findAllSlides();
