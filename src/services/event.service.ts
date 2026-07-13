@@ -303,6 +303,7 @@ async getAvailableEventsForPromoter(promoter_id: number) {
     page?: string;
     limit?: string;
     featured?: string;
+    ids?: string;
   }) {
     const now = new Date();
     const page = parseInt(filters.page || '1') || 1;
@@ -316,6 +317,10 @@ async getAvailableEventsForPromoter(promoter_id: number) {
     const categoryIds = parseIds(filters.category_id);
     const subcategoryIds = parseIds(filters.subcategory_id);
     const subgenreIds = parseIds(filters.subgenre_id);
+    // Lista explícita de ids (curaduría manual, p.ej. web_blocks_events): se
+    // omite el requisito de "stage activo ahora" — un evento elegido a mano
+    // debe mostrarse aunque su venta aún no abra o esté entre etapas.
+    const idList = parseIds(filters.ids);
 
     const dateEventFilter = {
       ...(filters.date_from && { gte: new Date(filters.date_from) }),
@@ -326,16 +331,20 @@ async getAvailableEventsForPromoter(promoter_id: number) {
       status: { in: ['APPROVED', 'ACTIVE'] },
       event_type: 'PUBLICO',
       ...(filters.featured === 'true' && { featured: true }),
-      localities: {
-        some: {
-          stages: {
-            some: {
-              date_start: { lte: now },
-              date_end: { gte: now },
+      ...(idList
+        ? { id: { in: idList } }
+        : {
+            localities: {
+              some: {
+                stages: {
+                  some: {
+                    date_start: { lte: now },
+                    date_end: { gte: now },
+                  },
+                },
+              },
             },
-          },
-        },
-      },
+          }),
       ...(filters.search && {
         OR: [
           { name: { contains: filters.search, mode: 'insensitive' } },
@@ -353,8 +362,7 @@ async getAvailableEventsForPromoter(promoter_id: number) {
     const [events, total] = await Promise.all([
       prisma.event.findMany({
         where,
-        skip,
-        take: limit,
+        ...(idList ? {} : { skip, take: limit }),
         include: {
           localities: {
             include: {
@@ -415,7 +423,11 @@ async getAvailableEventsForPromoter(promoter_id: number) {
     });
 
     const sortBy = filters.sort_by || 'date_asc';
-    if (sortBy === 'popularity') {
+    if (idList) {
+      // Curaduría manual: se respeta el orden en que se agregaron los ids.
+      const order = new Map(idList.map((id, i) => [id, i]));
+      eventsFormatted.sort((a, b) => order.get(a.id)! - order.get(b.id)!);
+    } else if (sortBy === 'popularity') {
       eventsFormatted.sort((a, b) =>
         b.popularityScore !== a.popularityScore
           ? b.popularityScore - a.popularityScore

@@ -12,6 +12,7 @@ export const getPublicEventsQuerySchema = z.object({
     sort_by: z.enum(['date_asc', 'popularity', 'price_asc', 'price_desc', 'name_asc']).optional(),
     page: z.string().optional(),
     limit: z.string().optional(),
+    ids: z.string().optional(),
   }).optional(),
 });
 
