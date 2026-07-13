@@ -178,6 +178,11 @@ export class CategoryService {
         category_name: true,
         category_icon: true,
         country_id: true,
+        _count: {
+          select: {
+            events: { where: { status: { in: ['APPROVED', 'ACTIVE'] }, event_type: 'PUBLICO' } },
+          },
+        },
       },
       orderBy: { category_name: 'asc' },
     });
