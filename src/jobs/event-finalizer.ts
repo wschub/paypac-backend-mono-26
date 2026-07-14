@@ -1,12 +1,18 @@
+import * as cron from 'node-cron';
 import { prisma } from '../config/db';
 import { EventLiquidationService } from '../services/event_liquidation.service';
 
 const liquidationService = new EventLiquidationService();
 
-export async function startEventFinalizer(): Promise<void> {
-  console.log('⏰ [CRON] Event Finalizer iniciado — revisión cada hora');
+/**
+ * CRON Job — finaliza eventos ACTIVE cuya date_end_event ya pasó, y dispara
+ * la liquidación automática (cierre de cartera) de cada uno.
+ * Se ejecuta cada 10 minutos.
+ */
+export function startEventFinalizer(): void {
+  const cronExpression = '*/10 * * * *';
 
-  setInterval(async () => {
+  cron.schedule(cronExpression, async () => {
     console.log('🔄 [CRON] Buscando eventos para finalizar...');
     try {
       const now = new Date();
@@ -36,7 +42,7 @@ export async function startEventFinalizer(): Promise<void> {
           });
           console.log(`✅ [CRON] Evento ${event.id} "${event.name}" → FINALIZED`);
 
-          // 2. Crear liquidación automática
+          // 2. Crear liquidación automática (cierre de cartera + cálculos)
           await liquidationService.autoCreateFromEvent(event.id);
 
         } catch (eventError: any) {
@@ -48,5 +54,7 @@ export async function startEventFinalizer(): Promise<void> {
     } catch (err: any) {
       console.error('❌ [CRON] Error en Event Finalizer:', err.message);
     }
-  }, 60 * 60 * 1000); // cada hora
+  });
+
+  console.log('✅ CRON Job de Event Finalizer iniciado (cada 10 minutos)');
 }
