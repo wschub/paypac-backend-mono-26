@@ -154,6 +154,14 @@ export class AuthService {
         this._acceptPendingTransfers(user.id, user.email, user.phone_number);
       }
 
+      // 7b. Fire-and-forget: sembrar NotificationPreference (todos los tipos
+      //     activados por defecto, según NotificationTypeConfig). Solo CUSTOMER
+      //     usa este sistema — evita que dependa de que el usuario abra la
+      //     pantalla de preferencias para que las filas existan.
+      if (data.role === ROLES.CUSTOMER) {
+        this._seedNotificationPreferences(user.id);
+      }
+
       // 8. ✅ Retornar INMEDIATAMENTE — no esperar email ni transferencias
       return {
         id: user.id,
@@ -286,6 +294,22 @@ export class AuthService {
 
     task().catch((err) => {
       console.error('⚠️ Error en accept transfers background:', err.message);
+    });
+  }
+
+  /**
+   * Sembrar NotificationPreference en background
+   * ⚠️ NO retorna Promise al caller — fire-and-forget
+   * getPreferences() ya hace el auto-seed a partir de NotificationTypeConfig
+   */
+  private _seedNotificationPreferences(userId: number): void {
+    const task = async () => {
+      const { NotificationsService } = await import('./notifications.service');
+      await new NotificationsService().getPreferences(userId);
+    };
+
+    task().catch((err) => {
+      console.error('⚠️ Error sembrando NotificationPreference:', err.message);
     });
   }
 
