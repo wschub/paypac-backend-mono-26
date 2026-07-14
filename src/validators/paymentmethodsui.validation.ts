@@ -7,7 +7,10 @@ export const createPaymentMethodUISchema = z.object({
   body: z.object({
     method_name: z.string().min(3, 'El nombre del método debe tener al menos 3 caracteres'),
     mehtod_img: z.string().url('Debe ser una URL válida del logo').or(z.literal('')),
+    method_code: z.string().min(1).optional().nullable(),
     method_status: z.number().int().min(0).max(1).default(0), // 0: inactivo, 1: activo
+    commission_pct: z.number().min(0).default(0),
+    commission_amount: z.number().int().min(0).default(0),
   }),
 });
 
@@ -21,7 +24,10 @@ export const updatePaymentMethodUISchema = z.object({
   body: z.object({
     method_name: z.string().min(3).optional(),
     mehtod_img: z.string().url().or(z.literal('')).optional(),
+    method_code: z.string().min(1).optional().nullable(),
     method_status: z.number().int().min(0).max(1).optional(),
+    commission_pct: z.number().min(0).optional(),
+    commission_amount: z.number().int().min(0).optional(),
   }),
 });
 

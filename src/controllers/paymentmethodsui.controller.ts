@@ -10,11 +10,11 @@ const paymentMethodsUIService = new PaymentMethodsUIService();
  */
 export const createPaymentMethod = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { method_name, mehtod_img, method_status } = req.body;
+    const { method_name, mehtod_img, method_code, method_status, commission_pct, commission_amount } = req.body;
     const userRole = req.user?.role || '';
 
     const result = await paymentMethodsUIService.createPaymentMethod(
-      { method_name, mehtod_img, method_status },
+      { method_name, mehtod_img, method_code, method_status, commission_pct, commission_amount },
       userRole
     );
 
@@ -118,12 +118,12 @@ export const getPaymentMethodById = async (req: Request, res: Response): Promise
 export const updatePaymentMethod = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const { method_name, mehtod_img, method_status } = req.body;
+    const { method_name, mehtod_img, method_code, method_status, commission_pct, commission_amount } = req.body;
     const userRole = req.user?.role || '';
 
     const result = await paymentMethodsUIService.updatePaymentMethod(
       Number(id),
-      { method_name, mehtod_img, method_status },
+      { method_name, mehtod_img, method_code, method_status, commission_pct, commission_amount },
       userRole
     );
 

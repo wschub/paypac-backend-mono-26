@@ -37,6 +37,7 @@ import staffAssignmentRoutes from './routes/event_staff_assignment.routes';
 import transactionRoutes from './routes/transaction.routes';
 import paymentMethodsUIRoutes from './routes/paymentmethodsui.routes';
 import paymentCardRoutes from './routes/paymentmethodcard.routes';
+import cardFranchiseFeeRoutes from './routes/card_franchise_fee.routes';
 import emailQueueRoutes from './routes/notificationmessagequeue.routes';
 import smsRoutes from './routes/sms.routes';
 import countriesRoutes from './routes/countries.routes';
@@ -200,6 +201,7 @@ app.use('/api/events', staffAssignmentRoutes); // Para /api/events/:eventId/staf
 app.use('/api/transactions', transactionRoutes);
 app.use('/api/payment-methods', paymentMethodsUIRoutes);
 app.use('/api/payment-cards', paymentCardRoutes);
+app.use('/api/card-franchise-fees', cardFranchiseFeeRoutes);
 //notification routes
 app.use('/api/email-queue', emailQueueRoutes);
 //sms routes
