@@ -1350,6 +1350,11 @@ enum NotificationType {
   POINTS_TRANSFER_RECEIVED
   PROMOTIONAL
   SYSTEM
+  RESALE_TICKET_SOLD
+  RESALE_OFFER_RECEIVED
+  RESALE_OFFER_ACCEPTED
+  RESALE_OFFER_REJECTED
+  RESALE_OUTBID
 }
 
 // Regla por tipo de notificación: obligatoriedad (el usuario no puede desactivarla)

@@ -81,6 +81,7 @@ export async function startTicketTransferExpiry(): Promise<void> {
 
               await pushService.sendTicketTransferExpiredNotification(
                 sender.fcm_token,
+                tx.from_customer_id,
                 {
                   eventName: ticket?.ev_name ?? 'tu evento',
                   transactionId: tx.id,

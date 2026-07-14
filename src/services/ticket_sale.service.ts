@@ -187,7 +187,7 @@ export class TicketSaleService {
         select: { fcm_token: true },
       });
       if (seller?.fcm_token) {
-        await pushService.sendResaleNewOfferToSeller(seller.fcm_token, {
+        await pushService.sendResaleNewOfferToSeller(seller.fcm_token, listing.seller_id, {
           eventName: listing.ticket.ev_name,
           amount,
           listingId,
@@ -197,11 +197,11 @@ export class TicketSaleService {
       if (otherPendingOffers.length > 0) {
         const outbid = await prisma.user.findMany({
           where: { id: { in: otherPendingOffers.map((o) => o.buyer_id) } },
-          select: { fcm_token: true },
+          select: { id: true, fcm_token: true },
         });
         for (const u of outbid) {
           if (u.fcm_token) {
-            await pushService.sendResaleOutbidNotification(u.fcm_token, {
+            await pushService.sendResaleOutbidNotification(u.fcm_token, u.id, {
               eventName: listing.ticket.ev_name,
               topOffer:  amount,
               listingId,
@@ -294,7 +294,7 @@ export class TicketSaleService {
       }
 
       if (winner?.fcm_token) {
-        await pushService.sendResaleOfferAcceptedNotification(winner.fcm_token, {
+        await pushService.sendResaleOfferAcceptedNotification(winner.fcm_token, offer.buyer_id, {
           eventName:     listing.ticket.ev_name,
           amount:        offer.amount,
           listingId,
@@ -305,11 +305,11 @@ export class TicketSaleService {
       if (otherPendingOffers.length > 0) {
         const losers = await prisma.user.findMany({
           where: { id: { in: otherPendingOffers.map((o) => o.buyer_id) } },
-          select: { fcm_token: true },
+          select: { id: true, fcm_token: true },
         });
         for (const loser of losers) {
           if (loser.fcm_token) {
-            await pushService.sendResaleOfferRejectedNotification(loser.fcm_token, {
+            await pushService.sendResaleOfferRejectedNotification(loser.fcm_token, loser.id, {
               eventName: listing.ticket.ev_name,
               listingId,
             }).catch(() => null);
@@ -586,12 +586,12 @@ export class TicketSaleService {
 
       // 📲 Push
       if (seller?.fcm_token) {
-        await pushService.sendResaleSoldToSeller(seller.fcm_token, {
+        await pushService.sendResaleSoldToSeller(seller.fcm_token, seller.id, {
           eventName: info.eventName, soldPrice: info.soldPrice, listingId: info.listingId,
         }).catch(() => null);
       }
       if (buyer?.fcm_token) {
-        await pushService.sendResaleTicketToBuyer(buyer.fcm_token, {
+        await pushService.sendResaleTicketToBuyer(buyer.fcm_token, buyer.id, {
           eventName: info.eventName, ticketId: info.newTicketId,
         }).catch(() => null);
       }

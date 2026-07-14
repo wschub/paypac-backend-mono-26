@@ -1,6 +1,8 @@
 import { NotificationMessageQueueRepository } from '../repositories/notificationmessagequeue.repository';
 import { BrevoService } from './brevo.service';
 import { EMAIL_TEMPLATES } from '../templates/email-templates';
+import { NotificationType } from '@prisma/client';
+import { notificationGateService } from './notification_gate.service';
 
 const messageRepo = new NotificationMessageQueueRepository();
 const brevoService = new BrevoService();
@@ -13,11 +15,52 @@ export interface QueueEmailParams {
   sendAt?: Date;
 }
 
+// Mapeo templateCode -> NotificationType, para el gate de preferencias.
+// Solo se incluyen templates cuyo `userId` es el destinatario REAL de ese
+// email (con cuenta en el sistema) — templates como
+// TICKET_TRANSFER_RECEIVED_UNREGISTERED o NOTIFICATION_ASSIGNING_EVENT se
+// dejan fuera a propósito: el primero manda a un contacto sin cuenta (el
+// userId es solo referencia del remitente), el segundo es a STAFF, no
+// CUSTOMER. Los templates de cuenta/registro (REGISTRATION_*) también
+// quedan fuera — son transaccionales y siempre se envían.
+const TEMPLATE_TO_TYPE: Partial<Record<string, NotificationType>> = {
+  TICKET_PURCHASE: 'TICKET_PURCHASE_CONFIRMATION',
+  TICKET_TRANSFER_RECEIVED: 'TICKET_TRANSFER',
+  TICKET_TRANSFER_STATUS: 'TICKET_TRANSFER',
+  WAITING_LIST_CONFIRM: 'EVENT_WAITING_LIST',
+  RESALE_SOLD_SELLER: 'RESALE_TICKET_SOLD',
+  RESALE_TICKET_BUYER: 'RESALE_TICKET_SOLD',
+  RESALE_AVAILABLE: 'EVENT_TICKET_AVAILABLE',
+};
+
+// INVOICE_STATUS reutiliza el mismo templateCode para aprobado/rechazado/
+// anulado — el tipo real depende del status que viaja en las variables.
+function resolveNotificationType(
+  templateCode: string,
+  variables: Record<string, any>
+): NotificationType | null {
+  if (templateCode === 'INVOICE_STATUS') {
+    return variables.status === 'APPROVED' ? 'TICKET_PURCHASE_CONFIRMATION' : 'TICKET_PURCHASE_FAILED';
+  }
+  return TEMPLATE_TO_TYPE[templateCode] ?? null;
+}
+
 export class NotificationMessageQueueService {
   /**
    * Encolar un nuevo mensaje para envío
    */
   async queueEmail(params: QueueEmailParams) {
+    // 0. Gate por preferencias — solo bloquea si el template está mapeado
+    //    y el usuario apagó explícitamente ese canal para ese tipo.
+    const notificationType = resolveNotificationType(params.templateCode, params.variables);
+    if (notificationType) {
+      const allowed = await notificationGateService.shouldDeliver(params.userId, notificationType, 'email');
+      if (!allowed) {
+        console.log(`🔕 Email omitido por preferencias — user ${params.userId}, template ${params.templateCode}`);
+        return { skipped: true, userId: params.userId, templateCode: params.templateCode };
+      }
+    }
+
     // 1. Obtener template estático
     const template = EMAIL_TEMPLATES[params.templateCode];
     if (!template) {

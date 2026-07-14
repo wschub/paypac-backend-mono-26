@@ -1,7 +1,15 @@
 import admin from 'firebase-admin';
+import { notificationGateService } from './notification_gate.service';
 
 /**
  * Servicio para enviar notificaciones push con Firebase Cloud Messaging
+ *
+ * Cada método que representa un tipo de notificación real (no los de pago,
+ * que hoy no tienen ningún caller) consulta NotificationGateService antes de
+ * llamar a FCM, respetando NotificationTypeConfig + NotificationPreference
+ * del usuario. Si el envío se omite por preferencia, retorna
+ * { success: false, skipped: true } — nunca lanza, así los callers que hacen
+ * .catch(() => null) siguen funcionando igual.
  */
 export class PushNotificationService {
   /**
@@ -9,6 +17,7 @@ export class PushNotificationService {
    */
   async sendTicketsCreatedNotification(
     fcmToken: string,
+    userId: number,
     data: {
       invoiceId: number;
       numInvoice: string;
@@ -17,6 +26,11 @@ export class PushNotificationService {
       eventId: number;
     }
   ) {
+    if (!(await notificationGateService.shouldDeliver(userId, 'TICKET_PURCHASE_CONFIRMATION', 'push'))) {
+      console.log('🔕 Push de tickets creados omitido por preferencias — user', userId);
+      return { success: false, skipped: true };
+    }
+
     try {
       console.log('📱 Enviando push notification de tickets creados...');
       console.log('   FCM Token:', fcmToken.substring(0, 20) + '...');
@@ -58,7 +72,7 @@ export class PushNotificationService {
       };
 
       const response = await admin.messaging().send(message);
-      
+
       console.log('✅ Push notification enviada exitosamente');
       console.log('   Response:', response);
 
@@ -68,7 +82,7 @@ export class PushNotificationService {
       };
     } catch (error: any) {
       console.error('❌ Error enviando push notification:', error);
-      
+
       // Si el token es inválido, no es un error crítico
       if (error.code === 'messaging/invalid-registration-token' ||
           error.code === 'messaging/registration-token-not-registered') {
@@ -88,6 +102,7 @@ export class PushNotificationService {
 
   /**
    * Enviar notificación de pago rechazado
+   * (sin callers hoy — no pasa por el gate de preferencias)
    */
   async sendPaymentDeclinedNotification(
     fcmToken: string,
@@ -131,7 +146,7 @@ export class PushNotificationService {
       };
 
       const response = await admin.messaging().send(message);
-      
+
       console.log('✅ Push notification de rechazo enviada');
 
       return {
@@ -149,6 +164,7 @@ export class PushNotificationService {
 
   /**
    * Enviar notificación de pago pendiente
+   * (sin callers hoy — no pasa por el gate de preferencias)
    */
   async sendPaymentPendingNotification(
     fcmToken: string,
@@ -183,7 +199,7 @@ export class PushNotificationService {
       };
 
       const response = await admin.messaging().send(message);
-      
+
       console.log('✅ Push notification de pendiente enviada');
 
       return {
@@ -200,406 +216,464 @@ export class PushNotificationService {
   }
 
   /**
- * Enviar notificación de ticket recibido
- */
-async sendTicketTransferReceivedNotification(
-  fcmToken: string,
-  data: {
-    fromUserName: string;
-    eventName: string;
-    transactionId: number;
-    ticketId: number;
-  }
-) {
-  try {
-    console.log('📱 Enviando push notification de ticket recibido...');
+   * Enviar notificación de ticket recibido
+   */
+  async sendTicketTransferReceivedNotification(
+    fcmToken: string,
+    userId: number,
+    data: {
+      fromUserName: string;
+      eventName: string;
+      transactionId: number;
+      ticketId: number;
+    }
+  ) {
+    if (!(await notificationGateService.shouldDeliver(userId, 'TICKET_TRANSFER', 'push'))) {
+      console.log('🔕 Push de ticket recibido omitido por preferencias — user', userId);
+      return { success: false, skipped: true };
+    }
 
-    const message: admin.messaging.Message = {
-      token: fcmToken,
-      notification: {
-        title: '🎫 Nuevo ticket recibido',
-        body: `${data.fromUserName} te envió un ticket para ${data.eventName}`,
-      },
-      data: {
-        type: 'ticket_transfer',
-        transaction_id: data.transactionId.toString(),
-        ticket_id: data.ticketId.toString(),
-        click_action: 'FLUTTER_NOTIFICATION_CLICK',
-        route: '/wallet',
-      },
-      android: {
-        priority: 'high',
+    try {
+      console.log('📱 Enviando push notification de ticket recibido...');
+
+      const message: admin.messaging.Message = {
+        token: fcmToken,
         notification: {
-          channelId: 'tickets',
-          sound: 'default',
-          color: '#0031FB',
-          icon: 'ic_notification',
+          title: '🎫 Nuevo ticket recibido',
+          body: `${data.fromUserName} te envió un ticket para ${data.eventName}`,
         },
-      },
-      apns: {
-        payload: {
-          aps: {
+        data: {
+          type: 'ticket_transfer',
+          transaction_id: data.transactionId.toString(),
+          ticket_id: data.ticketId.toString(),
+          click_action: 'FLUTTER_NOTIFICATION_CLICK',
+          route: '/wallet',
+        },
+        android: {
+          priority: 'high',
+          notification: {
+            channelId: 'tickets',
             sound: 'default',
-            badge: 1,
+            color: '#0031FB',
+            icon: 'ic_notification',
           },
         },
-      },
-    };
-
-    const response = await admin.messaging().send(message);
-    console.log('✅ Push notification de ticket recibido enviada');
-
-    return { success: true, messageId: response };
-  } catch (error: any) {
-    console.error('❌ Error enviando push notification:', error);
-    return { success: false, error: error.message };
-  }
-}
-
-/**
- * Enviar notificación de transferencia aceptada
- */
-async sendTicketTransferAcceptedNotification(
-  fcmToken: string,
-  data: {
-    recipientName: string;
-    eventName: string;
-    transactionId: number;
-    ticketId: number;
-  }
-) {
-  try {
-    console.log('📱 Enviando push notification de transferencia aceptada...');
-
-    const message: admin.messaging.Message = {
-      token: fcmToken,
-      notification: {
-        title: '✅ Transferencia aceptada',
-        body: `${data.recipientName} aceptó tu ticket para ${data.eventName}`,
-      },
-      data: {
-        type: 'ticket_transfer_accepted',
-        transaction_id: data.transactionId.toString(),
-        ticket_id: data.ticketId.toString(),
-        route: '/wallet',
-      },
-      android: {
-        priority: 'high',
-        notification: {
-          channelId: 'tickets',
-          sound: 'default',
-          color: '#00FF00',
-        },
-      },
-    };
-
-    const response = await admin.messaging().send(message);
-    console.log('✅ Push notification de aceptación enviada');
-
-    return { success: true, messageId: response };
-  } catch (error: any) {
-    console.error('❌ Error enviando push notification:', error);
-    return { success: false, error: error.message };
-  }
-}
-
-/**
- * Reventa — notificar al VENDEDOR que su ticket fue pagado y vendido
- */
-async sendResaleSoldToSeller(
-  fcmToken: string,
-  data: { eventName: string; soldPrice: number; listingId: number }
-) {
-  try {
-    const message: admin.messaging.Message = {
-      token: fcmToken,
-      notification: {
-        title: '💰 ¡Tu ticket fue vendido!',
-        body: `Tu ticket de ${data.eventName} fue pagado por $${data.soldPrice.toLocaleString('es-CO')}. Pronto recibirás tu dispersión.`,
-      },
-      data: {
-        type: 'resale_sold_seller',
-        listing_id: data.listingId.toString(),
-        route: '/wallet',
-      },
-      android: {
-        priority: 'high',
-        notification: { channelId: 'tickets', sound: 'default', color: '#12B76A' },
-      },
-    };
-    const response = await admin.messaging().send(message);
-    console.log('✅ Push reventa (vendedor) enviada');
-    return { success: true, messageId: response };
-  } catch (error: any) {
-    console.error('❌ Error push reventa vendedor:', error.message);
-    return { success: false, error: error.message };
-  }
-}
-
-/**
- * Reventa — notificar al COMPRADOR que ya tiene su ticket
- */
-async sendResaleTicketToBuyer(
-  fcmToken: string,
-  data: { eventName: string; ticketId: number }
-) {
-  try {
-    const message: admin.messaging.Message = {
-      token: fcmToken,
-      notification: {
-        title: '🎟️ ¡Ya tienes tu ticket!',
-        body: `Tu compra fue confirmada. El ticket de ${data.eventName} ya está en tu wallet.`,
-      },
-      data: {
-        type: 'resale_ticket_buyer',
-        ticket_id: data.ticketId.toString(),
-        route: '/wallet',
-      },
-      android: {
-        priority: 'high',
-        notification: { channelId: 'tickets', sound: 'default', color: '#0031FB' },
-      },
-    };
-    const response = await admin.messaging().send(message);
-    console.log('✅ Push reventa (comprador) enviada');
-    return { success: true, messageId: response };
-  } catch (error: any) {
-    console.error('❌ Error push reventa comprador:', error.message);
-    return { success: false, error: error.message };
-  }
-}
-
-/**
- * Reventa — notificar al ganador de la subasta que debe pagar
- */
-async sendResaleOfferAcceptedNotification(
-  fcmToken: string,
-  data: { eventName: string; amount: number; listingId: number; windowMinutes: number }
-) {
-  try {
-    const message: admin.messaging.Message = {
-      token: fcmToken,
-      notification: {
-        title: '🏆 ¡Tu oferta fue aceptada!',
-        body: `Tienes ${data.windowMinutes} min para pagar $${data.amount.toLocaleString('es-CO')} por el ticket de ${data.eventName}.`,
-      },
-      data: {
-        type: 'resale_offer_accepted',
-        listing_id: data.listingId.toString(),
-        route: '/wallet',
-      },
-      android: {
-        priority: 'high',
-        notification: { channelId: 'tickets', sound: 'default', color: '#F79009' },
-      },
-    };
-    const response = await admin.messaging().send(message);
-    console.log('✅ Push oferta aceptada enviada');
-    return { success: true, messageId: response };
-  } catch (error: any) {
-    console.error('❌ Error push oferta aceptada:', error.message);
-    return { success: false, error: error.message };
-  }
-}
-
-/**
- * Reventa — notificar a los demás postores que alguien superó su oferta
- */
-async sendResaleOutbidNotification(
-  fcmToken: string,
-  data: { eventName: string; topOffer: number; listingId: number }
-) {
-  try {
-    const message: admin.messaging.Message = {
-      token: fcmToken,
-      notification: {
-        title: '📈 Superaron tu oferta',
-        body: `La nueva mejor oferta por el ticket de ${data.eventName} es $${data.topOffer.toLocaleString('es-CO')}. ¿Quieres ofertar de nuevo?`,
-      },
-      data: {
-        type: 'resale_outbid',
-        listing_id: data.listingId.toString(),
-        route: '/wallet',
-      },
-      android: {
-        priority: 'high',
-        notification: { channelId: 'tickets', sound: 'default', color: '#F79009' },
-      },
-    };
-    const response = await admin.messaging().send(message);
-    console.log('✅ Push superado en subasta enviada');
-    return { success: true, messageId: response };
-  } catch (error: any) {
-    console.error('❌ Error push superado en subasta:', error.message);
-    return { success: false, error: error.message };
-  }
-}
-
-/**
- * Reventa — notificar al VENDEDOR que llegó una nueva oferta
- */
-async sendResaleNewOfferToSeller(
-  fcmToken: string,
-  data: { eventName: string; amount: number; listingId: number }
-) {
-  try {
-    const message: admin.messaging.Message = {
-      token: fcmToken,
-      notification: {
-        title: '🔨 Nueva oferta por tu ticket',
-        body: `Te ofrecen $${data.amount.toLocaleString('es-CO')} por tu ticket de ${data.eventName}.`,
-      },
-      data: {
-        type: 'resale_new_offer',
-        listing_id: data.listingId.toString(),
-        route: '/wallet',
-      },
-      android: {
-        priority: 'high',
-        notification: { channelId: 'tickets', sound: 'default', color: '#0031FB' },
-      },
-    };
-    const response = await admin.messaging().send(message);
-    console.log('✅ Push nueva oferta (vendedor) enviada');
-    return { success: true, messageId: response };
-  } catch (error: any) {
-    console.error('❌ Error push nueva oferta vendedor:', error.message);
-    return { success: false, error: error.message };
-  }
-}
-
-/**
- * Reventa — notificar a los demás postores que el ticket ya se vendió a otro comprador
- */
-async sendResaleOfferRejectedNotification(
-  fcmToken: string,
-  data: { eventName: string; listingId: number }
-) {
-  try {
-    const message: admin.messaging.Message = {
-      token: fcmToken,
-      notification: {
-        title: '🎟️ Subasta finalizada',
-        body: `El ticket de ${data.eventName} ya fue vendido a otro comprador. ¡Sigue explorando reventas verificadas!`,
-      },
-      data: {
-        type: 'resale_offer_rejected',
-        listing_id: data.listingId.toString(),
-        route: '/wallet',
-      },
-      android: {
-        priority: 'high',
-        notification: { channelId: 'tickets', sound: 'default', color: '#667085' },
-      },
-    };
-    const response = await admin.messaging().send(message);
-    console.log('✅ Push oferta rechazada enviada');
-    return { success: true, messageId: response };
-  } catch (error: any) {
-    console.error('❌ Error push oferta rechazada:', error.message);
-    return { success: false, error: error.message };
-  }
-}
-
-/**
- * Enviar notificación de transferencia rechazada
- */
-async sendTicketTransferRejectedNotification(
-  fcmToken: string,
-  data: {
-    recipientName: string;
-    eventName: string;
-    transactionId: number;
-    ticketId: number;
-  }
-) {
-  try {
-    console.log('📱 Enviando push notification de transferencia rechazada...');
-
-    const message: admin.messaging.Message = {
-      token: fcmToken,
-      notification: {
-        title: '❌ Transferencia rechazada',
-        body: `${data.recipientName} rechazó tu ticket para ${data.eventName}`,
-      },
-      data: {
-        type: 'ticket_transfer_rejected',
-        transaction_id: data.transactionId.toString(),
-        ticket_id: data.ticketId.toString(),
-        route: '/wallet',
-      },
-      android: {
-        priority: 'high',
-        notification: {
-          channelId: 'tickets',
-          sound: 'default',
-          color: '#FF0000',
-        },
-      },
-    };
-
-    const response = await admin.messaging().send(message);
-    console.log('✅ Push notification de rechazo enviada');
-
-    return { success: true, messageId: response };
-  } catch (error: any) {
-    console.error('❌ Error enviando push notification:', error);
-    return { success: false, error: error.message };
-  }
-}
-
-/**
- * Enviar notificación de transferencia expirada
- */
-async sendTicketTransferExpiredNotification(
-  fcmToken: string,
-  data: {
-    eventName: string;
-    transactionId: number;
-    ticketId: number;
-  }
-) {
-  try {
-    console.log('📱 Enviando push notification de transferencia expirada...');
-
-    const message: admin.messaging.Message = {
-      token: fcmToken,
-      notification: {
-        title: '⏰ Transferencia expirada',
-        body: `Tu ticket para ${data.eventName} ha sido devuelto a tu wallet`,
-      },
-      data: {
-        type: 'ticket_transfer_expired',
-        transaction_id: data.transactionId.toString(),
-        ticket_id: data.ticketId.toString(),
-        route: '/wallet',
-      },
-      android: {
-        priority: 'high',
-        notification: {
-          channelId: 'tickets',
-          sound: 'default',
-          color: '#FFA500',
-        },
-      },
-      apns: {
-        payload: {
-          aps: {
-            sound: 'default',
+        apns: {
+          payload: {
+            aps: {
+              sound: 'default',
+              badge: 1,
+            },
           },
         },
-      },
-    };
+      };
 
-    const response = await admin.messaging().send(message);
-    console.log('✅ Push notification de expiración enviada');
+      const response = await admin.messaging().send(message);
+      console.log('✅ Push notification de ticket recibido enviada');
 
-    return { success: true, messageId: response };
-  } catch (error: any) {
-    console.error('❌ Error enviando push notification:', error);
-    return { success: false, error: error.message };
+      return { success: true, messageId: response };
+    } catch (error: any) {
+      console.error('❌ Error enviando push notification:', error);
+      return { success: false, error: error.message };
+    }
   }
-}
 
+  /**
+   * Enviar notificación de transferencia aceptada
+   */
+  async sendTicketTransferAcceptedNotification(
+    fcmToken: string,
+    userId: number,
+    data: {
+      recipientName: string;
+      eventName: string;
+      transactionId: number;
+      ticketId: number;
+    }
+  ) {
+    if (!(await notificationGateService.shouldDeliver(userId, 'TICKET_TRANSFER', 'push'))) {
+      console.log('🔕 Push de transferencia aceptada omitido por preferencias — user', userId);
+      return { success: false, skipped: true };
+    }
 
+    try {
+      console.log('📱 Enviando push notification de transferencia aceptada...');
+
+      const message: admin.messaging.Message = {
+        token: fcmToken,
+        notification: {
+          title: '✅ Transferencia aceptada',
+          body: `${data.recipientName} aceptó tu ticket para ${data.eventName}`,
+        },
+        data: {
+          type: 'ticket_transfer_accepted',
+          transaction_id: data.transactionId.toString(),
+          ticket_id: data.ticketId.toString(),
+          route: '/wallet',
+        },
+        android: {
+          priority: 'high',
+          notification: {
+            channelId: 'tickets',
+            sound: 'default',
+            color: '#00FF00',
+          },
+        },
+      };
+
+      const response = await admin.messaging().send(message);
+      console.log('✅ Push notification de aceptación enviada');
+
+      return { success: true, messageId: response };
+    } catch (error: any) {
+      console.error('❌ Error enviando push notification:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Reventa — notificar al VENDEDOR que su ticket fue pagado y vendido
+   */
+  async sendResaleSoldToSeller(
+    fcmToken: string,
+    userId: number,
+    data: { eventName: string; soldPrice: number; listingId: number }
+  ) {
+    if (!(await notificationGateService.shouldDeliver(userId, 'RESALE_TICKET_SOLD', 'push'))) {
+      console.log('🔕 Push reventa vendedor omitido por preferencias — user', userId);
+      return { success: false, skipped: true };
+    }
+
+    try {
+      const message: admin.messaging.Message = {
+        token: fcmToken,
+        notification: {
+          title: '💰 ¡Tu ticket fue vendido!',
+          body: `Tu ticket de ${data.eventName} fue pagado por $${data.soldPrice.toLocaleString('es-CO')}. Pronto recibirás tu dispersión.`,
+        },
+        data: {
+          type: 'resale_sold_seller',
+          listing_id: data.listingId.toString(),
+          route: '/wallet',
+        },
+        android: {
+          priority: 'high',
+          notification: { channelId: 'tickets', sound: 'default', color: '#12B76A' },
+        },
+      };
+      const response = await admin.messaging().send(message);
+      console.log('✅ Push reventa (vendedor) enviada');
+      return { success: true, messageId: response };
+    } catch (error: any) {
+      console.error('❌ Error push reventa vendedor:', error.message);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Reventa — notificar al COMPRADOR que ya tiene su ticket
+   */
+  async sendResaleTicketToBuyer(
+    fcmToken: string,
+    userId: number,
+    data: { eventName: string; ticketId: number }
+  ) {
+    if (!(await notificationGateService.shouldDeliver(userId, 'RESALE_TICKET_SOLD', 'push'))) {
+      console.log('🔕 Push reventa comprador omitido por preferencias — user', userId);
+      return { success: false, skipped: true };
+    }
+
+    try {
+      const message: admin.messaging.Message = {
+        token: fcmToken,
+        notification: {
+          title: '🎟️ ¡Ya tienes tu ticket!',
+          body: `Tu compra fue confirmada. El ticket de ${data.eventName} ya está en tu wallet.`,
+        },
+        data: {
+          type: 'resale_ticket_buyer',
+          ticket_id: data.ticketId.toString(),
+          route: '/wallet',
+        },
+        android: {
+          priority: 'high',
+          notification: { channelId: 'tickets', sound: 'default', color: '#0031FB' },
+        },
+      };
+      const response = await admin.messaging().send(message);
+      console.log('✅ Push reventa (comprador) enviada');
+      return { success: true, messageId: response };
+    } catch (error: any) {
+      console.error('❌ Error push reventa comprador:', error.message);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Reventa — notificar al ganador de la subasta que debe pagar
+   */
+  async sendResaleOfferAcceptedNotification(
+    fcmToken: string,
+    userId: number,
+    data: { eventName: string; amount: number; listingId: number; windowMinutes: number }
+  ) {
+    if (!(await notificationGateService.shouldDeliver(userId, 'RESALE_OFFER_ACCEPTED', 'push'))) {
+      console.log('🔕 Push oferta aceptada omitido por preferencias — user', userId);
+      return { success: false, skipped: true };
+    }
+
+    try {
+      const message: admin.messaging.Message = {
+        token: fcmToken,
+        notification: {
+          title: '🏆 ¡Tu oferta fue aceptada!',
+          body: `Tienes ${data.windowMinutes} min para pagar $${data.amount.toLocaleString('es-CO')} por el ticket de ${data.eventName}.`,
+        },
+        data: {
+          type: 'resale_offer_accepted',
+          listing_id: data.listingId.toString(),
+          route: '/wallet',
+        },
+        android: {
+          priority: 'high',
+          notification: { channelId: 'tickets', sound: 'default', color: '#F79009' },
+        },
+      };
+      const response = await admin.messaging().send(message);
+      console.log('✅ Push oferta aceptada enviada');
+      return { success: true, messageId: response };
+    } catch (error: any) {
+      console.error('❌ Error push oferta aceptada:', error.message);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Reventa — notificar a los demás postores que alguien superó su oferta
+   */
+  async sendResaleOutbidNotification(
+    fcmToken: string,
+    userId: number,
+    data: { eventName: string; topOffer: number; listingId: number }
+  ) {
+    if (!(await notificationGateService.shouldDeliver(userId, 'RESALE_OUTBID', 'push'))) {
+      console.log('🔕 Push superado en subasta omitido por preferencias — user', userId);
+      return { success: false, skipped: true };
+    }
+
+    try {
+      const message: admin.messaging.Message = {
+        token: fcmToken,
+        notification: {
+          title: '📈 Superaron tu oferta',
+          body: `La nueva mejor oferta por el ticket de ${data.eventName} es $${data.topOffer.toLocaleString('es-CO')}. ¿Quieres ofertar de nuevo?`,
+        },
+        data: {
+          type: 'resale_outbid',
+          listing_id: data.listingId.toString(),
+          route: '/wallet',
+        },
+        android: {
+          priority: 'high',
+          notification: { channelId: 'tickets', sound: 'default', color: '#F79009' },
+        },
+      };
+      const response = await admin.messaging().send(message);
+      console.log('✅ Push superado en subasta enviada');
+      return { success: true, messageId: response };
+    } catch (error: any) {
+      console.error('❌ Error push superado en subasta:', error.message);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Reventa — notificar al VENDEDOR que llegó una nueva oferta
+   */
+  async sendResaleNewOfferToSeller(
+    fcmToken: string,
+    userId: number,
+    data: { eventName: string; amount: number; listingId: number }
+  ) {
+    if (!(await notificationGateService.shouldDeliver(userId, 'RESALE_OFFER_RECEIVED', 'push'))) {
+      console.log('🔕 Push nueva oferta omitido por preferencias — user', userId);
+      return { success: false, skipped: true };
+    }
+
+    try {
+      const message: admin.messaging.Message = {
+        token: fcmToken,
+        notification: {
+          title: '🔨 Nueva oferta por tu ticket',
+          body: `Te ofrecen $${data.amount.toLocaleString('es-CO')} por tu ticket de ${data.eventName}.`,
+        },
+        data: {
+          type: 'resale_new_offer',
+          listing_id: data.listingId.toString(),
+          route: '/wallet',
+        },
+        android: {
+          priority: 'high',
+          notification: { channelId: 'tickets', sound: 'default', color: '#0031FB' },
+        },
+      };
+      const response = await admin.messaging().send(message);
+      console.log('✅ Push nueva oferta (vendedor) enviada');
+      return { success: true, messageId: response };
+    } catch (error: any) {
+      console.error('❌ Error push nueva oferta vendedor:', error.message);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Reventa — notificar a los demás postores que el ticket ya se vendió a otro comprador
+   */
+  async sendResaleOfferRejectedNotification(
+    fcmToken: string,
+    userId: number,
+    data: { eventName: string; listingId: number }
+  ) {
+    if (!(await notificationGateService.shouldDeliver(userId, 'RESALE_OFFER_REJECTED', 'push'))) {
+      console.log('🔕 Push oferta rechazada omitido por preferencias — user', userId);
+      return { success: false, skipped: true };
+    }
+
+    try {
+      const message: admin.messaging.Message = {
+        token: fcmToken,
+        notification: {
+          title: '🎟️ Subasta finalizada',
+          body: `El ticket de ${data.eventName} ya fue vendido a otro comprador. ¡Sigue explorando reventas verificadas!`,
+        },
+        data: {
+          type: 'resale_offer_rejected',
+          listing_id: data.listingId.toString(),
+          route: '/wallet',
+        },
+        android: {
+          priority: 'high',
+          notification: { channelId: 'tickets', sound: 'default', color: '#667085' },
+        },
+      };
+      const response = await admin.messaging().send(message);
+      console.log('✅ Push oferta rechazada enviada');
+      return { success: true, messageId: response };
+    } catch (error: any) {
+      console.error('❌ Error push oferta rechazada:', error.message);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Enviar notificación de transferencia rechazada
+   */
+  async sendTicketTransferRejectedNotification(
+    fcmToken: string,
+    userId: number,
+    data: {
+      recipientName: string;
+      eventName: string;
+      transactionId: number;
+      ticketId: number;
+    }
+  ) {
+    if (!(await notificationGateService.shouldDeliver(userId, 'TICKET_TRANSFER', 'push'))) {
+      console.log('🔕 Push de transferencia rechazada omitido por preferencias — user', userId);
+      return { success: false, skipped: true };
+    }
+
+    try {
+      console.log('📱 Enviando push notification de transferencia rechazada...');
+
+      const message: admin.messaging.Message = {
+        token: fcmToken,
+        notification: {
+          title: '❌ Transferencia rechazada',
+          body: `${data.recipientName} rechazó tu ticket para ${data.eventName}`,
+        },
+        data: {
+          type: 'ticket_transfer_rejected',
+          transaction_id: data.transactionId.toString(),
+          ticket_id: data.ticketId.toString(),
+          route: '/wallet',
+        },
+        android: {
+          priority: 'high',
+          notification: {
+            channelId: 'tickets',
+            sound: 'default',
+            color: '#FF0000',
+          },
+        },
+      };
+
+      const response = await admin.messaging().send(message);
+      console.log('✅ Push notification de rechazo enviada');
+
+      return { success: true, messageId: response };
+    } catch (error: any) {
+      console.error('❌ Error enviando push notification:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Enviar notificación de transferencia expirada
+   */
+  async sendTicketTransferExpiredNotification(
+    fcmToken: string,
+    userId: number,
+    data: {
+      eventName: string;
+      transactionId: number;
+      ticketId: number;
+    }
+  ) {
+    if (!(await notificationGateService.shouldDeliver(userId, 'TICKET_TRANSFER', 'push'))) {
+      console.log('🔕 Push de transferencia expirada omitido por preferencias — user', userId);
+      return { success: false, skipped: true };
+    }
+
+    try {
+      console.log('📱 Enviando push notification de transferencia expirada...');
+
+      const message: admin.messaging.Message = {
+        token: fcmToken,
+        notification: {
+          title: '⏰ Transferencia expirada',
+          body: `Tu ticket para ${data.eventName} ha sido devuelto a tu wallet`,
+        },
+        data: {
+          type: 'ticket_transfer_expired',
+          transaction_id: data.transactionId.toString(),
+          ticket_id: data.ticketId.toString(),
+          route: '/wallet',
+        },
+        android: {
+          priority: 'high',
+          notification: {
+            channelId: 'tickets',
+            sound: 'default',
+            color: '#FFA500',
+          },
+        },
+        apns: {
+          payload: {
+            aps: {
+              sound: 'default',
+            },
+          },
+        },
+      };
+
+      const response = await admin.messaging().send(message);
+      console.log('✅ Push notification de expiración enviada');
+
+      return { success: true, messageId: response };
+    } catch (error: any) {
+      console.error('❌ Error enviando push notification:', error);
+      return { success: false, error: error.message };
+    }
+  }
 }

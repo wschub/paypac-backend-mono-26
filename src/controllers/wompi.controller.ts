@@ -387,6 +387,7 @@ async function handleTransactionUpdated(transaction: any) {
 
         const pushResult = await pushService.sendTicketsCreatedNotification(
           user.fcm_token,
+          invoice.user_id,
           {
             invoiceId: invoice.id,
             numInvoice: invoice.num_invoice,

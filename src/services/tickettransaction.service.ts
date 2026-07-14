@@ -296,6 +296,7 @@ try {
     if (senderFcmToken?.fcm_token) {
       await pushService.sendTicketTransferAcceptedNotification(
         senderFcmToken.fcm_token,
+        transaction.from_customer_id,
         {
           recipientName: `${recipientUser.name} ${recipientUser.last_name}`,
           eventName: originalTicket.ev_name,
@@ -410,6 +411,7 @@ try {
     
     await pushService.sendTicketTransferRejectedNotification(
       senderFcmToken.fcm_token,
+      transaction.from_customer_id,
       {
         recipientName: recipient ? `${recipient.name} ${recipient.last_name}` : 'El receptor',
         eventName: ticket?.ev_name ?? 'tu evento',
@@ -672,6 +674,7 @@ async sendTransfer(
     if (recipientFcmToken?.fcm_token) {
       await pushService.sendTicketTransferReceivedNotification(
         recipientFcmToken.fcm_token,
+        recipient!.id,
         {
           fromUserName: senderName,
           eventName: ticket.ev_name,

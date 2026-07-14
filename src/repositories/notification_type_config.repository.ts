@@ -23,11 +23,11 @@ const DEFAULT_CONFIG: Record<NotificationType, {
   EVENT_PRICE_DROP: { is_mandatory: false, channel_web: true, channel_push: true, channel_whatsapp: false, channel_email: false },
   EVENT_PRICE_INCREASE: { is_mandatory: false, channel_web: true, channel_push: true, channel_whatsapp: false, channel_email: false },
   EVENT_SOLD_OUT: { is_mandatory: false, channel_web: true, channel_push: true, channel_whatsapp: false, channel_email: false },
-  EVENT_TICKET_AVAILABLE: { is_mandatory: false, channel_web: true, channel_push: true, channel_whatsapp: false, channel_email: false },
+  EVENT_TICKET_AVAILABLE: { is_mandatory: false, channel_web: true, channel_push: true, channel_whatsapp: false, channel_email: true },
   EVENT_WAITING_LIST: { is_mandatory: false, channel_web: true, channel_push: true, channel_whatsapp: false, channel_email: true },
   TICKET_PURCHASE_CONFIRMATION: { is_mandatory: true, channel_web: true, channel_push: true, channel_whatsapp: false, channel_email: true },
   TICKET_PURCHASE_FAILED: { is_mandatory: true, channel_web: true, channel_push: true, channel_whatsapp: false, channel_email: true },
-  TICKET_TRANSFER: { is_mandatory: false, channel_web: true, channel_push: true, channel_whatsapp: false, channel_email: false },
+  TICKET_TRANSFER: { is_mandatory: false, channel_web: true, channel_push: true, channel_whatsapp: false, channel_email: true },
   TICKET_USED: { is_mandatory: false, channel_web: true, channel_push: true, channel_whatsapp: false, channel_email: false },
   POINTS_EARNED: { is_mandatory: false, channel_web: true, channel_push: true, channel_whatsapp: false, channel_email: false },
   POINTS_EXPIRING: { is_mandatory: false, channel_web: true, channel_push: true, channel_whatsapp: false, channel_email: true },
@@ -35,6 +35,11 @@ const DEFAULT_CONFIG: Record<NotificationType, {
   POINTS_TRANSFER_RECEIVED: { is_mandatory: false, channel_web: true, channel_push: true, channel_whatsapp: false, channel_email: false },
   PROMOTIONAL: { is_mandatory: false, channel_web: true, channel_push: true, channel_whatsapp: true, channel_email: true },
   SYSTEM: { is_mandatory: true, channel_web: true, channel_push: true, channel_whatsapp: false, channel_email: true },
+  RESALE_TICKET_SOLD: { is_mandatory: false, channel_web: true, channel_push: true, channel_whatsapp: false, channel_email: true },
+  RESALE_OFFER_RECEIVED: { is_mandatory: false, channel_web: true, channel_push: true, channel_whatsapp: false, channel_email: false },
+  RESALE_OFFER_ACCEPTED: { is_mandatory: false, channel_web: true, channel_push: true, channel_whatsapp: false, channel_email: false },
+  RESALE_OFFER_REJECTED: { is_mandatory: false, channel_web: true, channel_push: true, channel_whatsapp: false, channel_email: false },
+  RESALE_OUTBID: { is_mandatory: false, channel_web: true, channel_push: true, channel_whatsapp: false, channel_email: false },
 };
 
 export class NotificationTypeConfigRepository {
