@@ -651,8 +651,25 @@ model PaymentMethodsUI {
   mehtod_img    String
   method_code   String?
   method_status Int      @default(0)
+  /** Comisión que cobra Wompi por este método (% + monto fijo). Para CARD es
+   *  el valor de respaldo cuando la franquicia no está en CardFranchiseFee. */
+  commission_pct    Float @default(0)
+  commission_amount Int   @default(0)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+}
+
+/** Comisión de Wompi para tarjetas, cuando varía por franquicia (VISA,
+ *  MASTERCARD, AMEX, ...). Si la franquicia detectada no tiene fila acá, se
+ *  usa el valor genérico de PaymentMethodsUI (method_code = "CARD"). */
+model CardFranchiseFee {
+  id                Int      @id @default(autoincrement())
+  franchise         String   @unique
+  commission_pct    Float
+  commission_amount Int      @default(0)
+  is_active         Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 }
 
 model PaymentMethodsUsers {
@@ -711,6 +728,12 @@ model Invoice {
   paypac_commission_amount   Int?             @default(0)
   promoter_commission_amount Int?             @default(0)
   promoter_code_id           Int?
+  /** Snapshot de lo que Wompi cobró en la transacción real (se resuelve en el
+   *  webhook, al confirmarse APPROVED, porque solo ahí se conoce la franquicia
+   *  de tarjeta). Null = todavía no procesado / no aplica. */
+  wompi_fee_pct              Float?           @default(0)
+  wompi_fee_amount           Int?             @default(0)
+  card_franchise             String?
   customer_UUID_phone        String?
   payment_method             String           @default("CARD")
   sale_channel               SaleChannel      @default(WEB)

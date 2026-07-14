@@ -6,12 +6,14 @@ import { PushNotificationService } from '../services/push-notification.service';
 import { NotificationMessageQueueService } from '../services/notificationmessagequeue.service';
 import { emitPaymentCompleted } from '../sockets/notification.socket';
 import { io } from '../index';
+import { WompiFeeService } from '../services/wompi_fee.service';
 
 const invoiceService  = new InvoiceService();
 const ticketSaleService = new TicketSaleService();
 const transactionRepo = new TransactionRepository();
 const pushService     = new PushNotificationService();
 const emailService    = new NotificationMessageQueueService(); // ← agregar
+const wompiFeeService = new WompiFeeService();
 
 export class WebhookService {
   async handleTransactionUpdated(transaction: any): Promise<void> {
@@ -66,6 +68,17 @@ export class WebhookService {
         data: { payment_method: payment_method_type },
       });
       console.log(`✅ Invoice.payment_method actualizado a ${payment_method_type}\n`);
+    }
+
+    // Comisión real de Wompi — solo al aprobarse (ahí se conoce la franquicia
+    // real de tarjeta); aislado en su propio try/catch para no afectar el
+    // resto del webhook si algo falla acá.
+    if (status === 'APPROVED') {
+      try {
+        await wompiFeeService.calculateAndStore(invoice.id, payment_method_type, payment_method);
+      } catch (feeError: any) {
+        console.error('⚠️ Error calculando comisión de Wompi:', feeError.message);
+      }
     }
 
     // ============================================
