@@ -12,6 +12,9 @@ export const createEventSchema = z.object({
     cover: z.string().url('Debe ser una URL válida').optional().or(z.literal('')),
     date_event: z.string().datetime('Debe ser una fecha válida ISO 8601'),
     place_address: z.string().min(5, 'La dirección debe tener al menos 5 caracteres'),
+    category_id: z.number().int().positive('La categoría es requerida'),
+    subcategory_id: z.number().int().positive().optional().nullable(),
+    subgenre_id: z.number().int().positive().optional().nullable(),
     latitude: z.string().optional().or(z.literal('')),
     longitude: z.string().optional().or(z.literal('')),
     city: z.string().min(2, 'La ciudad es requerida'),
@@ -22,7 +25,7 @@ export const createEventSchema = z.object({
     date_type: z.enum(['SINGLE', 'MULTIPLE', 'RANGE_DATE', 'RANGE_DATE_EXCEPT', 'EXPLICIT_DATES']).default('SINGLE'),
     url_video: z.string().url().optional().or(z.literal('')),
     num_max_tickets: z.number().int().positive('El número máximo de tickets debe ser positivo').optional().default(0),
-    
+
     // Configuración de negocio
     apply_dcto: z.boolean().default(false),
     allow_external_promoters: z.boolean().default(false),
@@ -51,6 +54,9 @@ export const updateEventSchema = z.object({
     cover: z.string().url().optional().or(z.literal('')),
     date_event: z.string().datetime().optional(),
     place_address: z.string().min(5).optional(),
+    category_id: z.number().int().positive().optional(),
+    subcategory_id: z.number().int().positive().optional().nullable(),
+    subgenre_id: z.number().int().positive().optional().nullable(),
     latitude: z.string().optional(),
     longitude: z.string().optional(),
     city: z.string().min(2).optional(),
