@@ -8,6 +8,7 @@ export const createLiquidationSchema = z.object({
     paypac_commission:   z.number().min(0),
     promoter_commission: z.number().min(0).optional(),
     refunds:             z.number().min(0).optional(),
+    wompi_fee:           z.number().min(0).optional(),
     liquidation_date:    z.string().datetime(),
   }),
 });
