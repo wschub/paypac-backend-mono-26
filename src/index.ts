@@ -38,6 +38,7 @@ import transactionRoutes from './routes/transaction.routes';
 import paymentMethodsUIRoutes from './routes/paymentmethodsui.routes';
 import paymentCardRoutes from './routes/paymentmethodcard.routes';
 import cardFranchiseFeeRoutes from './routes/card_franchise_fee.routes';
+import notificationTypeConfigRoutes from './routes/notification_type_config.routes';
 import emailQueueRoutes from './routes/notificationmessagequeue.routes';
 import smsRoutes from './routes/sms.routes';
 import countriesRoutes from './routes/countries.routes';
@@ -202,6 +203,7 @@ app.use('/api/transactions', transactionRoutes);
 app.use('/api/payment-methods', paymentMethodsUIRoutes);
 app.use('/api/payment-cards', paymentCardRoutes);
 app.use('/api/card-franchise-fees', cardFranchiseFeeRoutes);
+app.use('/api/notification-type-config', notificationTypeConfigRoutes);
 //notification routes
 app.use('/api/email-queue', emailQueueRoutes);
 //sms routes

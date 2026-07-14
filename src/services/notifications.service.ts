@@ -1,31 +1,38 @@
 import { prisma } from '../prisma/client';
+import { NotificationTypeConfigRepository } from '../repositories/notification_type_config.repository';
 
-const ALL_NOTIFICATION_TYPES = [
-  'FRIEND_REQUEST', 'FRIEND_ACCEPTED', 'FRIEND_ACTIVITY',
-  'EVENT_REMINDER', 'EVENT_NEW', 'EVENT_PRICE_DROP', 'EVENT_SOLD_OUT',
-  'TICKET_TRANSFER', 'TICKET_USED',
-  'POINTS_EARNED', 'POINTS_EXPIRING', 'POINTS_TRANSFER_SENT', 'POINTS_TRANSFER_RECEIVED',
-  'PROMOTIONAL', 'SYSTEM',
-] as const;
+const typeConfigRepo = new NotificationTypeConfigRepository();
 
 export class NotificationsService {
 
+  /**
+   * Preferencias del usuario, fusionadas con la config por tipo:
+   * - is_mandatory: true -> el toggle se muestra bloqueado/activado, ignorando
+   *   lo que el usuario tenga guardado (siempre se entrega por los canales del tipo).
+   * - available_channels: canales que este tipo realmente soporta, para que el
+   *   frontend oculte los toggles que no aplican (ej: WhatsApp en FRIEND_REQUEST).
+   */
   async getPreferences(userId: number): Promise<any[]> {
+    await typeConfigRepo.syncMissingTypes();
+    const configs = await typeConfigRepo.findAll();
+
     const preferences = await prisma.notificationPreference.findMany({
       where: { user_id: userId },
     });
+    const preferenceByType = new Map(preferences.map((p) => [p.notification_type, p]));
 
-    if (preferences.length === 0) {
-      await Promise.all(
-        ALL_NOTIFICATION_TYPES.map((type) =>
+    const missing = configs.filter((c) => !preferenceByType.has(c.notification_type));
+    if (missing.length > 0) {
+      await prisma.$transaction(
+        missing.map((c) =>
           prisma.notificationPreference.create({
             data: {
               user_id: userId,
-              notification_type: type as any,
-              channel_web: true,
-              channel_push: true,
-              channel_whatsapp: false,
-              channel_email: true,
+              notification_type: c.notification_type,
+              channel_web: c.channel_web,
+              channel_push: c.channel_push,
+              channel_whatsapp: c.channel_whatsapp,
+              channel_email: c.channel_email,
             },
           })
         )
@@ -33,7 +40,24 @@ export class NotificationsService {
       return this.getPreferences(userId);
     }
 
-    return preferences;
+    return configs.map((config) => {
+      const pref = preferenceByType.get(config.notification_type)!;
+      return {
+        id: pref.id,
+        notification_type: pref.notification_type,
+        is_mandatory: config.is_mandatory,
+        available_channels: {
+          web: config.channel_web,
+          push: config.channel_push,
+          whatsapp: config.channel_whatsapp,
+          email: config.channel_email,
+        },
+        channel_web: config.is_mandatory ? config.channel_web : pref.channel_web,
+        channel_push: config.is_mandatory ? config.channel_push : pref.channel_push,
+        channel_whatsapp: config.is_mandatory ? config.channel_whatsapp : pref.channel_whatsapp,
+        channel_email: config.is_mandatory ? config.channel_email : pref.channel_email,
+      };
+    });
   }
 
   async updatePreference(
@@ -44,6 +68,15 @@ export class NotificationsService {
     channelWhatsapp: boolean,
     channelEmail: boolean
   ) {
+    const config = await typeConfigRepo.findByType(notificationType as any);
+    if (config?.is_mandatory) {
+      throw new Error('Este tipo de notificación es obligatorio y no se puede desactivar');
+    }
+
+    // Defensivo: un canal no soportado por el tipo nunca queda en true,
+    // aunque el frontend lo haya enviado así.
+    const clamp = (value: boolean, supported: boolean) => value && supported;
+
     return prisma.notificationPreference.upsert({
       where: {
         user_id_notification_type: {
@@ -52,18 +85,18 @@ export class NotificationsService {
         },
       },
       update: {
-        channel_web: channelWeb,
-        channel_push: channelPush,
-        channel_whatsapp: channelWhatsapp,
-        channel_email: channelEmail,
+        channel_web: clamp(channelWeb, config?.channel_web ?? true),
+        channel_push: clamp(channelPush, config?.channel_push ?? true),
+        channel_whatsapp: clamp(channelWhatsapp, config?.channel_whatsapp ?? false),
+        channel_email: clamp(channelEmail, config?.channel_email ?? true),
       },
       create: {
         user_id: userId,
         notification_type: notificationType as any,
-        channel_web: channelWeb,
-        channel_push: channelPush,
-        channel_whatsapp: channelWhatsapp,
-        channel_email: channelEmail,
+        channel_web: clamp(channelWeb, config?.channel_web ?? true),
+        channel_push: clamp(channelPush, config?.channel_push ?? true),
+        channel_whatsapp: clamp(channelWhatsapp, config?.channel_whatsapp ?? false),
+        channel_email: clamp(channelEmail, config?.channel_email ?? true),
       },
     });
   }

@@ -1333,8 +1333,15 @@ enum NotificationType {
   FRIEND_ACTIVITY
   EVENT_REMINDER
   EVENT_NEW
+  EVENT_CANCELED
+  EVENT_RESCHEDULED
   EVENT_PRICE_DROP
+  EVENT_PRICE_INCREASE
   EVENT_SOLD_OUT
+  EVENT_TICKET_AVAILABLE
+  EVENT_WAITING_LIST
+  TICKET_PURCHASE_CONFIRMATION
+  TICKET_PURCHASE_FAILED
   TICKET_TRANSFER
   TICKET_USED
   POINTS_EARNED
@@ -1343,6 +1350,21 @@ enum NotificationType {
   POINTS_TRANSFER_RECEIVED
   PROMOTIONAL
   SYSTEM
+}
+
+// Regla por tipo de notificación: obligatoriedad (el usuario no puede desactivarla)
+// y qué canales aplican para ese tipo (ej: PROMOTIONAL sí admite whatsapp, FRIEND_REQUEST no).
+// NotificationPreference (por usuario) solo puede elegir dentro de lo que aquí esté habilitado.
+model NotificationTypeConfig {
+  id                 Int              @id @default(autoincrement())
+  notification_type  NotificationType @unique
+  is_mandatory       Boolean          @default(false)
+  channel_web        Boolean          @default(true)
+  channel_push       Boolean          @default(true)
+  channel_whatsapp   Boolean          @default(false)
+  channel_email      Boolean          @default(true)
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
 }
 
 model NotificationQueue {
