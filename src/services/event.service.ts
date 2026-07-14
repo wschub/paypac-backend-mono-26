@@ -11,7 +11,34 @@ const liquidationService = new EventLiquidationService();
 
 export class EventService {
 
-  
+  /**
+   * A partir del city_id elegido en el form, resuelve state_id/country_id
+   * y autocompleta los campos de texto city/country (para no tocar todo lo
+   * que ya los lee como string plano). De paso, activa la ciudad en el
+   * filtro público de búsqueda si todavía no tenía ningún evento.
+   */
+  private async resolveCityFields(cityId: number) {
+    const city = await prisma.cities.findUnique({
+      where: { id: cityId },
+      include: { country: true },
+    });
+    if (!city) {
+      throw new Error('La ciudad seleccionada no existe');
+    }
+
+    if (city.filters_active !== 1) {
+      await prisma.cities.update({ where: { id: cityId }, data: { filters_active: 1 } });
+    }
+
+    return {
+      city_id: city.id,
+      state_id: city.state_id,
+      country_id: city.country_id,
+      city: city.name_city,
+      country: city.country.name_country,
+    };
+  }
+
   /**
    * Crear un nuevo evento
    * Solo ORGANIZER y PAYPAC pueden crear eventos
@@ -29,8 +56,13 @@ export class EventService {
     const publicId = uuidv4();
     const publicUrl = await generateUniqueSlug((data as any).name);
 
+    const locationFields = (data as any).city_id
+      ? await this.resolveCityFields((data as any).city_id)
+      : {};
+
     const eventData = {
       ...data,
+      ...locationFields,
       organizer_id: userId,
       status: EVENT_STATUS.CREATED,
       public_id: publicId,
@@ -170,6 +202,10 @@ private getPriceFrom(localities: any[]) {
     let updateData: Prisma.EventUpdateInput = { ...data };
     if ((data as any).name && (data as any).name !== event.name) {
       updateData.public_url = await generateUniqueSlug((data as any).name, id);
+    }
+
+    if ((data as any).city_id) {
+      Object.assign(updateData, await this.resolveCityFields((data as any).city_id));
     }
 
     return eventRepo.update(id, updateData);

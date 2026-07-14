@@ -5,10 +5,11 @@ export class CityService {
   async getPublicCities(countryId?: number) {
     const targetCountryId = countryId || DEFAULT_COUNTRY_ID;
 
-    // Todas las ciudades del país habilitado
+    // Ciudades activas del país habilitado (con al menos un evento)
     const cities = await prisma.cities.findMany({
       where: {
         country_id: targetCountryId,
+        filters_active: 1,
       },
       select: {
         id: true,

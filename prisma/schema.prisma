@@ -184,6 +184,7 @@ model Countries {
   event_views      EventView[]
   web_blocks       WebBlockIndex[]
   users            User[]
+  events           Event[]
 }
 
 model States {
@@ -195,6 +196,7 @@ model States {
   cities     Cities[]
   companies  Company[]
   country    Countries @relation(fields: [country_id], references: [id])
+  events     Event[]
 }
 
 model Cities {
@@ -204,12 +206,17 @@ model Cities {
   name_city  String
   latitude   String
   longitude  String
+  /** 1 = aparece en el filtro público de búsqueda; se activa sola cuando la
+   *  ciudad recibe su primer evento. El resto de usos (dashboard, form de
+   *  evento) siguen mostrando todas las ciudades sin este filtro. */
+  filters_active Int  @default(0)
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
   country    Countries @relation(fields: [country_id], references: [id])
   state      States    @relation(fields: [state_id], references: [id])
   companies  Company[]
   event_views EventView[]
+  events     Event[]
 }
 
 model Category {
@@ -259,6 +266,15 @@ model Event {
   currency                 String                  @default("COP")
   city                     String                  @default("")
   country                  String                  @default("")
+  /** FKs reales de ubicación (para índices/filtros); city/country arriba se
+   *  autocompletan desde acá al guardar el evento y se conservan como texto
+   *  para no tocar todo lo que ya las lee como string plano. */
+  country_id               Int?
+  state_id                 Int?
+  city_id                  Int?
+  countryRef               Countries?              @relation(fields: [country_id], references: [id])
+  stateRef                 States?                 @relation(fields: [state_id], references: [id])
+  cityRef                  Cities?                 @relation(fields: [city_id], references: [id])
   event_type               TypeEvent               @default(PUBLICO)
   type_venue               Places                  @default(SIN_NUMERAR)
   url_video                String                  @default("")

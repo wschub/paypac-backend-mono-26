@@ -120,6 +120,7 @@ if (filters?.date_from || filters?.date_to) {
         category: true,
         subcategory: true,
         subgenre: true,
+        cityRef: true,
         localities: {
           include: {
             stages: true,
