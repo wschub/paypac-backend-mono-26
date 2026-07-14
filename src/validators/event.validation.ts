@@ -13,7 +13,7 @@ export const createEventSchema = z.object({
     date_event: z.string().datetime('Debe ser una fecha válida ISO 8601'),
     place_address: z.string().min(5, 'La dirección debe tener al menos 5 caracteres'),
     category_id: z.number().int().positive('La categoría es requerida'),
-    subcategory_id: z.number().int().positive().optional().nullable(),
+    subcategory_id: z.number().int().positive('La subcategoría es requerida'),
     subgenre_id: z.number().int().positive().optional().nullable(),
     latitude: z.string().optional().or(z.literal('')),
     longitude: z.string().optional().or(z.literal('')),
