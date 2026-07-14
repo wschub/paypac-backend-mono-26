@@ -278,15 +278,10 @@ const baseTotal  = discountApplied ? totalWithDiscount : totalRegular;
 const finalTotal = Math.max(0, baseTotal - pointsDiscount);
 
 
-/*
- 1. Descuento organizador (discount_code)
-2. Descuento/comisión promotor (promoter_code)
-3. finalTotal — declarado UNA sola vez
-4. Comisión PayPac — sobre el finalTotal correcto
-*/
-// ── Comisión PayPac — sobre el finalTotal real ───────────────────
+// ── Comisión PayPac — sobre totalRegular (sin descuentos), a propósito:
+// el % de PayPac es una ganancia garantizada que no debe reducirse por
+// descuentos que decida dar el organizador o un promotor.
 const paypac_commission_pct    = event.commission_percentage ?? 0;
-//const paypac_commission_amount = Math.round(finalTotal * paypac_commission_pct / 100);
 const paypac_commission_amount = Math.round(totalRegular * paypac_commission_pct / 100);
 
 

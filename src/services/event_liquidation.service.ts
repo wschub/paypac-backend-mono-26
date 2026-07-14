@@ -14,6 +14,7 @@ export class EventLiquidationService {
     paypac_commission: number;
     promoter_commission?: number;
     refunds?: number;
+    wompi_fee?: number;
     liquidation_date: Date;
   }, userRole: string) {
     if (userRole !== 'PAYPAC') throw new Error('Solo PAYPAC puede crear liquidaciones');
@@ -22,11 +23,13 @@ export class EventLiquidationService {
     if (!event) throw new Error('Evento no encontrado');
 
     const num_liquidation = await liquidationRepo.generateNumLiquidation();
+    const wompi_fee = data.wompi_fee ?? 0;
     const net_amount =
       data.gross_amount
       - data.paypac_commission
       - (data.promoter_commission ?? 0)
       - (data.refunds ?? 0);
+    const paypac_net_profit = data.paypac_commission - wompi_fee;
 
     return liquidationRepo.create({
       ...data,
@@ -34,6 +37,8 @@ export class EventLiquidationService {
       net_amount,
       promoter_commission: data.promoter_commission ?? 0,
       refunds: data.refunds ?? 0,
+      wompi_fee,
+      paypac_net_profit,
     });
   }
 
@@ -122,6 +127,7 @@ async autoCreateFromEvent(event_id: number): Promise<void> {
       paypac_commission_amount:   true,
       promoter_commission_amount: true,
       refunded_amount:            true,
+      wompi_fee_amount:           true,
     },
   });
 
@@ -129,7 +135,11 @@ async autoCreateFromEvent(event_id: number): Promise<void> {
   const paypac_commission   = invoiceAgg._sum.paypac_commission_amount   ?? 0;
   const promoter_commission = invoiceAgg._sum.promoter_commission_amount ?? 0;
   const refunds             = invoiceAgg._sum.refunded_amount            ?? 0;
+  const wompi_fee           = invoiceAgg._sum.wompi_fee_amount           ?? 0;
+  // net_amount es lo que le corresponde al organizador — el costo de Wompi
+  // no se le resta a él, lo absorbe PayPac de su propia comisión.
   const net_amount          = gross_amount - paypac_commission - promoter_commission - refunds;
+  const paypac_net_profit   = paypac_commission - wompi_fee;
 
   const num_liquidation = await liquidationRepo.generateNumLiquidation();
 
@@ -141,7 +151,9 @@ async autoCreateFromEvent(event_id: number): Promise<void> {
     paypac_commission,
     promoter_commission,
     refunds,
+    wompi_fee,
     net_amount,
+    paypac_net_profit,
     status:              'PENDING',
     liquidation_date:    new Date(),
   });

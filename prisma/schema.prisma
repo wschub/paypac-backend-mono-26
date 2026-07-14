@@ -490,7 +490,12 @@ model EventLiquidation {
   paypac_commission   Float
   promoter_commission Float                  @default(0)
   refunds             Float                  @default(0)
+  /** Lo que Wompi cobró en estas transacciones — costo de PayPac, no del
+   *  organizador, por eso no resta de net_amount. Sirve para saber la
+   *  ganancia real de PayPac (paypac_commission - wompi_fee). */
+  wompi_fee           Float                  @default(0)
   net_amount          Float
+  paypac_net_profit   Float                  @default(0)
   status              EventLiquidationStatus @default(PENDING)
   liquidation_date    DateTime
   paid_at             DateTime?

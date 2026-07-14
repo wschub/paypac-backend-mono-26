@@ -71,8 +71,14 @@ export class EventLiquidationRepository {
   }
 
   async generateNumLiquidation(): Promise<string> {
-    const count = await prisma.eventLiquidation.count();
-    return `LIQ-${String(count + 1).padStart(4, '0')}`;
+    // Basado en el máximo existente, no en count() — count() choca si alguna
+    // liquidación se borró en el medio (deja huecos que count()+1 repite).
+    const last = await prisma.eventLiquidation.findFirst({
+      orderBy: { id: 'desc' },
+      select: { num_liquidation: true },
+    });
+    const lastNum = last ? parseInt(last.num_liquidation.replace('LIQ-', ''), 10) || 0 : 0;
+    return `LIQ-${String(lastNum + 1).padStart(4, '0')}`;
   }
 
   async sumByCompany(company_id: number, from?: Date, to?: Date) {
