@@ -118,6 +118,7 @@ export class NotificationsService {
           channel: true,
           title: true,
           body: true,
+          data: true,
           status: true,
           read_at: true,
           createdAt: true,
