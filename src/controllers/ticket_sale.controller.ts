@@ -25,6 +25,19 @@ export const cancelListing = async (req: Request, res: Response) => {
   }
 };
 
+/**
+ * GET /api/ticket-sales/my-won-auctions — subastas que gané y aún puedo pagar
+ */
+export const getMyWonAuctions = async (req: Request, res: Response) => {
+  try {
+    const buyerId = (req as any).user.id;
+    const result = await saleService.getMyWonAuctions(buyerId);
+    res.status(200).json(result);
+  } catch (error: any) {
+    _handleError(res, error);
+  }
+};
+
 export const getMyListings = async (req: Request, res: Response) => {
   try {
     const sellerId = (req as any).user.id;

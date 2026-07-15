@@ -395,6 +395,43 @@ export class TicketSaleService {
   }
 
   /**
+   * Subastas que el comprador ganó y todavía puede pagar — independiente de
+   * si el listing sigue "visible" en el marketplace (su expires_at es de la
+   * fase de pujas, ya pasó). Expira lazily (marca EXPIRED) las que ya se
+   * pasaron de su ventana de pago, para no devolverlas como pagables.
+   */
+  async getMyWonAuctions(buyerId: number) {
+    const accepted = await saleRepo.findAcceptedOffersByBuyer(buyerId);
+    const now = new Date();
+    const result: any[] = [];
+
+    for (const offer of accepted) {
+      const deadline = getPaymentDeadline(offer.notified_to_pay_at ?? offer.updatedAt);
+      if (now > deadline) {
+        await saleRepo.updateOfferStatus(offer.id, 'EXPIRED');
+        continue;
+      }
+      result.push({
+        offer_id: offer.id,
+        amount: offer.amount,
+        payment_deadline: deadline.toISOString(),
+        listing: {
+          id: offer.listing.id,
+          public_id: offer.listing.public_id,
+          event_id: offer.listing.ticket.event_id,
+          ticket: {
+            loc_id_locality: offer.listing.ticket.loc_id_locality,
+            loc_name_locality: offer.listing.ticket.loc_name_locality,
+            ev_name: offer.listing.ticket.ev_name,
+          },
+        },
+      });
+    }
+
+    return { data: result };
+  }
+
+  /**
    * Comprar un listing — crea la Invoice de reventa (num_invoice RSL-...).
    * El comprador paga con los rieles existentes: POST /api/transactions/process
    * con el invoice_id retornado; el webhook Wompi detecta el prefijo RSL y

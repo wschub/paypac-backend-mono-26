@@ -60,6 +60,19 @@ export class TicketSaleRepository {
     });
   }
 
+  /**
+   * Subastas que el comprador ganó (oferta ACCEPTED) y aún no ha pagado.
+   * No filtra por expires_at del listing — esa fecha es de la fase de pujas,
+   * no de la ventana de pago (que se calcula sobre notified_to_pay_at).
+   */
+  async findAcceptedOffersByBuyer(buyerId: number) {
+    return prisma.ticketSaleOffer.findMany({
+      where: { buyer_id: buyerId, status: 'ACCEPTED' },
+      include: { listing: { include: { ticket: true } } },
+      orderBy: { updatedAt: 'desc' },
+    });
+  }
+
   // ── Offers ─────────────────────────────────────────────────────────────────
 
   async createOffer(data: { listing_id: number; buyer_id: number; amount: number }) {
