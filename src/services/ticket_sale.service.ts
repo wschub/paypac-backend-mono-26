@@ -233,6 +233,18 @@ export class TicketSaleService {
     if (!offer || offer.listing_id !== listingId) throw new Error('Oferta no encontrada');
     if (offer.status !== 'PENDING') throw new Error('Esta oferta ya fue procesada');
 
+    return this._resolveOfferAcceptance(listing, offer);
+  }
+
+  /**
+   * Núcleo de "aceptar oferta", compartido entre el vendedor aceptando
+   * manualmente (acceptOffer) y el cron de expiración (autoResolveExpiredListing)
+   * aceptando la mejor oferta automáticamente cuando se acaba el tiempo.
+   */
+  private async _resolveOfferAcceptance(listing: any, offer: any) {
+    const listingId = listing.id;
+    const offerId = offer.id;
+
     // Si había otra oferta ACCEPTED con ventana vencida, expirarla (lazy)
     const prevAccepted = await prisma.ticketSaleOffer.findFirst({
       where: { listing_id: listingId, status: 'ACCEPTED', id: { not: offerId } },
@@ -325,6 +337,28 @@ export class TicketSaleService {
       amount: offer.amount,
       payment_deadline: paymentDeadline.toISOString(),
     };
+  }
+
+  /**
+   * Resuelve un listing ACTIVE cuyo expires_at ya pasó (llamado por el cron
+   * de expiración) — si tiene una oferta PENDING, acepta la más alta
+   * automáticamente (mismo flujo que un vendedor aceptándola a mano); si no
+   * tiene ninguna (FIXED sin comprador, o AUCTION sin pujas), lo marca EXPIRED.
+   */
+  async autoResolveExpiredListing(listingId: number) {
+    const listing = await saleRepo.findListingById(listingId);
+    if (!listing || listing.status !== 'ACTIVE') return;
+
+    const bestOffer = await prisma.ticketSaleOffer.findFirst({
+      where: { listing_id: listingId, status: 'PENDING' },
+      orderBy: { amount: 'desc' },
+    });
+
+    if (bestOffer) {
+      await this._resolveOfferAcceptance(listing, bestOffer);
+    } else {
+      await saleRepo.updateListing(listingId, { status: 'EXPIRED' });
+    }
   }
 
   // 3.2 AUCTION — Mi oferta más reciente en un listing (para reconstruir estado tras un refresh)

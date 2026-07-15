@@ -62,6 +62,7 @@ import { validateBrevoConfig } from './config/brevo';
 import { startEmailQueueProcessor, startEmailQueueCleaner } from './jobs/email-queue-processor';
 import { startEventFinalizer } from './jobs/event-finalizer';
 import { startTicketTransferExpiry } from './jobs/ticket-transfer-expiry';
+import { startTicketSaleExpiry } from './jobs/ticket-sale-expiry';
 
 
 //webkook routes
@@ -239,6 +240,7 @@ startEmailQueueProcessor(); // Procesa cola cada 5 minutos
 startEmailQueueCleaner();   // Limpia mensajes antiguos diariamente
 startEventFinalizer(); //Finalize eventos
 startTicketTransferExpiry(); //Ticket expira en 48 horas si no es aceptado
+startTicketSaleExpiry(); //Resuelve publicaciones de reventa expiradas (acepta mejor oferta o marca EXPIRED)
 
 // ============================================
 // 🔌 WebSocket - Socket.IO
