@@ -74,6 +74,7 @@ try {
       name: event.name,
       image: event.image,
       date_event: new Date(event.date_event).toLocaleString('es-CO', {
+        timeZone: 'America/Bogota',
         dateStyle: 'full',
         timeStyle: 'short',
       }),

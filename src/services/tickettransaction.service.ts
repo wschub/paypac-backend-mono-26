@@ -82,7 +82,7 @@ try {
           event_name:      ticket?.ev_name          ?? 'tu evento',
           event_image:     ticket?.ev_cover         ?? '',
           event_date:      ticket?.ev_date_event
-            ? new Date(ticket.ev_date_event).toLocaleString('es-CO', { dateStyle: 'full', timeStyle: 'short' })
+            ? new Date(ticket.ev_date_event).toLocaleString('es-CO', { timeZone: 'America/Bogota', dateStyle: 'full', timeStyle: 'short' })
             : '',
           event_address:   ticket?.ev_place_address ?? '',
           locality_name:   ticket?.loc_name_locality ?? '',
@@ -692,7 +692,7 @@ async sendTransfer(
   // 7. Email — según si está registrado o no
   try {
     const eventDate = ticket.ev_date_event
-      ? new Date(ticket.ev_date_event).toLocaleString('es-CO', { dateStyle: 'full', timeStyle: 'short' })
+      ? new Date(ticket.ev_date_event).toLocaleString('es-CO', { timeZone: 'America/Bogota', dateStyle: 'full', timeStyle: 'short' })
       : '';
     const senderName = `${sender.name} ${sender.last_name}`; 
  
