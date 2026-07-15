@@ -349,6 +349,17 @@ export class TicketSaleService {
     const listing = await saleRepo.findListingById(listingId);
     if (!listing || listing.status !== 'ACTIVE') return;
 
+    // Si ya hay una oferta ACCEPTED (comprador ganó y está en su ventana de
+    // pago), NO tocar el listing — su expires_at es de la fase de puja, no
+    // de la ventana de pago, y el listing sigue ACTIVE hasta que el comprador
+    // pague (purchaseListing) o la oferta expire por su cuenta. Sin este guard,
+    // el cron volvería a ver este listing en cada corrida (sigue ACTIVE con
+    // expires_at pasado) y lo marcaría EXPIRED por error, bloqueando el pago.
+    const acceptedOffer = await prisma.ticketSaleOffer.findFirst({
+      where: { listing_id: listingId, status: 'ACCEPTED' },
+    });
+    if (acceptedOffer) return;
+
     const bestOffer = await prisma.ticketSaleOffer.findFirst({
       where: { listing_id: listingId, status: 'PENDING' },
       orderBy: { amount: 'desc' },
