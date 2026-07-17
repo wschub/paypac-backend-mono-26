@@ -232,26 +232,12 @@ export class TransactionService {
         throw new Error(`Pago fallido: ${paymentResult.message}`);
       }
 
-      // ── 3b. Actualizar PaymentMethodCard con el payment_source_id permanente ──
-      // El tok_... es de un solo uso; lo reemplazamos con el ID de la fuente de
-      // pago de Wompi (permanente) para que futuros reintentos no fallen.
-      if (
-        methodPayload.type === 'CARD' &&
-        paymentResult.payment_source_id &&
-        methodPayload.token?.startsWith('tok_')
-      ) {
-        try {
-          const updated = await prisma.paymentMethodCard.updateMany({
-            where: { id_token: methodPayload.token },
-            data: { id_token: String(paymentResult.payment_source_id) },
-          });
-          if (updated.count > 0) {
-            console.log(`✅ PaymentMethodCard actualizado con payment_source_id: ${paymentResult.payment_source_id}`);
-          }
-        } catch (e: any) {
-          console.warn('⚠️ No se pudo actualizar PaymentMethodCard:', e.message);
-        }
-      }
+      // Nota: la persistencia de payment_source_id sobre PaymentMethodCard ya
+      // ocurre dentro de sendTransaction(), inmediatamente después de prepare()
+      // y sin importar si la transacción termina en éxito o error — porque el
+      // tok_... de Wompi se consume ahí, no aquí. Repetirlo acá (solo tras
+      // éxito) dejaba sin protección el caso real que rompía tarjetas: un pago
+      // que falla DESPUÉS de crear el payment_source.
 
       // ── 4. Crear registro en Transactions y desbloquear usuario ──
       const transaction = await prisma.transactions.create({
@@ -378,22 +364,51 @@ export class TransactionService {
       const extraFields = await method.prepare(wompiCtx, payload, paymentCtx);
 
       // Persistir payment_source_id inmediatamente: el tok_ queda consumido en
-      // Wompi tras prepare(), incluso si la transacción falla después.
+      // Wompi tras prepare(), incluso si la transacción falla después. Si esto
+      // no se guarda, la tarjeta guardada queda con un token muerto para
+      // siempre — cualquier reintento futuro repetirá "token ya está en uso".
       if (
         payload.type === 'CARD' &&
         payload.token?.startsWith('tok_') &&
         (extraFields as any).payment_source_id
       ) {
-        try {
-          const r = await prisma.paymentMethodCard.updateMany({
-            where: { id_token: payload.token },
-            data:  { id_token: String((extraFields as any).payment_source_id) },
-          });
-          if (r.count > 0) {
-            console.log(`✅ [CARD] PaymentMethodCard.id_token → ${(extraFields as any).payment_source_id}`);
+        const rawToken = payload.token;
+        const sourceId = String((extraFields as any).payment_source_id);
+
+        // Un reintento cubre los P1001 transitorios que ya hemos visto en
+        // este entorno — sin esto, un solo blip de conexión deja la tarjeta
+        // guardada rota para siempre, sin ningún error visible.
+        let updated: { count: number } | null = null;
+        let lastError: any = null;
+        for (let attempt = 1; attempt <= 2 && !updated; attempt++) {
+          try {
+            updated = await prisma.paymentMethodCard.updateMany({
+              where: { id_token: rawToken },
+              data:  { id_token: sourceId },
+            });
+          } catch (e: any) {
+            lastError = e;
+            if (attempt === 1) {
+              console.warn(`⚠️ [CARD] Intento ${attempt} de persistir payment_source_id falló, reintentando:`, e.message);
+            }
           }
-        } catch (e: any) {
-          console.warn('⚠️ [CARD] No se pudo persistir payment_source_id:', e.message);
+        }
+
+        if (updated) {
+          if (updated.count > 0) {
+            console.log(`✅ [CARD] PaymentMethodCard.id_token → ${sourceId}`);
+          } else {
+            // 0 filas es normal si el pago usó un token que nunca se guardó
+            // como tarjeta (compra sin "guardar tarjeta"), no es un error.
+            console.log(`ℹ️ [CARD] payment_source_id ${sourceId} generado, pero el token no correspondía a ninguna tarjeta guardada`);
+          }
+        } else {
+          // Las 2 veces falló — esto SÍ deja una tarjeta guardada rota.
+          console.error(
+            `❌ [CARD] No se pudo persistir payment_source_id ${sourceId} tras 2 intentos — ` +
+            `si este token corresponde a una tarjeta guardada, quedará inutilizable ("token ya está en uso") ` +
+            `hasta que se corrija manualmente. Error:`, lastError?.message
+          );
         }
       }
 
