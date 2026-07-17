@@ -58,8 +58,11 @@ export const wompiWebhook = async (
     // 2️⃣ VALIDAR AMBIENTE
     // ============================================
     console.log('🌍 PASO 2: Validando ambiente...');
-    // ✅ CORREGIDO: Usar "production" en lugar de "prod"
-    const expectedEnv = process.env.WOMPI_MODE === 'sandbox' ? 'test' : 'production';
+    // Wompi identifica su propio ambiente en el payload del webhook como
+    // "test" o "prod" (no "production" — eso es solo la convención de
+    // nuestra variable WOMPI_MODE). Comparar contra "production" aquí hacía
+    // que TODO webhook real de producción se rechazara siempre.
+    const expectedEnv = process.env.WOMPI_MODE === 'sandbox' ? 'test' : 'prod';
     console.log('   WOMPI_MODE:', process.env.WOMPI_MODE);
     console.log('   Ambiente esperado:', expectedEnv);
     console.log('   Ambiente recibido:', environment);
@@ -71,13 +74,11 @@ export const wompiWebhook = async (
       console.error('   Recibido:', environment);
       console.error('');
       console.error('💡 DIAGNÓSTICO:');
-      
-      if (process.env.WOMPI_MODE === 'prod') {
-        console.error('   ❌ ERROR EN .ENV: WOMPI_MODE="prod" debe ser WOMPI_MODE="production"');
-      } else if (environment === 'test' && process.env.WOMPI_MODE === 'production') {
+
+      if (environment === 'test' && process.env.WOMPI_MODE !== 'sandbox') {
         console.error('   ❌ El frontend está enviando transacciones de PRUEBA (sandbox)');
         console.error('   📱 Solución: Usar PUB_PRO en lugar de PUB_TEST en la app');
-      } else if (environment === 'production' && process.env.WOMPI_MODE === 'sandbox') {
+      } else if (environment === 'prod' && process.env.WOMPI_MODE === 'sandbox') {
         console.error('   ❌ El frontend está enviando transacciones REALES');
         console.error('   📱 Solución: Cambiar WOMPI_MODE a "production" en .env');
       }

@@ -9,7 +9,8 @@
 export interface WompiWebhookEvent {
   event: WompiEventType;
   data: WompiEventData;
-  environment: 'test' | 'production';
+  // Wompi manda 'test' o 'prod' (no 'production') en el payload real del webhook.
+  environment: 'test' | 'prod';
   signature: WompiSignature;
   timestamp: number; // UNIX timestamp
   sent_at: string; // ISO 8601 date
